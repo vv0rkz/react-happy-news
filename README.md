@@ -67,4 +67,4 @@ MIT © [vv0rkz](https://github.com/vv0rkz/react-happy-news)
 
 ---
 
-Создано с помощью [@vv0rkz/js-template](https://github.com/vv0rkz/js-template)
+README.md создано с помощью [@vv0rkz/js-template](https://github.com/vv0rkz/js-template)
