@@ -16,7 +16,7 @@ const Main = () => {
         const fetchedNews = await getNews()
         setNews(fetchedNews)
       } catch (error) {
-        setNews(error)
+        console.error(error)
       } finally {
         setIsLoading(false)
       }
@@ -25,11 +25,12 @@ const Main = () => {
   }, [])
 
   return (
-    <main className={styles.header}>
-      <Skeleton />
-      {isLoading ? <Skeleton count={1} /> : <NewsBanner item={news[0]} />}
-      {isLoading ? <Skeleton type="item" count={10} /> : <NewsList news={news} />}
+    <main className={styles.main}>
+      {isLoading ? <Skeleton count={1} type="banner" height="520px" /> : <NewsBanner item={news[0]} />}
+
+      {isLoading ? <Skeleton type="item" count={10} height="100px" /> : <NewsList news={news} />}
     </main>
   )
 }
+
 export default Main

@@ -1,18 +1,17 @@
 import { formatTimeAgo } from '@helpers/formatTimeAgo'
-import styles from './styles.module.css'
 import Image from '../Image/Image'
+import styles from './styles.module.css'
 
 const NewsBanner = ({ item }) => {
-
   return (
-    <header className={styles.header}>
-      <Image image={item?.image}/>
-    
+    <div className={styles.banner}>
+      <Image image={item?.image} className={styles.image} />
       <h1 className={styles.title}>{item.title}</h1>
-      <p className={styles.extra}>{formatTimeAgo(item.published)} by {item.author}</p>
-    </header> 
+      <p className={styles.extra}>
+        {formatTimeAgo(item.published)} by {item.author}
+      </p>
+    </div>
   )
-
 }
 
 export default NewsBanner
