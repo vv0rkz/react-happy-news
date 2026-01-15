@@ -1,26 +1,50 @@
 .item {
   display: flex;
-  width: 100%;
   gap: 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
 }
-.title {
-  font-size: 16px;
+
+.item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
-.extra {
-  font-size: 12px;
-  color: M#6c7072;
+
+.image {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
+
 .info {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 
-.wrapper {
-  width: 64px;
-  height: 64px;
-  background-color: #f2f4f5;
-  background-position: center;
-  background-size: cover;
-  flex-shrink: 0;
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.extra {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
