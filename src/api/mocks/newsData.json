@@ -1,0 +1,374 @@
+{
+  "response": {
+    "status": "ok",
+    "userTier": "developer",
+    "total": 20,
+    "startIndex": 1,
+    "pageSize": 20,
+    "currentPage": 1,
+    "pages": 1,
+    "orderBy": "newest",
+    "results": [
+      {
+        "id": "environment/2026/jan/14/trachoma-blindness-elimination-milestone",
+        "type": "article",
+        "sectionId": "health",
+        "sectionName": "Health",
+        "webPublicationDate": "2026-01-14T10:00:00Z",
+        "webTitle": "World sets welcome health record: trachoma cases fall below 100 million for first time",
+        "webUrl": "https://www.positive.news/society/good-news-stories-from-week-2-of-2026/",
+        "apiUrl": "https://www.positive.news/society/good-news-stories-from-week-2-of-2026/",
+        "fields": {
+          "trailText": "The number of people at risk has fallen 94% since 2002, with Burundi, Egypt, Fiji, Mauritania, Papua New Guinea and Senegal all defeating trachoma in 2025",
+          "byline": "Gavin Haines",
+          "thumbnail": "https://images.unsplash.com/photo-1584515933487-779824d29309?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/health",
+        "pillarName": "Health"
+      },
+      {
+        "id": "environment/2026/jan/14/norway-electric-vehicles-97-percent",
+        "type": "article",
+        "sectionId": "environment",
+        "sectionName": "Environment",
+        "webPublicationDate": "2026-01-10T12:00:00Z",
+        "webTitle": "Electric vehicles now outnumber diesel cars on Norway's roads — 97% of new cars sold are EVs",
+        "webUrl": "https://electrek.co/2026/01/02/norway-reaches-97-ev-sales-as-evs-now-outnumber-diesels-on-its-roads/",
+        "apiUrl": "https://electrek.co/2026/01/02/norway-reaches-97-ev-sales-as-evs-now-outnumber-diesels-on-its-roads/",
+        "fields": {
+          "trailText": "In December 2025, 97.6% of vehicles sold were all-electric. Norway set the world's most ambitious target for ending fossil fuel car sales and achieved it",
+          "byline": "Megan Burns",
+          "thumbnail": "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/environment",
+        "pillarName": "Environment"
+      },
+      {
+        "id": "environment/2026/jan/09/chile-national-park-cape-froward",
+        "type": "article",
+        "sectionId": "conservation",
+        "sectionName": "Conservation",
+        "webPublicationDate": "2026-01-09T14:30:00Z",
+        "webTitle": "Chile creates vast new national park at 'end of the world' to protect endangered species",
+        "webUrl": "https://www.positive.news/society/good-news-stories-from-week-2-of-2026/",
+        "apiUrl": "https://www.reuters.com/sustainability/land-use-biodiversity/chile-moves-create-national-park-edge-world-protect-wildlife-2025-12-19/",
+        "fields": {
+          "trailText": "Proposed Cape Froward national park will span 150,000 hectares of subantarctic forests, peatlands and coastline, completing a 2,800km wildlife corridor",
+          "byline": "Gavin Haines",
+          "thumbnail": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/environment",
+        "pillarName": "Environment"
+      },
+      {
+        "id": "science/2026/jan/14/exercise-depression-treatment",
+        "type": "article",
+        "sectionId": "health",
+        "sectionName": "Health",
+        "webPublicationDate": "2026-01-14T08:00:00Z",
+        "webTitle": "Exercise 'as effective' as antidepressants in treating depression, major review finds",
+        "webUrl": "https://www.positive.news/society/good-news-stories-from-week-2-of-2026/",
+        "apiUrl": "https://www.cochranelibrary.com/cdsr/doi/10.1002/14651858.CD004366.pub7/full",
+        "fields": {
+          "trailText": "Moderate intensity exercise was deemed more effective than vigorous exercise, while combination of cardiovascular and resistance training was preferable",
+          "byline": "Prof Andrew Clegg",
+          "thumbnail": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/health",
+        "pillarName": "Health"
+      },
+      {
+        "id": "us-news/2026/jan/10/us-homicides-drop-record-2025",
+        "type": "article",
+        "sectionId": "society",
+        "sectionName": "Society",
+        "webPublicationDate": "2026-01-10T15:00:00Z",
+        "webTitle": "U.S. ended 2025 with largest one-year drop in homicides ever recorded",
+        "webUrl": "https://abcnews.go.com/US/us-poised-end-2025-largest-year-drop-homicides/story?id=128646976",
+        "apiUrl": "https://abcnews.go.com/US/us-poised-end-2025-largest-year-drop-homicides/story?id=128646976",
+        "fields": {
+          "trailText": "Based on preliminary data, 2025 saw roughly 20% decrease in homicides nationwide. Crime levels appear to be 'back to normal' after pandemic surge",
+          "byline": "Megan Burns",
+          "thumbnail": "https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/news",
+        "pillarName": "News"
+      },
+      {
+        "id": "us-news/2026/jan/10/denver-homicides-drop-48-percent",
+        "type": "article",
+        "sectionId": "society",
+        "sectionName": "Society",
+        "webPublicationDate": "2026-01-10T11:00:00Z",
+        "webTitle": "Denver's homicide rate fell by 48% in 2025 to one of city's lowest totals in decades",
+        "webUrl": "https://www.cbsnews.com/colorado/news/denver-homicides-fall-48-percent-in-2025/",
+        "apiUrl": "https://www.cbsnews.com/colorado/news/denver-homicides-fall-48-percent-in-2025/",
+        "fields": {
+          "trailText": "Denver police recorded 37 homicides in 2025, down from 70 in 2024 — lowest total since 1990. Strategies included community organizations and improved lighting",
+          "byline": "Megan Burns",
+          "thumbnail": "https://images.unsplash.com/photo-1619029507324-69e8a00187d7?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/news",
+        "pillarName": "News"
+      },
+      {
+        "id": "environment/2026/jan/10/nyc-congestion-pricing-success",
+        "type": "article",
+        "sectionId": "environment",
+        "sectionName": "Environment",
+        "webPublicationDate": "2026-01-10T09:30:00Z",
+        "webTitle": "NYC congestion pricing reduces air pollution by 22%, traffic injuries down 15% after one year",
+        "webUrl": "https://www.fastcompany.com/91460609/23-million-fewer-vehicles-one-year-of-congestion-pricing-in-new-york-city",
+        "apiUrl": "https://www.fastcompany.com/91460609/23-million-fewer-vehicles-one-year-of-congestion-pricing-in-new-york-city",
+        "fields": {
+          "trailText": "Program resulted in 23.7 million fewer vehicles, traffic delays down 25%, pedestrian fatalities down 15%, and honking complaints down 45%",
+          "byline": "Megan Burns",
+          "thumbnail": "https://images.unsplash.com/photo-1518391846015-55a9cc003b25?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/environment",
+        "pillarName": "Environment"
+      },
+      {
+        "id": "technology/2026/jan/10/dutch-students-modular-electric-car",
+        "type": "article",
+        "sectionId": "technology",
+        "sectionName": "Technology",
+        "webPublicationDate": "2026-01-10T13:00:00Z",
+        "webTitle": "Dutch university students create modular electric car 'you can repair yourself'",
+        "webUrl": "https://www.dezeen.com/2026/01/02/aria-repairabe-electric-car-tu-ecomotive-group/",
+        "apiUrl": "https://www.dezeen.com/2026/01/02/aria-repairabe-electric-car-tu-ecomotive-group/",
+        "fields": {
+          "trailText": "ARIA electric car comes with built-in toolbox and components that can be easily repaired or replaced by owner, challenging current manufacturing practices",
+          "byline": "Megan Burns",
+          "thumbnail": "https://images.unsplash.com/photo-1617788138017-80ad40651399?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/news",
+        "pillarName": "News"
+      },
+      {
+        "id": "lifeandstyle/2026/jan/10/england-animal-welfare-reforms",
+        "type": "article",
+        "sectionId": "society",
+        "sectionName": "Society",
+        "webPublicationDate": "2026-01-10T10:00:00Z",
+        "webTitle": "England passes 'biggest' animal welfare reforms 'in a generation' impacting hens, pigs, puppies",
+        "webUrl": "https://www.theguardian.com/world/2025/dec/22/government-outlaw-hen-cages-pig-farrowing-crates-england",
+        "apiUrl": "https://www.theguardian.com/world/2025/dec/22/government-outlaw-hen-cages-pig-farrowing-crates-england",
+        "fields": {
+          "trailText": "England will end use of hen cages and pig farrowing crates, ban trail hunting and puppy farming by 2030 in most ambitious animal welfare strategy",
+          "byline": "Megan Burns",
+          "thumbnail": "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/lifestyle",
+        "pillarName": "Lifestyle"
+      },
+      {
+        "id": "health/2026/jan/10/cervical-cancer-screening-at-home",
+        "type": "article",
+        "sectionId": "health",
+        "sectionName": "Health",
+        "webPublicationDate": "2026-01-10T14:00:00Z",
+        "webTitle": "New federal guidelines expand cervical cancer screening with at-home Pap smear alternative",
+        "webUrl": "https://abcnews.go.com/Health/new-federal-screening-guidance-expands-cervical-cancer-testing/story?id=128891185",
+        "apiUrl": "https://abcnews.go.com/Health/new-federal-screening-guidance-expands-cervical-cancer-testing/story?id=128891185",
+        "fields": {
+          "trailText": "Self-collection option allows women to test at home instead of doctor visit. Will be covered by private insurance beginning January 2027",
+          "byline": "Megan Burns",
+          "thumbnail": "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/health",
+        "pillarName": "Health"
+      },
+      {
+        "id": "science/2026/jan/09/solar-panel-recycling-breakthrough",
+        "type": "article",
+        "sectionId": "environment",
+        "sectionName": "Environment",
+        "webPublicationDate": "2026-01-09T12:00:00Z",
+        "webTitle": "Australian researchers crack solar panel recycling conundrum, recover 97% of silver",
+        "webUrl": "https://www.positive.news/society/good-news-stories-from-week-2-of-2026/",
+        "apiUrl": "https://www.positive.news/society/good-news-stories-from-week-2-of-2026/",
+        "fields": {
+          "trailText": "New technique sees panels ground into powder and floated in water without harmful chemicals. Could unlock billions in metals from urban waste",
+          "byline": "Gavin Haines",
+          "thumbnail": "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/environment",
+        "pillarName": "Environment"
+      },
+      {
+        "id": "environment/2026/jan/10/india-zero-rhino-poaching-second-year",
+        "type": "article",
+        "sectionId": "conservation",
+        "sectionName": "Conservation",
+        "webPublicationDate": "2026-01-10T16:00:00Z",
+        "webTitle": "For second year on record, zero rhinos poached in India's rhino stronghold",
+        "webUrl": "https://www.goodnewsnetwork.org/zero-rhinos-poached-in-indias-stronghold-for-the-second-year-on-record/",
+        "apiUrl": "https://www.goodnewsnetwork.org/zero-rhinos-poached-in-indias-stronghold-for-the-second-year-on-record/",
+        "fields": {
+          "trailText": "India is now home to some 4,000 rhinos in Assam stronghold, having once fallen to as low as 1,800 individuals",
+          "byline": "Megan Burns",
+          "thumbnail": "https://images.unsplash.com/photo-1564760055775-d63b17a55c44?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/environment",
+        "pillarName": "Environment"
+      },
+      {
+        "id": "environment/2026/jan/10/brazil-hiv-elimination-mother-child",
+        "type": "article",
+        "sectionId": "health",
+        "sectionName": "Health",
+        "webPublicationDate": "2026-01-10T08:00:00Z",
+        "webTitle": "Brazil becomes largest country in Americas to eliminate mother-to-child transmission of HIV",
+        "webUrl": "https://www.who.int/news/item/18-12-2025-who-validates-brazil-for-eliminating-mother-to-child-transmission-of-hiv",
+        "apiUrl": "https://www.who.int/news/item/18-12-2025-who-validates-brazil-for-eliminating-mother-to-child-transmission-of-hiv",
+        "fields": {
+          "trailText": "Historic milestone reflects country's commitment to universal and free access to health services anchored in strong primary health care system",
+          "byline": "Megan Burns",
+          "thumbnail": "https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/health",
+        "pillarName": "Health"
+      },
+      {
+        "id": "health/2026/jan/10/vaccines-dementia-risk-reduction",
+        "type": "article",
+        "sectionId": "health",
+        "sectionName": "Health",
+        "webPublicationDate": "2026-01-10T11:30:00Z",
+        "webTitle": "Studies find vaccines have 'off-target' benefits, reducing risk of dementia",
+        "webUrl": "https://www.nytimes.com/2026/01/03/health/vaccines-dementia-heart-elderly.html",
+        "apiUrl": "https://www.nytimes.com/2026/01/03/health/vaccines-dementia-heart-elderly.html",
+        "fields": {
+          "trailText": "Meta-analysis found reduced risks of dementia after vaccination for array of diseases, showing 'downstream effects' promote healthy aging",
+          "byline": "Megan Burns",
+          "thumbnail": "https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/health",
+        "pillarName": "Health"
+      },
+      {
+        "id": "technology/2026/jan/10/california-3d-printed-homes-fire-resistant",
+        "type": "article",
+        "sectionId": "technology",
+        "sectionName": "Technology",
+        "webPublicationDate": "2026-01-10T12:30:00Z",
+        "webTitle": "California's first 3D-printed neighborhood nearly complete with weather and fire-resistant homes",
+        "webUrl": "https://www.goodgoodgood.co/articles/california-3d-printed-homes-corduroy-castles",
+        "apiUrl": "https://www.goodgoodgood.co/articles/california-3d-printed-homes-corduroy-castles",
+        "fields": {
+          "trailText": "Homes aim to resist climate change, provide affordable housing, and act as blueprint to scale 3D printing to mitigate housing shortage statewide",
+          "byline": "Megan Burns",
+          "thumbnail": "https://images.unsplash.com/photo-1636050697498-edf3e4598c74?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/news",
+        "pillarName": "News"
+      },
+      {
+        "id": "environment/2026/jan/10/france-forever-chemicals-ban",
+        "type": "article",
+        "sectionId": "environment",
+        "sectionName": "Environment",
+        "webPublicationDate": "2026-01-10T10:30:00Z",
+        "webTitle": "French ban on 'forever chemicals' in cosmetics and clothing now officially in effect",
+        "webUrl": "https://www.france24.com/en/live-news/20251230-french-ban-on-forever-chemicals-in-cosmetics-clothing-to-enter-force",
+        "apiUrl": "https://www.france24.com/en/live-news/20251230-french-ban-on-forever-chemicals-in-cosmetics-clothing-to-enter-force",
+        "fields": {
+          "trailText": "Ban targets wide range of cosmetics and clothes and requires French authorities to regularly test drinking water for all kinds of PFAS",
+          "byline": "Megan Burns",
+          "thumbnail": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/environment",
+        "pillarName": "Environment"
+      },
+      {
+        "id": "environment/2026/jan/09/uk-junk-food-ads-restrictions",
+        "type": "article",
+        "sectionId": "health",
+        "sectionName": "Health",
+        "webPublicationDate": "2026-01-09T15:00:00Z",
+        "webTitle": "UK puts junk food ads on strict diet: TV adverts only after 9pm, banned online entirely",
+        "webUrl": "https://www.positive.news/society/good-news-stories-from-week-2-of-2026/",
+        "apiUrl": "https://www.positive.news/society/good-news-stories-from-week-2-of-2026/",
+        "fields": {
+          "trailText": "New rules part of drive to tackle childhood obesity. One in eight children between two and 10 in England are obese, according to NHS",
+          "byline": "Gavin Haines",
+          "thumbnail": "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/health",
+        "pillarName": "Health"
+      },
+      {
+        "id": "environment/2026/jan/09/scotland-lynx-reintroduction-consultation",
+        "type": "article",
+        "sectionId": "conservation",
+        "sectionName": "Conservation",
+        "webPublicationDate": "2026-01-09T16:00:00Z",
+        "webTitle": "Scotland a step closer to reintroducing lynx after 500 years with public consultation",
+        "webUrl": "https://www.positive.news/society/good-news-stories-from-week-2-of-2026/",
+        "apiUrl": "https://www.positive.news/society/good-news-stories-from-week-2-of-2026/",
+        "fields": {
+          "trailText": "89,000 households in northern Scotland asked for views. Region contains enough woodland and wild prey to support up to 250 lynx, studies suggest",
+          "byline": "Gavin Haines",
+          "thumbnail": "https://images.unsplash.com/photo-1551969014-7d2c4cddf0b6?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/environment",
+        "pillarName": "Environment"
+      },
+      {
+        "id": "health/2026/jan/10/warm-hugs-mental-health-study",
+        "type": "article",
+        "sectionId": "health",
+        "sectionName": "Health",
+        "webPublicationDate": "2026-01-10T09:00:00Z",
+        "webTitle": "New study finds the reason why warm hugs feel so good - could shape future mental health treatments",
+        "webUrl": "https://www.goodgoodgood.co/articles/why-warm-hugs-feel-good-study",
+        "apiUrl": "https://www.goodgoodgood.co/articles/why-warm-hugs-feel-good-study",
+        "fields": {
+          "trailText": "Research reveals neurological mechanisms behind comfort of physical warmth and human connection, opening new therapeutic possibilities",
+          "byline": "Megan Burns",
+          "thumbnail": "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/health",
+        "pillarName": "Health"
+      },
+      {
+        "id": "science/2026/jan/10/new-species-ocean-twilight-zone",
+        "type": "article",
+        "sectionId": "science",
+        "sectionName": "Science",
+        "webPublicationDate": "2026-01-10T13:30:00Z",
+        "webTitle": "Tiny 'underwater hotels' help scientists collect 20 new species in ocean's twilight zone",
+        "webUrl": "https://www.goodgoodgood.co/articles/new-species-twilight-zone-guam-hotels",
+        "apiUrl": "https://www.goodgoodgood.co/articles/new-species-twilight-zone-guam-hotels",
+        "fields": {
+          "trailText": "New species include goby fish with visible skeleton, yellow-dotted sea slug, orange cardinalfish, and baby octopus marked with polka dots",
+          "byline": "Megan Burns",
+          "thumbnail": "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=500"
+        },
+        "isHosted": false,
+        "pillarId": "pillar/news",
+        "pillarName": "News"
+      }
+    ]
+  }
+}

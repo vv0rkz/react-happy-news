@@ -1,17 +1,122 @@
+/* Header/styles.module.css */
 .header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  /* Прозрачный фон с glassmorphism эффектом */
+  background: rgba(102, 126, 234, 0.75);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 16px 20px;
+
+  /* Плавная тень */
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+
+  transition: all 0.3s ease;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
   display: flex;
-  width: 100%;
-  padding: 12px 24px;
-  background-color: #fff;
-  border-bottom: 1px solid #f2f4f5;
-  flex-direction: column;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .title {
-  font-size: 20px;
+  color: white;
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
 }
 
-.date {
+/* Улучшенный toggle с явным ON/OFF */
+.toggleButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 10px 18px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border-radius: 24px;
+  cursor: pointer;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.toggleButton:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.toggleButton:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.icon {
   font-size: 16px;
+  line-height: 1;
+}
+
+.label {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+/* ON состояние - зелёный */
+.statusOn {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(34, 197, 94, 0.9);
+  color: white;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(34, 197, 94, 0.3);
+}
+
+/* OFF состояние - красноватый */
+.statusOff {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+}
+
+/* Для мобильных */
+@media (max-width: 640px) {
+  .title {
+    font-size: 22px;
+  }
+
+  .label {
+    display: none; /* Скрываем "Mock" на маленьких экранах */
+  }
+
+  .toggleButton {
+    padding: 8px 14px;
+  }
 }
