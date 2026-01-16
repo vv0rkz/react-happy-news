@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-export function useFetch(fetchFunction, dependencies = []) {
+export function useFetch(fetchFunction) {
   const [data, setData] = useState(null)
   const [isLoading, setIsloading] = useState(true)
   const [error, setError] = useState(null)
@@ -8,6 +8,8 @@ export function useFetch(fetchFunction, dependencies = []) {
   const fetchData = useCallback(async () => {
     try {
       setIsloading(true)
+      setError(null)
+      setData(null)
       const result = await fetchFunction()
       setData(result)
     } catch (e) {
@@ -15,7 +17,7 @@ export function useFetch(fetchFunction, dependencies = []) {
     } finally {
       setIsloading(false)
     }
-  }, [])
+  }, [fetchFunction])
 
   useEffect(() => {
     fetchData()

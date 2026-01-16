@@ -4,12 +4,16 @@ import { getNews } from '@api/apiNews'
 import NewsBanner from '@components/NewsBanner/NewsBanner'
 import NewsList from '@components/NewsList/NewsList'
 import { useMock } from '@context/MockContext'
+import { useCallback } from 'react'
 import { useFetch } from '../../hooks/useFetch'
 import styles from './styles.module.css'
 
 const Main = () => {
   const { isMockEnabled } = useMock()
-  const { data: news, isLoading, error } = useFetch(() => getNews(isMockEnabled))
+
+  const getNewsWithMockToggle = useCallback(() => getNews(isMockEnabled), [isMockEnabled])
+
+  const { data: news, isLoading, error } = useFetch(getNewsWithMockToggle)
 
   // Компонент ошибки
   if (error && !isLoading) {
