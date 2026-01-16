@@ -13,7 +13,7 @@ export function useFetch(fetchFunction) {
       const result = await fetchFunction()
       setData(result)
     } catch (e) {
-      setError(e.message)
+      setError(e)
     } finally {
       setIsloading(false)
     }
