@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.2.0
+
+[compare changes](https://github.com/vv0rkz/react-happy-news/compare/v1.1.0...v1.2.0)
+
+### ✨ Новые фичи
+
+- #4 сделаны моки для первого запроса, чтобы работало без бэка ([#4](https://github.com/vv0rkz/react-happy-news/issues/4))
+
+### 📚 Документация
+
+- Update README with demo releases ([f8d209c](https://github.com/vv0rkz/react-happy-news/commit/f8d209c))
+- Readme, changelog ([60a7b23](https://github.com/vv0rkz/react-happy-news/commit/60a7b23))
+- Добавлено демо для v1.2.0 ([5faceaa](https://github.com/vv0rkz/react-happy-news/commit/5faceaa))
+
+### ❤️ Contributors
+
+- Vv0rkz <ivanchebykin4@gmail.com>
+
 ## v1.1.0
 
 [compare changes](https://github.com/vv0rkz/react-happy-news/compare/v1.0.0...v1.1.0)
