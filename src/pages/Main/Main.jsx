@@ -4,41 +4,12 @@ import { getNews } from '@api/apiNews'
 import NewsBanner from '@components/NewsBanner/NewsBanner'
 import NewsList from '@components/NewsList/NewsList'
 import { useMock } from '@context/MockContext'
-import { useEffect, useState } from 'react'
+import { useFetch } from '../../hooks/useFetch'
 import styles from './styles.module.css'
 
 const Main = () => {
-  const [news, setNews] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
   const { isMockEnabled } = useMock()
-
-  useEffect(() => {
-    const fetchNews = async () => {
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        const fetchedNews = await getNews(isMockEnabled)
-
-        if (!fetchedNews || fetchedNews.length === 0) {
-          throw new Error('Новости не загружены')
-        }
-
-        setNews(fetchedNews)
-      } catch (err) {
-        console.error('❌ Ошибка загрузки:', err)
-        setError({
-          message: err.message || 'Не удалось загрузить новости',
-          type: err.response?.status === 401 ? 'auth' : 'network',
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchNews()
-  }, [isMockEnabled])
+  const { data: news, isLoading, error } = useFetch(() => getNews(isMockEnabled))
 
   // Компонент ошибки
   if (error && !isLoading) {
