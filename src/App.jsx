@@ -1,18 +1,16 @@
 import './App.css'
 import Header from './components/Header/Header'
+import { MockProvider } from './context/MockContext'
 import Main from './pages/Main/Main'
-
 function App() {
-
   return (
-    <>
-    <Header/>
-    <div className="container">
-      <Main/>
-    </div>
-    </>
+    <MockProvider>
+      <Header />
+      <div className="container">
+        <Main />
+      </div>
+    </MockProvider>
   )
 }
 
 export default App
-
