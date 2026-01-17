@@ -9,7 +9,8 @@
       "@api/*": ["./src/api/*"],
       "@components/*": ["./src/components/*"],
       "@helpers/*": ["./src/helpers/*"],
-      "@context/*": ["./src/context/*"]
+      "@context/*": ["./src/context/*"],
+      "@hooks/*": ["./src/hooks/*"]
     }
   },
   "include": ["src/**/*"],

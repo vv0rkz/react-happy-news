@@ -4,6 +4,7 @@ import { getNews } from '@api/apiNews'
 import ErrorComponent from '@components/ErrorComponent/ErrorComponent'
 import NewsBanner from '@components/NewsBanner/NewsBanner'
 import NewsList from '@components/NewsList/NewsList'
+import Pagination from '@components/Pagination/Pagination'
 import { useMock } from '@context/MockContext'
 import { useCallback } from 'react'
 import { useFetch } from '../../hooks/useFetch'
@@ -29,7 +30,11 @@ const Main = () => {
     <main className={styles.main}>
       {isLoading ? <Skeleton count={1} type="banner" height="520px" /> : news[0] && <NewsBanner item={news[0]} />}
 
-      {isLoading ? <Skeleton type="item" count={10} height="100px" /> : <NewsList news={news} />}
+      {isLoading ? (
+        <Skeleton type="item" count={10} height="100px" />
+      ) : (
+        <Pagination data={news}>{(data) => <NewsList news={data} />}</Pagination>
+      )}
     </main>
   )
 }
