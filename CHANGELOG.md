@@ -1,5 +1,33 @@
 # Changelog
 
+## v1.3.0
+
+[compare changes](https://github.com/vv0rkz/react-happy-news/compare/v1.2.0...v1.3.0)
+
+### ✨ Новые фичи
+
+- #7 сделал базовую пагинацию для новостей ([#7](https://github.com/vv0rkz/react-happy-news/issues/7))
+
+### ♻️ Рефакторинг
+
+- UseFetch hook ([8ab226f](https://github.com/vv0rkz/react-happy-news/commit/8ab226f))
+- UseFetch hook ([f04d13f](https://github.com/vv0rkz/react-happy-news/commit/f04d13f))
+- Error component ([0f8b674](https://github.com/vv0rkz/react-happy-news/commit/0f8b674))
+
+### 📚 Документация
+
+- Update README with demo releases ([e02bee8](https://github.com/vv0rkz/react-happy-news/commit/e02bee8))
+- Update README with demo releases ([cf7d70f](https://github.com/vv0rkz/react-happy-news/commit/cf7d70f))
+- Демо для v1.3.0 ([9b3524d](https://github.com/vv0rkz/react-happy-news/commit/9b3524d))
+
+### 🛠️ Технические задачи
+
+- Js-template ([567f041](https://github.com/vv0rkz/react-happy-news/commit/567f041))
+
+### ❤️ Contributors
+
+- Vv0rkz <ivanchebykin4@gmail.com>
+
 ## v1.2.0
 
 [compare changes](https://github.com/vv0rkz/react-happy-news/compare/v1.1.0...v1.2.0)
