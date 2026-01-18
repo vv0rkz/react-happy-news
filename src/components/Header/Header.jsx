@@ -9,14 +9,11 @@ const Header = () => {
     <header className={styles.header}>
       <div className={styles.container}>
         <h1 className={styles.title}>Happy News 🌞</h1>
-
-        {import.meta.env.DEV && (
-          <button onClick={toggleMock} className={styles.toggleButton}>
-            <span className={styles.icon}>{isMockEnabled ? '🔧' : '🌐'}</span>
-            <span className={styles.label}>Mock</span>
-            <span className={isMockEnabled ? styles.statusOn : styles.statusOff}>{isMockEnabled ? 'ON' : 'OFF'}</span>
-          </button>
-        )}
+        <button onClick={toggleMock} className={styles.toggleButton}>
+          <span className={styles.icon}>{isMockEnabled ? '🔧' : '🌐'}</span>
+          <span className={styles.label}>Mock</span>
+          <span className={isMockEnabled ? styles.statusOn : styles.statusOff}>{isMockEnabled ? 'ON' : 'OFF'}</span>
+        </button>
       </div>
     </header>
   )
