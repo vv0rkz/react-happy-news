@@ -1,11 +1,25 @@
 import { isPositiveNews } from '@helpers/filterPositiveNews'
 import axios from 'axios'
 import mockNewsData from './mocks/newsData.json'
+import mockNewsDetailsData from './mocks/newsDetailsData.json'
 
 const BASE_URL = import.meta.env.VITE_NEWS_BASE_API_URL
 const API_KEY = import.meta.env.VITE_NEWS_API_KEY
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const transformNewsDetailsData = (newsItem) => {
+  const transformedNewsItem = {
+    id: newsItem.id,
+    title: newsItem.webTitle,
+    image: newsItem.fields?.thumbnail || '',
+    description: newsItem.fields?.trailText || '',
+    published: newsItem.webPublicationDate,
+    author: newsItem.fields?.byline || 'Unknown',
+    tag: newsItem.sectionName,
+  }
+  return transformedNewsItem
+}
 
 const transformNewsData = (results) => {
   if (!results || results.length === 0) {
@@ -80,4 +94,31 @@ export const getNews = async (useMock = false) => {
 
     throw error
   }
+}
+
+export const getNewsDetail = async (
+  id = 'science/ng-interactive/2026/jan/20/the-influencer-racing-to-save-thailands-most-endangered-sea-mammal',
+  useMock = false,
+) => {
+  if (useMock) {
+    console.log('🔧 Используются моковые данные')
+    await delay(500)
+
+    const mockResults = mockNewsDetailsData?.response?.content
+    if (!mockResults) {
+      throw new Error('Mock данные повреждены')
+    }
+
+    return transformNewsDetailsData(mockResults)
+  }
+
+  console.log('🌐 Запрос к Guardian API')
+  const response = await axios.get(`${BASE_URL}/${id}`, {
+    params: {
+      'api-key': API_KEY,
+      'show-fields': 'thumbnail,trailText,byline',
+    },
+  })
+
+  return transformNewsDetailsData(response.data.response.content)
 }
