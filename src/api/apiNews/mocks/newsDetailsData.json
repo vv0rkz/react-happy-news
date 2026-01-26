@@ -1,0 +1,25 @@
+{
+  "response": {
+    "status": "ok",
+    "userTier": "developer",
+    "total": 1,
+    "content": {
+      "id": "science/ng-interactive/2026/jan/20/the-influencer-racing-to-save-thailands-most-endangered-sea-mammal",
+      "type": "interactive",
+      "sectionId": "science",
+      "sectionName": "Science",
+      "webPublicationDate": "2026-01-20T10:58:31Z",
+      "webTitle": "The influencer racing to save Thailand’s most endangered sea mammal",
+      "webUrl": "https://www.theguardian.com/science/ng-interactive/2026/jan/20/the-influencer-racing-to-save-thailands-most-endangered-sea-mammal",
+      "apiUrl": "https://content.guardianapis.com/science/ng-interactive/2026/jan/20/the-influencer-racing-to-save-thailands-most-endangered-sea-mammal",
+      "fields": {
+        "trailText": "Amateur conservationist and social media influencer Theerasak ‘Pop’ Saksritawee has a rare bond with Thailand’s critically endangered dugongs. Pop raises an urgent alarm — before Thailand’s dugongs vanish forever",
+        "byline": "Mailee Osten-Tan, Nicolas Axelrod, Lisa Bachelor,Lindsay Poulton, Jess Gormley",
+        "thumbnail": "https://media.guim.co.uk/aaf4e99861883db700d1761a148b327b95787ee5/250_171_1135_909/500.jpg"
+      },
+      "isHosted": false,
+      "pillarId": "pillar/news",
+      "pillarName": "News"
+    }
+  }
+}

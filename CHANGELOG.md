@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.4.0
+
+[compare changes](https://github.com/vv0rkz/react-happy-news/compare/v1.3.0...v1.4.0)
+
+### ✨ Новые фичи
+
+- #8 сделана отдельная страница по новости ([#8](https://github.com/vv0rkz/react-happy-news/issues/8))
+
+### ♻️ Рефакторинг
+
+- Make mock available on all enviroments ([e36d566](https://github.com/vv0rkz/react-happy-news/commit/e36d566))
+- Api ([78659e5](https://github.com/vv0rkz/react-happy-news/commit/78659e5))
+
+### 📚 Документация
+
+- Update README with demo releases ([56b83c6](https://github.com/vv0rkz/react-happy-news/commit/56b83c6))
+- Demo v1.4.0 ([1db8433](https://github.com/vv0rkz/react-happy-news/commit/1db8433))
+
+### ❤️ Contributors
+
+- Vv0rkz <ivanchebykin4@gmail.com>
+
 ## v1.3.0
 
 [compare changes](https://github.com/vv0rkz/react-happy-news/compare/v1.2.0...v1.3.0)

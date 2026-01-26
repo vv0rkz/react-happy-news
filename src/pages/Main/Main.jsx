@@ -1,6 +1,6 @@
 // src/pages/Main/Main.jsx
 import Skeleton from '@/components/Skeleton/Skeleton'
-import { getNews } from '@api/apiNews'
+import { apiNews } from '@api'
 import ErrorComponent from '@components/ErrorComponent/ErrorComponent'
 import NewsBanner from '@components/NewsBanner/NewsBanner'
 import NewsList from '@components/NewsList/NewsList'
@@ -13,7 +13,7 @@ import styles from './styles.module.css'
 const Main = () => {
   const { isMockEnabled } = useMock()
 
-  const getNewsWithMockToggle = useCallback(() => getNews(isMockEnabled), [isMockEnabled])
+  const getNewsWithMockToggle = useCallback(() => apiNews.getNews(isMockEnabled), [isMockEnabled])
 
   const { data: news, isLoading, error, refetch } = useFetch(getNewsWithMockToggle)
 

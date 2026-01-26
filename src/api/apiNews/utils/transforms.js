@@ -1,0 +1,41 @@
+import { isPositiveNews } from '@helpers/filterPositiveNews'
+
+export const transformNewsDetailsData = (newsItem) => {
+  return {
+    id: newsItem.id,
+    title: newsItem.webTitle,
+    image: newsItem.fields?.thumbnail || '',
+    description: newsItem.fields?.trailText || '',
+    published: newsItem.webPublicationDate,
+    author: newsItem.fields?.byline || 'Unknown',
+    tag: newsItem.sectionName,
+  }
+}
+
+export const transformNewsData = (results) => {
+  if (!results || results.length === 0) {
+    console.warn('⚠️ Нет новостей для трансформации')
+    return []
+  }
+
+  const allNews = results.map(transformNewsDetailsData)
+
+  console.log(`📰 Всего новостей до фильтра: ${allNews.length}`)
+
+  const filteredNews = allNews.filter((news) => isPositiveNews(news.title, news.description))
+
+  console.log(`✅ Позитивных новостей после фильтра: ${filteredNews.length}`)
+
+  if (filteredNews.length === 0) {
+    console.warn('⚠️ Фильтр убрал все новости, возвращаем первые 10 без фильтра')
+    return allNews.slice(0, 10)
+  }
+
+  return filteredNews
+}
+
+export const transformMockNewsData = (results) => {
+  if (!results || results.length === 0) return []
+
+  return results.slice(0, 10).map(transformNewsDetailsData)
+}

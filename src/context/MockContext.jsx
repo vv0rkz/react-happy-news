@@ -12,7 +12,7 @@ export const MockProvider = ({ children }) => {
     if (stored !== null) {
       return stored === 'true'
     }
-    return import.meta.env.VITE_USE_MOCK_DATA === 'true'
+    return false
   })
 
   // Сохраняем в localStorage при изменении

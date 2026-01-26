@@ -1,22 +1,22 @@
 // src/components/Header/Header.jsx
 import { useMock } from '@context/MockContext'
+import { useNavigate } from 'react-router'
 import styles from './styles.module.css'
 
 const Header = () => {
   const { isMockEnabled, toggleMock } = useMock()
-
+  const navigate = useNavigate()
   return (
     <header className={styles.header}>
       <div className={styles.container}>
-        <h1 className={styles.title}>Happy News 🌞</h1>
-
-        {import.meta.env.DEV && (
-          <button onClick={toggleMock} className={styles.toggleButton}>
-            <span className={styles.icon}>{isMockEnabled ? '🔧' : '🌐'}</span>
-            <span className={styles.label}>Mock</span>
-            <span className={isMockEnabled ? styles.statusOn : styles.statusOff}>{isMockEnabled ? 'ON' : 'OFF'}</span>
-          </button>
-        )}
+        <h1 className={styles.title} onClick={() => navigate('/')}>
+          Happy News 🌞
+        </h1>
+        <button onClick={toggleMock} className={styles.toggleButton}>
+          <span className={styles.icon}>{isMockEnabled ? '🔧' : '🌐'}</span>
+          <span className={styles.label}>Mock</span>
+          <span className={isMockEnabled ? styles.statusOn : styles.statusOff}>{isMockEnabled ? 'ON' : 'OFF'}</span>
+        </button>
       </div>
     </header>
   )
