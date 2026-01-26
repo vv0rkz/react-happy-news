@@ -6,6 +6,7 @@
     "moduleResolution": "node",
     "paths": {
       "@/*": ["./src/*"],
+      "@api": ["./src/api/index.js"],
       "@api/*": ["./src/api/*"],
       "@components/*": ["./src/components/*"],
       "@helpers/*": ["./src/helpers/*"],
