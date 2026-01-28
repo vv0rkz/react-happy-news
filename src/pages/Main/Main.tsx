@@ -1,4 +1,3 @@
-// src/pages/Main/Main.jsx
 import Skeleton from '@/components/Skeleton/Skeleton'
 import { apiNews } from '@api'
 import ErrorComponent from '@components/ErrorComponent/ErrorComponent'
@@ -10,7 +9,7 @@ import { useCallback } from 'react'
 import { useFetch } from '../../hooks/useFetch'
 import styles from './styles.module.css'
 
-const Main = () => {
+const Main = (): React.ReactNode => {
   const { isMockEnabled } = useMock()
 
   const getNewsWithMockToggle = useCallback(() => apiNews.getNews(isMockEnabled), [isMockEnabled])
@@ -28,12 +27,12 @@ const Main = () => {
 
   return (
     <main className={styles.main}>
-      {isLoading ? <Skeleton count={1} type="banner" height="520px" /> : news[0] && <NewsBanner item={news[0]} />}
+      {isLoading ? <Skeleton count={1} type="banner" height="520px" /> : news?.[0] && <NewsBanner item={news[0]} />}
 
       {isLoading ? (
         <Skeleton type="item" count={10} height="100px" />
       ) : (
-        <Pagination data={news}>{(data) => <NewsList news={data} />}</Pagination>
+        news && <Pagination data={news}>{(data) => <NewsList news={data} />}</Pagination>
       )}
     </main>
   )

@@ -331,7 +331,7 @@ const NEGATIVE_KEYWORDS = [
   'mining',
 ]
 
-export const isPositiveNews = (title, description = '') => {
+export const isPositiveNews = (title: string, description: string = ''): boolean => {
   const text = `${title} ${description}`.toLowerCase()
 
   // Сначала отсекаем негативные

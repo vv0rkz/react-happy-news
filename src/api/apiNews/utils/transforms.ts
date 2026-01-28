@@ -1,6 +1,8 @@
 import { isPositiveNews } from '@helpers/filterPositiveNews'
+import type { RawNewsItem } from '../../schemas'
+import type { NewsDetailsData } from './transforms.types'
 
-export const transformNewsDetailsData = (newsItem) => {
+export const transformNewsDetailsData = (newsItem: RawNewsItem): NewsDetailsData => {
   return {
     id: newsItem.id,
     title: newsItem.webTitle,
@@ -12,7 +14,7 @@ export const transformNewsDetailsData = (newsItem) => {
   }
 }
 
-export const transformNewsData = (results) => {
+export const transformNewsData = (results: RawNewsItem[]): NewsDetailsData[] => {
   if (!results || results.length === 0) {
     console.warn('⚠️ Нет новостей для трансформации')
     return []
@@ -34,7 +36,7 @@ export const transformNewsData = (results) => {
   return filteredNews
 }
 
-export const transformMockNewsData = (results) => {
+export const transformMockNewsData = (results: RawNewsItem[]): NewsDetailsData[] => {
   if (!results || results.length === 0) return []
 
   return results.slice(0, 10).map(transformNewsDetailsData)

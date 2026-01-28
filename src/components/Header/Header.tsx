@@ -1,9 +1,8 @@
-// src/components/Header/Header.jsx
 import { useMock } from '@context/MockContext'
-import { useNavigate } from 'react-router'
+import { useNavigate } from 'react-router-dom'
 import styles from './styles.module.css'
 
-const Header = () => {
+const Header = (): React.ReactNode => {
   const { isMockEnabled, toggleMock } = useMock()
   const navigate = useNavigate()
   return (

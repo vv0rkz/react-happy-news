@@ -1,6 +1,11 @@
 import styles from './styles.module.css'
 
-function ErrorComponent({ error, onRetry }) {
+interface ErrorComponentProps {
+  error: Error
+  onRetry: () => void
+}
+
+function ErrorComponent({ error, onRetry }: ErrorComponentProps): React.ReactNode {
   return (
     <main className={styles.main}>
       <div className={styles.errorContainer}>

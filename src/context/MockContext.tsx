@@ -1,13 +1,21 @@
-// src/context/MockContext.jsx
-import { createContext, useContext, useEffect, useState } from 'react'
+import { type ReactNode, createContext, useContext, useEffect, useState } from 'react'
 
-const MockContext = createContext()
+interface MockContextValue {
+  isMockEnabled: boolean
+  toggleMock: () => void
+}
+
+const MockContext = createContext<MockContextValue | undefined>(undefined)
 
 const STORAGE_KEY = 'happyNews_mockMode'
 
-export const MockProvider = ({ children }) => {
+interface MockProviderProps {
+  children: ReactNode
+}
+
+export const MockProvider = ({ children }: MockProviderProps): React.ReactNode => {
   // Читаем из localStorage, если нет — берём из env
-  const [isMockEnabled, setIsMockEnabled] = useState(() => {
+  const [isMockEnabled, setIsMockEnabled] = useState<boolean>(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored !== null) {
       return stored === 'true'
@@ -21,7 +29,7 @@ export const MockProvider = ({ children }) => {
     console.log('💾 Mock mode сохранён:', isMockEnabled ? 'ON' : 'OFF')
   }, [isMockEnabled])
 
-  const toggleMock = () => {
+  const toggleMock = (): void => {
     setIsMockEnabled((prev) => {
       const newValue = !prev
       console.log('🔄 Mock mode переключён:', newValue ? 'ON' : 'OFF')

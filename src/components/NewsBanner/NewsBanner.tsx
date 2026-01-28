@@ -2,10 +2,22 @@ import { formatTimeAgo } from '@helpers/formatTimeAgo'
 import Image from '../Image/Image'
 import styles from './styles.module.css'
 
-const NewsBanner = ({ item }) => {
+interface NewsBannerProps {
+  item: {
+    id: string
+    title: string
+    description: string
+    image: string
+    published: string
+    author: string
+    tag: string
+  }
+}
+
+const NewsBanner = ({ item }: NewsBannerProps): React.ReactNode => {
   return (
     <div className={styles.banner}>
-      <Image image={item?.image} className={styles.image} />
+      <Image image={item.image} className={styles.image ?? ''} />
       <h1 className={styles.title}>{item.title}</h1>
       <p className={styles.extra}>
         {formatTimeAgo(item.published)} by {item.author}
