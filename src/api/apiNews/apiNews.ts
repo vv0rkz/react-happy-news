@@ -14,18 +14,41 @@ const makeRequest = <T extends z.ZodSchema>(
   { method, url, params, dataPath }: RequestConfig,
   schema: T,
 ): Promise<z.infer<T>> => {
-  return axios({ method, url, params }).then((response) => {
-    let data = response.data
-    for (const key of dataPath.split('.')) {
-      data = data?.[key]
-    }
-    return schema.parse(data)
-  })
+  return axios({ method, url, params })
+    .then((response) => {
+      let data = response.data
+
+      // Проверка что данные существуют перед навигацией
+      if (!data) {
+        throw new Error('Response data is empty')
+      }
+
+      for (const key of dataPath.split('.')) {
+        data = data?.[key]
+
+        // Проверка на каждом шаге навигации
+        if (data === undefined) {
+          throw new Error(`Invalid data path: missing key "${key}"`)
+        }
+      }
+
+      return schema.parse(data)
+    })
+    .catch((error) => {
+      // Axios ошибки (сеть/CORS) пробрасываем дальше
+      if (axios.isAxiosError(error)) {
+        throw new Error(`Network error: ${error.message}`)
+      }
+      // Другие ошибки (включая Zod) тоже пробрасываем
+      throw error
+    })
 }
 
 class ApiNews {
   async getNews(useMock: boolean = false): Promise<NewsDetailsData[]> {
     const requestConfig = buildRequest(ENDPOINTS.SEARCH, null)
+
+    console.log('buildRequest(ENDPOINTS.SEARCH, null)', requestConfig)
 
     return withMockAndErrorHandling<NewsDetailsData[], RawNewsItem[]>({
       mockFn: () => mockNewsData?.response?.results,

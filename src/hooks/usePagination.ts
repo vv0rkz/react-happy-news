@@ -13,7 +13,15 @@ interface UsePaginationReturn<T> {
   isLastPage: boolean
 }
 
-export function usePagination<T>(data: T[], initialPageSize = 10): UsePaginationReturn<T> {
+export const USE_PAGINATION_INITIAL_VALUES = {
+  pageSize: 10,
+  currentPage: 1,
+} as const
+
+export function usePagination<T>(
+  data: T[],
+  initialPageSize = USE_PAGINATION_INITIAL_VALUES.pageSize,
+): UsePaginationReturn<T> {
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [pageSize, setPageSize] = useState<number>(initialPageSize)
 
@@ -23,11 +31,15 @@ export function usePagination<T>(data: T[], initialPageSize = 10): UsePagination
     const startIndex = (currentPage - 1) * pageSize
     const endIndex = startIndex + pageSize
     return data.slice(startIndex, endIndex)
-  }, [data, currentPage])
+  }, [data, currentPage, pageSize])
 
   useEffect(() => {
-    setCurrentPage(1)
+    setCurrentPage(USE_PAGINATION_INITIAL_VALUES.currentPage)
   }, [data])
+
+  useEffect(() => {
+    setCurrentPage(USE_PAGINATION_INITIAL_VALUES.currentPage)
+  }, [pageSize])
 
   return {
     currentPage,
@@ -38,7 +50,7 @@ export function usePagination<T>(data: T[], initialPageSize = 10): UsePagination
     nextPage: (): void => setCurrentPage((prev) => prev + 1),
     prevPage: (): void => setCurrentPage((prev) => prev - 1),
     setPageSize: (size: number): void => setPageSize(size),
-    isFirstPage: currentPage === 1,
+    isFirstPage: currentPage === USE_PAGINATION_INITIAL_VALUES.currentPage,
     isLastPage: currentPage === totalPages,
   }
 }

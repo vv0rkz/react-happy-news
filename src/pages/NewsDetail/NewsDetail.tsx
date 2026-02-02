@@ -1,10 +1,10 @@
+import { useMock } from '@hooks/useMock'
 import { useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { apiNews } from '../../api'
 import ErrorComponent from '../../components/ErrorComponent/ErrorComponent'
 import NewsBanner from '../../components/NewsBanner/NewsBanner'
 import Skeleton from '../../components/Skeleton/Skeleton'
-import { useMock } from '../../context/MockContext'
 import { useFetch } from '../../hooks/useFetch'
 import styles from './styles.module.css'
 
@@ -12,10 +12,7 @@ const NewsDetail = (): React.ReactNode => {
   const { id } = useParams<{ id: string }>()
   const { isMockEnabled } = useMock()
 
-  const getNewsDetailWithMockToggle = useCallback(
-    () => apiNews.getNewsDetail(id, isMockEnabled),
-    [id, isMockEnabled]
-  )
+  const getNewsDetailWithMockToggle = useCallback(() => apiNews.getNewsDetail(id, isMockEnabled), [id, isMockEnabled])
 
   const { data, isLoading, error, refetch } = useFetch(getNewsDetailWithMockToggle)
 

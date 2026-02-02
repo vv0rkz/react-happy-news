@@ -1,4 +1,4 @@
-import { isPositiveNews } from '@helpers/filterPositiveNews'
+import { isPositiveNews } from '@/helpers/filterPositiveNews'
 import type { RawNewsItem } from '../../schemas'
 import type { NewsDetailsData } from './transforms.types'
 

@@ -38,13 +38,13 @@ const ENDPOINT_CONFIG: Record<ENDPOINTS, EndpointConfig> = {
       section: 'science|environment|culture|technology|lifeandstyle',
       'page-size': 50,
     },
-    dataPath: 'data.response.results',
+    dataPath: 'response.results',
   },
   [ENDPOINTS.DETAIL]: {
     method: 'GET',
     path: (id: string | null) => `/${id}`,
     params: {},
-    dataPath: 'data.response.content',
+    dataPath: 'response.content',
   },
 }
 

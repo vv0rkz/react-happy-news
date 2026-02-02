@@ -1,4 +1,4 @@
-import { useMock } from '@context/MockContext'
+import { useMock } from '@hooks/useMock'
 import { useNavigate } from 'react-router-dom'
 import styles from './styles.module.css'
 
