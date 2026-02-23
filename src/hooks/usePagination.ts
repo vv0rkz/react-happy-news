@@ -20,7 +20,7 @@ export const USE_PAGINATION_INITIAL_VALUES = {
 
 export function usePagination<T>(
   data: T[],
-  initialPageSize = USE_PAGINATION_INITIAL_VALUES.pageSize,
+  initialPageSize: number = USE_PAGINATION_INITIAL_VALUES.pageSize,
 ): UsePaginationReturn<T> {
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [pageSize, setPageSize] = useState<number>(initialPageSize)

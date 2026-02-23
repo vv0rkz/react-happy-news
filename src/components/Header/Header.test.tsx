@@ -1,5 +1,8 @@
-import { beforeEach, describe, it, vi } from 'vitest'
-// Мокаем react-router-dom
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import Header from './Header'
+
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom')
@@ -9,68 +12,77 @@ vi.mock('react-router-dom', async () => {
   }
 })
 
-// Мокаем MockContext
-const mockToggleMock = vi.fn()
-vi.mock('@hooks/useMock', () => ({
-  useMock: vi.fn(),
-}))
+const MOCK_STORAGE_KEY = 'happyNews_mockMode'
 
 describe('Header', () => {
-  // Импортируем useMock для динамической подмены
-
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
+    vi.stubGlobal('location', { reload: vi.fn() })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('отображает заголовок "Happy News 🌞"', () => {
-    // TODO: настрой useMock.mockReturnValue({ isMockEnabled: false, toggleMock: mockToggleMock })
-    // TODO: render(<Header />) (не нужен BrowserRouter, т.к. уже замокан)
-    // TODO: проверь наличие заголовка через getByRole('heading', { name: /happy news/i })
+    render(<Header />)
+    expect(screen.getByRole('heading', { name: /happy news/i })).toBeInTheDocument()
   })
 
-  it('показывает статус "OFF" когда mock выключен', () => {
-    // TODO: useMock.mockReturnValue({ isMockEnabled: false, toggleMock: mockToggleMock })
-    // TODO: render(<Header />)
-    // TODO: проверь наличие текста "OFF"
-    // TODO: проверь наличие иконки "🌐"
+  it('показывает статус "OFF" и иконку "🌐" когда mock выключен', () => {
+    render(<Header />)
+    expect(screen.getByText('OFF')).toBeInTheDocument()
+    expect(screen.getByText('🌐')).toBeInTheDocument()
   })
 
-  it('показывает статус "ON" когда mock включен', () => {
-    // TODO: useMock.mockReturnValue({ isMockEnabled: true, toggleMock: mockToggleMock })
-    // TODO: render(<Header />)
-    // TODO: проверь наличие текста "ON"
-    // TODO: проверь наличие иконки "🔧"
+  it('показывает статус "ON" и иконку "🔧" когда mock включён', () => {
+    localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(true))
+    render(<Header />)
+    expect(screen.getByText('ON')).toBeInTheDocument()
+    expect(screen.getByText('🔧')).toBeInTheDocument()
   })
 
-  it('вызывает toggleMock при клике на кнопку Mock', async () => {
-    // TODO: useMock.mockReturnValue({ isMockEnabled: false, toggleMock: mockToggleMock })
-    // TODO: const user = userEvent.setup()
-    // TODO: render(<Header />)
-    // TODO: найди кнопку через getByRole('button', { name: /mock/i })
-    // TODO: await user.click(button)
-    // TODO: expect(mockToggleMock).toHaveBeenCalledTimes(1)
+  it('по клику сохраняет новое значение в localStorage и вызывает reload', async () => {
+    const user = userEvent.setup()
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+    render(<Header />)
+
+    await user.click(screen.getByRole('button', { name: /mock/i }))
+
+    expect(setItemSpy).toHaveBeenCalledWith(MOCK_STORAGE_KEY, JSON.stringify(true))
+    expect(window.location.reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('при повторном клике переключает mock обратно в OFF', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(true))
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+    render(<Header />)
+
+    await user.click(screen.getByRole('button', { name: /mock/i }))
+
+    expect(setItemSpy).toHaveBeenCalledWith(MOCK_STORAGE_KEY, JSON.stringify(false))
+    expect(window.location.reload).toHaveBeenCalledTimes(1)
   })
 
   it('вызывает navigate("/") при клике на заголовок', async () => {
-    // TODO: useMock.mockReturnValue({ isMockEnabled: false, toggleMock: mockToggleMock })
-    // TODO: const user = userEvent.setup()
-    // TODO: render(<Header />)
-    // TODO: найди заголовок через getByRole('heading')
-    // TODO: await user.click(heading)
-    // TODO: expect(mockNavigate).toHaveBeenCalledWith('/')
+    const user = userEvent.setup()
+    render(<Header />)
+
+    await user.click(screen.getByRole('heading', { name: /happy news/i }))
+
+    expect(mockNavigate).toHaveBeenCalledWith('/')
   })
 
-  it('применяет правильные CSS классы для статуса ON', () => {
-    // TODO: useMock.mockReturnValue({ isMockEnabled: true, toggleMock: mockToggleMock })
-    // TODO: render(<Header />)
-    // TODO: найди элемент со статусом через getByText('ON')
-    // TODO: проверь что у него есть класс 'statusOn' через expect(element).toHaveClass('statusOn')
+  it('применяет класс statusOn когда mock включён', () => {
+    localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(true))
+    render(<Header />)
+    expect(screen.getByText('ON')).toHaveClass('statusOn')
   })
 
-  it('применяет правильные CSS классы для статуса OFF', () => {
-    // TODO: useMock.mockReturnValue({ isMockEnabled: false, toggleMock: mockToggleMock })
-    // TODO: render(<Header />)
-    // TODO: найди элемент со статусом через getByText('OFF')
-    // TODO: проверь что у него есть класс 'statusOff'
+  it('применяет класс statusOff когда mock выключен', () => {
+    render(<Header />)
+    expect(screen.getByText('OFF')).toHaveClass('statusOff')
   })
 })

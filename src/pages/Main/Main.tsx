@@ -1,26 +1,28 @@
 import Skeleton from '@/components/Skeleton/Skeleton'
-import { apiNews } from '@api'
 import ErrorComponent from '@components/ErrorComponent/ErrorComponent'
 import NewsBanner from '@components/NewsBanner/NewsBanner'
 import NewsList from '@components/NewsList/NewsList'
 import Pagination from '@components/Pagination/Pagination'
-import { useMock } from '@hooks/useMock'
-import { useCallback } from 'react'
-import { useFetch } from '../../hooks/useFetch'
+import { useGetNewsQuery } from '@api'
 import styles from './styles.module.css'
 
 const Main = (): React.ReactNode => {
-  const { isMockEnabled } = useMock()
+  const {
+    data: news,
+    isLoading: isInitialLoading,
+    isFetching,
+    error: queryError,
+    refetch,
+  } = useGetNewsQuery()
 
-  const getNewsWithMockToggle = useCallback(() => apiNews.getNews(isMockEnabled), [isMockEnabled])
-
-  const { data: news, isLoading, error, refetch } = useFetch(getNewsWithMockToggle)
+  const isLoading = isInitialLoading || isFetching
+  const normalizedError = queryError ? new Error('Ошибка загрузки новостей') : null
 
   // Компонент ошибки
-  if (error && !isLoading) {
+  if (normalizedError && !isLoading) {
     return (
       <main className={styles.main}>
-        <ErrorComponent error={error} onRetry={refetch} />
+        <ErrorComponent error={normalizedError} onRetry={refetch} />
       </main>
     )
   }

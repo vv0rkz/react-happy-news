@@ -1,10 +1,23 @@
-import { useMock } from '@hooks/useMock'
+import { useLocalStorage } from '@hooks/useLocalStorage'
 import { useNavigate } from 'react-router-dom'
 import styles from './styles.module.css'
 
+const MOCK_STORAGE_KEY = 'happyNews_mockMode'
+
 const Header = (): React.ReactNode => {
-  const { isMockEnabled, toggleMock } = useMock()
+  const [isMockEnabled, setIsMockEnabled] = useLocalStorage<boolean>(MOCK_STORAGE_KEY, false)
   const navigate = useNavigate()
+
+  const toggleMock = (): void => {
+    const next = !isMockEnabled
+    // Записываем в localStorage синхронно до reload, иначе useEffect не успеет сохранить
+    localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(next))
+    setIsMockEnabled(next)
+    // MSW стартует/останавливается при загрузке приложения,
+    // поэтому для применения переключателя делаем reload.
+    window.location.reload()
+  }
+
   return (
     <header className={styles.header}>
       <div className={styles.container}>

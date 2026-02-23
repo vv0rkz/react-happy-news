@@ -1,26 +1,28 @@
-import { useMock } from '@hooks/useMock'
-import { useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { apiNews } from '../../api'
+import { useGetNewsDetailQuery } from '@api'
 import ErrorComponent from '../../components/ErrorComponent/ErrorComponent'
 import NewsBanner from '../../components/NewsBanner/NewsBanner'
 import Skeleton from '../../components/Skeleton/Skeleton'
-import { useFetch } from '../../hooks/useFetch'
 import styles from './styles.module.css'
 
 const NewsDetail = (): React.ReactNode => {
   const { id } = useParams<{ id: string }>()
-  const { isMockEnabled } = useMock()
+  const {
+    data,
+    isLoading: isInitialLoading,
+    isFetching,
+    error: queryError,
+    refetch,
+  } = useGetNewsDetailQuery(id ?? '')
 
-  const getNewsDetailWithMockToggle = useCallback(() => apiNews.getNewsDetail(id, isMockEnabled), [id, isMockEnabled])
-
-  const { data, isLoading, error, refetch } = useFetch(getNewsDetailWithMockToggle)
+  const isLoading = isInitialLoading || isFetching
+  const normalizedError = queryError ? new Error('Ошибка загрузки деталей новости') : null
 
   // Компонент ошибки
-  if (error && !isLoading) {
+  if (normalizedError && !isLoading) {
     return (
       <main className={styles.main}>
-        <ErrorComponent error={error} onRetry={refetch} />
+        <ErrorComponent error={normalizedError} onRetry={refetch} />
       </main>
     )
   }
