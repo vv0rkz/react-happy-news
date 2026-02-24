@@ -48,12 +48,12 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@api": ["./src/api/index.ts"],
-      "@api/*": ["./src/api/*"],
-      "@components/*": ["./src/components/*"],
-      "@helpers/*": ["./src/helpers/*"],
-      "@context/*": ["./src/context/*"],
-      "@hooks/*": ["./src/hooks/*"]
+      "@app/*": ["src/app/*"],
+      "@pages/*": ["src/pages/*"],
+      "@widgets/*": ["src/widgets/*"],
+      "@features/*": ["src/features/*"],
+      "@entities/*": ["src/entities/*"],
+      "@shared/*": ["src/shared/*"]
     }
   },
 

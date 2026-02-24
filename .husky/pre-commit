@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+
+npm run gen:barrels
+npm run fix:imports
+git add 'src/**/index.ts'
+git add -u
