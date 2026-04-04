@@ -1,60 +1,10 @@
 {
   "name": "react-happy-news",
   "private": true,
-  "version": "1.4.0",
-  "type": "module",
+  "workspaces": ["client", "server"],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "type-check": "tsc --noEmit",
-    "lint": "eslint .",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "preview": "vite preview",
-    "prepare": "husky",
-    "jst": "jst",
-    "_": "jst",
-    "gen:barrels": "node scripts/gen-barrels.js",
-    "fix:imports": "node scripts/update-imports.js"
-  },
-  "dependencies": {
-    "@reduxjs/toolkit": "^2.11.2",
-    "axios": "^1.13.2",
-    "classnames": "^2.5.1",
-    "msw": "^2.12.10",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-redux": "^9.2.0",
-    "react-router-dom": "^7.13.0",
-    "zod": "^4.3.6"
-  },
-  "devDependencies": {
-    "@commitlint/cli": "^20.3.1",
-    "@commitlint/config-conventional": "^20.3.1",
-    "@eslint/js": "^9.39.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^25.0.10",
-    "@types/react": "^19.2.9",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.1",
-    "@vv0rkz/js-template": "^1.6.3",
-    "changelogen": "^0.6.2",
-    "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.5.0",
-    "husky": "^9.1.7",
-    "jsdom": "^27.4.0",
-    "typescript": "^5.9.3",
-    "vite": "^7.2.4",
-    "vite-tsconfig-paths": "^6.0.4",
-    "vitest": "^4.0.18"
-  },
-  "msw": {
-    "workerDirectory": [
-      "public"
-    ]
+    "dev:client": "npm run dev --workspace=client",
+    "dev:server": "npm run dev --workspace=server",
+    "prepare": "husky"
   }
 }

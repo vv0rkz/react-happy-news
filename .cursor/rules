@@ -1,0 +1,95 @@
+## Правила для Cursor при генерации кода
+
+### Всегда
+- TypeScript строгий (strict: true в tsconfig)
+- Функциональные компоненты + hooks, никаких классов
+- CSS Modules для стилей (*.module.css), не inline styles
+- Именование: PascalCase для компонентов, camelCase для функций/переменных
+
+### Никогда
+- Не создавай BrowserRouter в remote — он уже в shell
+- Не импортируй из других remotes напрямую (только через события)
+- Не пиши логику в index.ts — только `import('./bootstrap')`
+- Не используй any в TypeScript
+
+### Структура компонента (шаблон)
+```tsx
+// ComponentName.tsx
+import styles from './ComponentName.module.css';
+
+interface ComponentNameProps {
+  // пропсы
+}
+
+export function ComponentName({ }: ComponentNameProps) {
+  // хуки вверху
+  // обработчики
+  // рендер
+}
+```
+
+### Структура MSW handler (шаблон)
+```ts
+// handlers.ts
+import { http, HttpResponse } from 'msw';
+
+export const handlers = [
+  http.get('/api/endpoint', () => {
+    return HttpResponse.json({ /* данные */ });
+  }),
+];
+```
+
+### Структура RTK Query endpoint (шаблон)
+```ts
+// api/someApi.ts
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+
+export const someApi = createApi({
+  reducerPath: 'someApi',
+  baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
+  endpoints: (builder) => ({
+    getSomething: builder.query<ResponseType, void>({
+      query: () => '/something',
+    }),
+  }),
+});
+```
+
+## Управление проектом: @vv0rkz/js-template
+
+Инструмент уже установлен и инициализирован. Все команды через `npm run _`.
+
+### Задачи и баги
+```bash
+npm run _ tasks                        # список открытых задач (GitHub Issues)
+npm run _ create-task "Название"       # создать задачу
+npm run _ bugs                         # список багов
+npm run _ create-bug "Описание"        # создать баг
+npm run _ all-issues                   # все открытые issues
+```
+
+### Релиз
+```bash
+npm run _ changelog                    # сгенерировать changelog
+npm run _ release                      # полный релиз (changelog + README)
+npm run _ push-release                 # запушить релиз в main
+```
+
+### Формат коммитов (commitlint — обязателен)
+- `feat:` — новая функция
+- `fix:` — исправление бага
+- `docs:` — документация
+- `refactor:` — рефакторинг
+- `perf:` — производительность
+- `chore:` — зависимости, конфиги
+
+### Правило работы с задачами
+- Перед началом новой версии → `npm run _ create-task "v0.2 Webpack + MF"`
+- После завершения версии → `npm run _ release`
+- Нашёл баг → `npm run _ create-bug "Описание"`
+- **Работа с feature/fix:** сначала `create-task` / `create-bug` → получаешь #N → ветка `feature/#N-...` или `fix/#N-...`
+
+## Текущий статус
+
+Смотри react-happy-news-ROADMAP.md для текущей задачи.
