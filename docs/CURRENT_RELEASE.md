@@ -1,160 +1,211 @@
-# React Happy News — Текущий инкремент v2.0
+# React Happy News — Релиз v2.0 — Multi-Source News
 
-**Статус:** `v1.5.0 → v2.0`
-**Ветка:** `Release/2.0.0-backend-rest-api`
-**Полный roadmap:** [react-happy-news-ROADMAP.md](./ROADMAP.md)
-**Покрытие:** 34 вопроса из 90 (37.8%)
-**Оценка времени:** 3-4 дня
+**Статус:** `in progress` (US 2.0.1 ✅ → US 2.0.2 active)
+**Ветка:** `v2.0.0-backend-and-many-news-api-filter`
+**Полный roadmap:** [ROADMAP.md](./ROADMAP.md)
+**Покрытие:** 50 вопросов из 170 (29.4%)
+**Оценка времени:** 4–5 дней
 
 ---
 
 ## Зачем
 
-Сейчас React-приложение ходит напрямую в Guardian API: один источник новостей, API-ключ лежит в клиентском коде, фильтрация тратит трафик пользователя, кэша нет. Backend-прослойка на Express устраняет все эти проблемы и открывает дверь для real-time фич в следующих релизах.
+Backend уже агрегирует новости из 3 источников — но пользователь этого не видит и не контролирует. В v2.0 добавляем управление источниками, source badges, детальную страницу через реальный бэкенд, форму обратной связи и Swagger-документацию.
 
 ---
 
-## Задачи
+## User Stories
 
-### US 2.0.1: Агрегация новостей с нескольких источников
+### US 2.0.1: Агрегация новостей с нескольких источников — ✅ DONE
 
-- [ ] Backend агрегирует новости из Guardian API, NewsAPI, HackerNews
-- [ ] Запросы к внешним API идут параллельно (Promise.allSettled)
-- [ ] Если одна из API недоступна — остальные всё равно работают
-- [ ] Фильтрация позитивных новостей на сервере
-- [ ] Кэш: повторный запрос за те же данные не долбит внешние API
+- [x] Backend агрегирует Guardian API, NewsAPI, HackerNews
+- [x] Запросы параллельно (Promise.allSettled)
+- [x] Если одна API недоступна — остальные работают
+- [x] Фильтрация позитивных новостей на сервере
+- [x] Кэш: повторный запрос не долбит внешние API
 
-### US 2.0.2: RESTful API с правильными HTTP-методами и статусами
+### US 2.0.2: Выбор источников (фронтенд + бэкенд) — 🔄 ACTIVE
 
-- [ ] `GET /api/news` — список новостей (query: source, page, limit)
+- [ ] Тогглы для каждого источника в UI (Guardian, NewsAPI, HackerNews)
+- [ ] По умолчанию все включены
+- [ ] При отключении источника — его новости исчезают
+- [ ] Выбор сохраняется в localStorage
+- [ ] `GET /api/news?sources=guardian,newsapi` — бэкенд фильтрует
+- [ ] Source badge на каждой карточке
+
+### US 2.0.3: RESTful API
+
+- [ ] `GET /api/news` — список (query: sources, page, limit)
 - [ ] `GET /api/news/:id` — детали новости
-- [ ] `POST /api/feedback` — отправка обратной связи (body: JSON)
-- [ ] `GET /api/health` — статус сервера
-- [ ] Правильные HTTP-статусы: 200, 201, 400, 404, 422, 500
-- [ ] Валидация query-параметров → 400 при невалидных
-- [ ] Серверная ошибка → 500 с сообщением (без stack trace в проде)
+- [ ] `POST /api/feedback` — обратная связь (body: JSON)
+- [ ] `GET /api/health` — статус сервера (✅ уже есть)
+- [ ] HTTP-статусы: 200, 201, 400, 404, 422, 500
+- [ ] Валидация query-параметров через Zod
+- [ ] Серверная ошибка → 500 без stack trace в проде
 
-### US 2.0.3: CORS между фронтом и бэкендом
+### US 2.0.4: CORS — ⚠️ Базово DONE
 
-- [ ] Backend настраивает CORS-заголовки (Access-Control-Allow-Origin)
-- [ ] Preflight-запрос (OPTIONS) виден в DevTools → Network
-- [ ] Без CORS-конфига фронт получает ошибку → починить → увидеть разницу
-- [ ] В проде CORS ограничен конкретным доменом (не \*)
+- [x] CORS-заголовки настроены (localhost:5173)
+- [ ] Preflight (OPTIONS) виден в DevTools
+- [ ] В проде — CORS ограничен конкретным доменом
 
-### US 2.0.4: Swagger-документация API
+### US 2.0.5: Swagger-документация
 
-- [ ] Swagger UI доступен по `/api/docs`
-- [ ] Все endpoints описаны с примерами запросов и ответов
-- [ ] OpenAPI spec генерируется из JSDoc-комментариев (swagger-jsdoc)
-- [ ] Типы на фронте можно генерировать из OpenAPI (openapi-typescript)
+- [ ] Swagger UI на `/api/docs`
+- [ ] Все endpoints описаны с примерами
+- [ ] OpenAPI spec из JSDoc-комментариев
 
-### US 2.0.5: HTTPS и безопасность
+### US 2.0.6: HTTPS и безопасность
 
-- [ ] Локально: понимание разницы HTTP vs HTTPS через DevTools
-- [ ] В проде: HTTPS через Let's Encrypt / Cloudflare
-- [ ] API-ключи хранятся только на сервере (.env), не попадают в клиент
+- [ ] Понимание HTTP vs HTTPS через DevTools
+- [x] API-ключи только на сервере (.env)
+- [ ] В проде: HTTPS (финализация в v2.5)
+
+### US 2.0.7: Архитектурный рефакторинг
+
+- [ ] Container/Presentational: `NewsFeedContainer` (логика) + `NewsFeedView` (рендеринг)
+- [ ] FSD Public API: каждый слой экспортирует через `index.ts`
+- [ ] Error Boundaries вокруг NewsFeed и NewsDetail
+- [ ] Семантические теги: `<article>`, `<main>`, `<nav>`
 
 ---
 
-## Архитектура монорепо
+## Архитектура v2.0
 
 ```
-react-happy-news/
-├── client/                    ← текущий React-проект (переносим сюда)
-│   ├── src/
-│   │   ├── app/
-│   │   ├── entities/news/
-│   │   ├── features/
-│   │   ├── pages/
-│   │   └── shared/
-│   ├── vite.config.js
-│   └── package.json
-│
-├── server/                    ← НОВЫЙ Node.js backend
-│   ├── src/
-│   │   ├── routes/
-│   │   │   ├── news.routes.ts
-│   │   │   ├── feedback.routes.ts
-│   │   │   └── health.routes.ts
-│   │   ├── services/
-│   │   │   ├── newsAggregator.ts     ← агрегация из нескольких API
-│   │   │   ├── guardianApi.ts
-│   │   │   ├── newsApi.ts
-│   │   │   └── hackerNewsApi.ts
-│   │   ├── middleware/
-│   │   │   ├── cors.ts
-│   │   │   ├── errorHandler.ts
-│   │   │   └── requestLogger.ts
-│   │   ├── utils/
-│   │   │   └── positivityFilter.ts   ← перенос фильтра на сервер
-│   │   ├── swagger/
-│   │   │   └── openapi.yaml
-│   │   └── app.ts
-│   ├── package.json
-│   └── tsconfig.json
-│
-└── package.json               ← workspace root (npm workspaces)
+server/src/
+├── routes/
+│   ├── news.routes.ts        ✅ (+ query: sources, GET /:id)
+│   ├── feedback.routes.ts    ← НОВЫЙ
+│   └── health.routes.ts
+├── services/
+│   ├── newsAggregator.ts     ✅ (+ фильтрация по sources)
+│   ├── guardianApi.ts        ✅
+│   ├── newsApi.ts            ✅
+│   └── hackerNewsApi.ts      ✅
+├── middleware/
+│   ├── errorHandler.ts       ← НОВЫЙ
+│   └── validateQuery.ts      ← НОВЫЙ (Zod-валидация)
+├── swagger/
+│   └── openapi.yaml          ← НОВЫЙ
+├── utils/
+│   ├── cache.ts              ✅
+│   └── positivityFilter.ts   ✅
+├── app.ts                    ✅ (расширить)
+└── index.ts                  ✅
+
+client/src/
+├── features/
+│   ├── source-filter/        ← НОВАЯ ФИЧА
+│   │   ├── SourceFilter.tsx
+│   │   ├── useSourceFilter.ts
+│   │   └── index.ts
+│   ├── feedback/             ← НОВАЯ ФИЧА
+│   │   ├── FeedbackForm.tsx
+│   │   └── index.ts
+│   └── paginate-news/        ✅
+├── entities/news/
+│   ├── SourceBadge/          ← НОВЫЙ КОМПОНЕНТ
+│   │   ├── SourceBadge.tsx
+│   │   └── index.ts
+│   ├── NewsBanner/           ✅ (+ badge)
+│   ├── NewsItem/             ✅ (+ badge)
+│   └── NewsList/             ✅
+├── pages/
+│   ├── Main/
+│   │   ├── NewsFeedContainer.tsx  ← логика + data
+│   │   └── NewsFeedView.tsx       ← чистый рендеринг
+│   └── NewsDetail/           ✅ (подключить к бэкенду)
+└── widgets/
+    └── Header/               ✅
 ```
 
 ---
 
 ## Стек v2.0
 
-| Компонент    | Технология                         |
-| ------------ | ---------------------------------- |
-| Runtime      | Node.js 20+                        |
-| Framework    | Express                            |
-| Язык         | TypeScript                         |
-| HTTP-клиент  | node-fetch / undici                |
-| Кэш          | node-cache (in-memory)             |
-| Документация | swagger-jsdoc + swagger-ui-express |
-| Валидация    | Zod (уже используется на фронте)   |
-| Логирование  | Morgan                             |
-| Env          | dotenv                             |
+| Компонент        | Технология                         |
+| ---------------- | ---------------------------------- |
+| Runtime          | Node.js 20+                        |
+| Framework        | Express                            |
+| Кэш              | node-cache                         |
+| Документация API | swagger-jsdoc + swagger-ui-express |
+| Валидация        | Zod                                |
+| Логирование      | Morgan                             |
+| Error Boundaries | react-error-boundary               |
 
 ---
 
-## Покрытие вопросов (34 шт.)
+## Покрытие вопросов (50 шт.)
 
-| #   | Вопрос                         | Как закрывается                                  |
-| --- | ------------------------------ | ------------------------------------------------ |
-| Q1  | HTTPS                          | HTTPS на сервере, TLS, сертификат                |
-| Q4  | 400 vs 500                     | Валидация → 400, crash → 500                     |
-| Q5  | CORS                           | cors middleware между портами                    |
-| Q9  | OPTIONS                        | Preflight виден в DevTools                       |
-| Q11 | GET vs POST                    | GET /news, POST /feedback                        |
-| Q12 | HTTP vs HTTPS                  | Сравнение в DevTools                             |
-| Q13 | Шифрование                     | Header + Body шифруются, Target частично         |
-| Q15 | REST аббревиатура              | Representational State Transfer                  |
-| Q16 | REST правила                   | Stateless, uniform interface, и т.д.             |
-| Q17 | Code on Demand                 | Теория: сервер может отдать JS                   |
-| Q18 | Протокол REST                  | HTTP/HTTPS                                       |
-| Q19 | OSI уровень HTTP               | Application (L7)                                 |
-| Q20 | Структура HTTP-запроса         | Request line + Headers + Body                    |
-| Q21 | Коды ошибок                    | 200, 201, 400, 404, 422, 500                     |
-| Q22 | Параллельные запросы           | Promise.allSettled для 3 API                     |
-| Q23 | Способы взаимодействия с бэком | RTK Query, fetch, axios                          |
-| Q33 | Где хранится документация      | Swagger UI на /api/docs                          |
-| Q34 | Инструменты документирования   | swagger-jsdoc, Swagger UI                        |
-| Q35 | Postman                        | Тестирование API через Postman                   |
-| Q36 | Изменение API-контрактов       | OpenAPI spec + версионирование                   |
-| Q37 | Same-origin policy             | Разные порты = разные origin                     |
-| Q38 | Части origin                   | protocol + host + port                           |
-| Q39 | Обход CORS                     | CORS-заголовки, proxy                            |
-| Q45 | Почему не auth через GET       | Данные в URL → логи, referrer                    |
-| Q46 | Query vs body                  | Фильтры в query, данные в body                   |
-| Q47 | Query при HTTPS                | Зашифрованы, но в логах сервера                  |
-| Q48 | HTTP-методы                    | GET, POST, PUT, PATCH, DELETE                    |
-| Q49 | Body в HTTP-методах            | GET обычно без body                              |
-| Q72 | Зачем ограничение cross-origin | Безопасность: защита от чужих скриптов           |
-| Q73 | HTTP-протокол                  | Request-response, методы                         |
-| Q78 | Принципы REST                  | Stateless, cacheable, uniform interface          |
-| Q79 | Frontend ↔ REST                | RTK Query → Express                              |
-| Q85 | Что на сервере при запросе     | Middleware chain: logger → cors → auth → handler |
-| Q88 | Проектирование API-контракта   | OpenAPI spec → codegen                           |
+<details>
+<summary>Backend: 34 вопроса</summary>
+
+| #   | Тема                         | Как закрывается                         |
+| --- | ---------------------------- | --------------------------------------- |
+| Q1  | HTTPS                        | TLS, сертификат                         |
+| Q4  | 400 vs 500                   | Валидация → 400, crash → 500            |
+| Q5  | CORS                         | cors middleware между портами           |
+| Q9  | OPTIONS                      | Preflight виден в DevTools              |
+| Q11 | GET vs POST                  | GET /news, POST /feedback               |
+| Q12 | HTTP vs HTTPS                | Сравнение в DevTools                    |
+| Q13 | Шифрование запроса           | Header + Body зашифрованы               |
+| Q15 | REST аббревиатура            | Representational State Transfer         |
+| Q16 | REST правила                 | Stateless, uniform interface, и т.д.    |
+| Q17 | Code on Demand               | Теория                                  |
+| Q18 | Протокол REST                | HTTP/HTTPS                              |
+| Q19 | OSI уровень HTTP             | Application (L7)                        |
+| Q20 | Структура HTTP-запроса       | Request line + Headers + Body           |
+| Q21 | Коды ошибок                  | 200, 201, 400, 404, 422, 500            |
+| Q22 | Параллельные запросы         | Promise.allSettled для 3 API            |
+| Q23 | Способы общения с бэком      | RTK Query, fetch, axios                 |
+| Q33 | Документация API             | Swagger UI на /api/docs                 |
+| Q34 | Инструменты документирования | swagger-jsdoc, Swagger UI               |
+| Q35 | Postman                      | Тестирование API                        |
+| Q36 | Изменение API-контрактов     | OpenAPI spec + версионирование          |
+| Q37 | Same-origin policy           | Разные порты = разные origin            |
+| Q38 | Части origin                 | protocol + host + port                  |
+| Q39 | Обход CORS                   | CORS-заголовки, proxy                   |
+| Q45 | Почему не auth через GET     | Данные в URL → логи, referrer           |
+| Q46 | Query vs body                | Фильтры в query, данные в body          |
+| Q47 | Query при HTTPS              | Зашифрованы, но видны в логах           |
+| Q48 | HTTP-методы                  | GET, POST, PUT, PATCH, DELETE           |
+| Q49 | Body в HTTP-методах          | GET обычно без body                     |
+| Q72 | Зачем cross-origin           | Безопасность                            |
+| Q73 | HTTP-протокол                | Request-response                        |
+| Q78 | Принципы REST                | Stateless, cacheable, uniform interface |
+| Q79 | Frontend ↔ REST              | RTK Query → Express                     |
+| Q85 | Что на сервере при запросе   | Middleware chain                        |
+| Q88 | Проектирование API-контракта | OpenAPI spec → codegen                  |
+
+</details>
+
+<details>
+<summary>Frontend: 16 вопросов</summary>
+
+| #    | Тема                     | Как закрывается                                |
+| ---- | ------------------------ | ---------------------------------------------- |
+| FQ1  | SOLID                    | SRP в компонентах, OCP в API-адаптерах         |
+| FQ2  | Design Patterns          | Module (FSD), Observer (SSE/WS), Factory (API) |
+| FQ4  | FSD                      | app → pages → widgets → features → entities    |
+| FQ5  | FSD vs альтернативы      | Почему FSD, а не Atomic Design                 |
+| FQ6  | Container/Presentational | NewsFeedContainer + NewsFeedView               |
+| FQ9  | Render Props             | Pagination: `children: (data) => ReactNode`    |
+| FQ13 | Mediator/Middleware      | Express middleware, RTK middleware             |
+| FQ14 | Virtual DOM              | Основа React через DevTools Profiler           |
+| FQ17 | JSX → createElement      | Babel REPL демонстрация                        |
+| FQ21 | Иммутабельность          | `[...prev, new]` vs `push`                     |
+| FQ23 | React Fragments          | `<>...</>` для списков                         |
+| FQ35 | Redux/Flux flow          | dispatch → reducer → state → UI                |
+| FQ36 | RTK Query                | Кэш, dedupe, loading states                    |
+| FQ55 | Error Boundaries         | NewsFeed, NewsDetail обёрнуты                  |
+| FQ72 | .env файлы               | VITE\_\* vs серверные переменные               |
+| FQ78 | Семантическая вёрстка    | article, main, nav, header                     |
+
+</details>
 
 ---
 
 ## Следующий релиз
 
-**v2.1 — SSE + Polling** (12 вопросов, нарастающий: 51.1%)
+**v2.1 — Positivity Stream** (27 вопросов, нарастающий: 45.3%)

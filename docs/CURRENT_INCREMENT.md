@@ -1,511 +1,164 @@
-# US 2.0.1 — Агрегация новостей с нескольких источников
+# US 2.0.2 — Выбор источников новостей
 
-**Статус:** `in_progress`
+**Статус:** `active`
 **Релиз:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md)
-**Покрывает вопросы:** Q22, Q23, Q85
+**Покрывает вопросы:** Q46 (query vs body), Q79 (RTK Query → REST), FQ4 (FSD), FQ21 (иммутабельность)
 
 **Acceptance Criteria:**
-- [ ] Backend агрегирует новости из Guardian API, NewsAPI, HackerNews
-- [ ] Запросы к внешним API идут параллельно (Promise.allSettled)
-- [ ] Если одна из API недоступна — остальные всё равно работают
-- [ ] Фильтрация позитивных новостей на сервере
-- [ ] Кэш: повторный запрос за те же данные не долбит внешние API
+- [ ] Тогглы для каждого источника в UI (Guardian, NewsAPI, HackerNews)
+- [ ] По умолчанию все включены
+- [ ] При отключении источника — его новости исчезают
+- [ ] Выбор сохраняется в localStorage
+- [ ] `GET /api/news?sources=guardian,newsapi` — бэкенд фильтрует
+- [ ] Source badge на каждой карточке
 
 ---
 
-<details>
-<summary>✅ Шаг 0: Подготовка монорепо — выполнено</summary>
+## Git
 
-> Выполняется один раз для всего v2.0. После — переходишь сразу к Шагу 1.
-
-### 0.1 Переместить React-проект в `client/`
+**Ветка:** `v2.0.0-backend-and-many-news-api-filter` (текущая)
+**Issue:** `#5`
 
 ```powershell
-# В корне проекта
-New-Item -ItemType Directory -Path client
-
-# Переносим всё кроме .git, node_modules, docs, .cursor
-Move-Item src, public, index.html, vite.config.js, tsconfig.json `
-          package.json, package-lock.json, scripts, .husky, `
-          .env, .env.development -Destination client\
+git checkout v2.0.0-backend-and-many-news-api-filter
+git status
 ```
-
-### 0.2 Создать корневой `package.json`
-
-Создать файл `package.json` в корне:
-
-```json
-{
-  "name": "react-happy-news",
-  "private": true,
-  "workspaces": ["client", "server"],
-  "scripts": {
-    "dev:client": "npm run dev --workspace=client",
-    "dev:server": "npm run dev --workspace=server",
-    "dev": "npm run dev:server & npm run dev:client"
-  }
-}
-```
-
-### 0.3 Создать папку `server/`
-
-```powershell
-New-Item -ItemType Directory -Path server
-New-Item -ItemType Directory -Path server\src
-New-Item -ItemType Directory -Path server\src\routes
-New-Item -ItemType Directory -Path server\src\services
-New-Item -ItemType Directory -Path server\src\utils
-New-Item -ItemType Directory -Path server\src\types
-```
-
-</details>
 
 ---
 
-<details>
-<summary>✅ Шаг 1: Инициализация сервера — выполнено</summary>
+## Шаг 1: Обновить агрегатор — принять `sources` параметр
 
-### 1.1 Создать `server/package.json`
+### Изменить `server/src/services/newsAggregator.ts`
 
-```json
-{
-  "name": "react-happy-news-server",
-  "version": "1.0.0",
-  "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
-  },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "morgan": "^1.10.0",
-    "node-cache": "^5.1.2",
-    "zod": "^3.23.8"
-  },
-  "devDependencies": {
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "@types/morgan": "^1.9.9",
-    "@types/node": "^20.14.0",
-    "tsx": "^4.16.0",
-    "typescript": "^5.5.2"
-  }
-}
-```
-
-> Версия zod здесь `^3.x` — отдельная от клиента, в монорепо каждый workspace ставит свои зависимости.
-
-### 1.2 Создать `server/tsconfig.json`
-
-```json
-{
-  "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "sourceMap": true
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
-}
-```
-
-### 1.3 Установить зависимости
-
-```powershell
-cd server
-npm install
-cd ..
-```
-
-</details>
-
----
-
-<details>
-<summary>✅ Шаг 2: Переменные окружения — выполнено</summary>
-
-### 2.1 Создать `server/.env`
-
-```env
-PORT=3001
-
-# Guardian API — текущий ключ из client/.env
-GUARDIAN_API_KEY=80916ee3-6aff-4f84-8b2e-60ca869a734e
-GUARDIAN_BASE_URL=https://content.guardianapis.com
-
-# NewsAPI — зарегистрироваться на https://newsapi.org/register (бесплатно)
-NEWSAPI_KEY=your_newsapi_key_here
-NEWSAPI_BASE_URL=https://newsapi.org/v2
-
-# HackerNews — публичное API, ключ не нужен
-HACKERNEWS_BASE_URL=https://hacker-news.firebaseio.com/v0
-```
-
-### 2.2 Создать `server/.env.example`
-
-```env
-PORT=3001
-GUARDIAN_API_KEY=
-GUARDIAN_BASE_URL=https://content.guardianapis.com
-NEWSAPI_KEY=
-NEWSAPI_BASE_URL=https://newsapi.org/v2
-HACKERNEWS_BASE_URL=https://hacker-news.firebaseio.com/v0
-```
-
-### 2.3 Получить API-ключи
-
-| API | Где получить | Стоимость |
-|---|---|---|
-| **Guardian API** | Уже есть в `client/.env` | Бесплатно |
-| **NewsAPI** | [newsapi.org/register](https://newsapi.org/register) | Бесплатно (dev tier) |
-| **HackerNews** | Не нужен | Публичное API |
-
-> **Важно:** добавить `server/.env` в `.gitignore` корня.
-
-</details>
-
----
-
-<details>
-<summary>✅ Шаг 3: Общие типы — выполнено</summary>
-
-### Создать `server/src/types/news.types.ts`
-
-```typescript
-export interface NewsItem {
-  id: string
-  title: string
-  image: string
-  description: string
-  published: string
-  author: string
-  tag: string
-  source: 'guardian' | 'newsapi' | 'hackernews'
-}
-```
-
-> `source` — дополнительное поле, которого нет на клиенте. Клиент его проигнорирует, но полезно для отладки.
-
-</details>
-
----
-
-<details>
-<summary>✅ Шаг 4: Фильтр позитивных новостей — выполнено</summary>
-
-### Создать `server/src/utils/positivityFilter.ts`
-
-Скопировать содержимое из `client/src/entities/news/helpers/filterPositiveNews.ts` — файл переносится без изменений.
-
-> Оба файла пока существуют: на клиенте (для MSW-режима разработки), на сервере (для реальной фильтрации). В следующих US фильтрацию на клиенте уберём.
-
-</details>
-
----
-
-<details>
-<summary>✅ Шаг 5: Кэш — выполнено</summary>
-
-### Создать `server/src/utils/cache.ts`
-
-```typescript
-import NodeCache from 'node-cache'
-
-// Кэш с TTL 5 минут
-const cache = new NodeCache({ stdTTL: 300, checkperiod: 60 })
-
-export function getCached<T>(key: string): T | undefined {
-  return cache.get<T>(key)
-}
-
-export function setCached<T>(key: string, value: T): void {
-  cache.set(key, value)
-}
-```
-
-</details>
-
----
-
-<details>
-<summary>✅ Шаг 6: Адаптеры внешних API — выполнено</summary>
-
-### 6.1 Создать `server/src/services/guardianApi.ts`
-
-Переносит логику из `client/src/entities/news/api/rtk/newsApi.ts`, но теперь это серверный `fetch` без RTK Query.
+Добавить параметр `sources` — массив включённых источников. Если не передан → все три.
 
 ```typescript
 import type { NewsItem } from '../types/news.types'
-
-const BASE_URL = process.env.GUARDIAN_BASE_URL!
-const API_KEY = process.env.GUARDIAN_API_KEY!
-
-interface GuardianFields {
-  thumbnail?: string
-  trailText?: string
-  byline?: string
-}
-
-interface GuardianResult {
-  id: string
-  webTitle: string
-  webPublicationDate: string
-  sectionName: string
-  fields?: GuardianFields | null
-}
-
-interface GuardianResponse {
-  response: {
-    results: GuardianResult[]
-  }
-}
-
-export async function fetchGuardianNews(): Promise<NewsItem[]> {
-  const params = new URLSearchParams({
-    'api-key': API_KEY,
-    'show-fields': 'thumbnail,trailText,byline',
-    section: 'science|environment|culture|technology|lifeandstyle',
-    'page-size': '50',
-  })
-
-  const res = await fetch(`${BASE_URL}/search?${params}`)
-
-  if (!res.ok) {
-    throw new Error(`Guardian API error: ${res.status} ${res.statusText}`)
-  }
-
-  const data = (await res.json()) as GuardianResponse
-
-  return data.response.results.map((item) => ({
-    id: `guardian-${item.id}`,
-    title: item.webTitle,
-    image: item.fields?.thumbnail ?? '',
-    description: item.fields?.trailText ?? '',
-    published: item.webPublicationDate,
-    author: item.fields?.byline ?? 'Unknown',
-    tag: item.sectionName,
-    source: 'guardian' as const,
-  }))
-}
-```
-
-### 6.2 Создать `server/src/services/newsApi.ts`
-
-```typescript
-import type { NewsItem } from '../types/news.types'
-
-const BASE_URL = process.env.NEWSAPI_BASE_URL!
-const API_KEY = process.env.NEWSAPI_KEY!
-
-interface NewsApiArticle {
-  title: string | null
-  description: string | null
-  urlToImage: string | null
-  publishedAt: string
-  author: string | null
-  source: { name: string }
-  url: string
-}
-
-interface NewsApiResponse {
-  status: string
-  articles: NewsApiArticle[]
-}
-
-export async function fetchNewsApiNews(): Promise<NewsItem[]> {
-  const params = new URLSearchParams({
-    apiKey: API_KEY,
-    language: 'en',
-    pageSize: '50',
-    category: 'science,technology,health,entertainment',
-  })
-
-  const res = await fetch(`${BASE_URL}/top-headlines?${params}`)
-
-  if (!res.ok) {
-    throw new Error(`NewsAPI error: ${res.status} ${res.statusText}`)
-  }
-
-  const data = (await res.json()) as NewsApiResponse
-
-  return data.articles
-    .filter((a) => a.title && a.title !== '[Removed]')
-    .map((article, i) => ({
-      id: `newsapi-${article.url}-${i}`,
-      title: article.title ?? '',
-      image: article.urlToImage ?? '',
-      description: article.description ?? '',
-      published: article.publishedAt,
-      author: article.author ?? article.source.name,
-      tag: article.source.name,
-      source: 'newsapi' as const,
-    }))
-}
-```
-
-### 6.3 Создать `server/src/services/hackerNewsApi.ts`
-
-```typescript
-import type { NewsItem } from '../types/news.types'
-
-const BASE_URL = process.env.HACKERNEWS_BASE_URL!
-
-interface HnItem {
-  id: number
-  title?: string
-  url?: string
-  by?: string
-  time?: number
-  score?: number
-  type?: string
-}
-
-async function fetchItem(id: number): Promise<HnItem | null> {
-  try {
-    const res = await fetch(`${BASE_URL}/item/${id}.json`)
-    if (!res.ok) return null
-    return (await res.json()) as HnItem
-  } catch {
-    return null
-  }
-}
-
-export async function fetchHackerNews(): Promise<NewsItem[]> {
-  const res = await fetch(`${BASE_URL}/topstories.json`)
-
-  if (!res.ok) {
-    throw new Error(`HackerNews API error: ${res.status} ${res.statusText}`)
-  }
-
-  const ids = (await res.json()) as number[]
-
-  // Берём первые 30 ID — параллельно запрашиваем детали
-  const items = await Promise.all(ids.slice(0, 30).map(fetchItem))
-
-  return items
-    .filter((item): item is HnItem => item !== null && item.type === 'story' && !!item.title)
-    .map((item) => ({
-      id: `hackernews-${item.id}`,
-      title: item.title!,
-      image: '',
-      description: '',
-      published: item.time ? new Date(item.time * 1000).toISOString() : new Date().toISOString(),
-      author: item.by ?? 'Unknown',
-      tag: 'Technology',
-      source: 'hackernews' as const,
-    }))
-}
-```
-
-</details>
-
----
-
-## Шаг 7: Агрегатор
-
-### Создать `server/src/services/newsAggregator.ts`
-
-Это ключевой файл US 2.0.1. Здесь `Promise.allSettled` + объединение + фильтрация.
-
-```typescript
-import { fetchGuardianNews } from './guardianApi'
-import { fetchNewsApiNews } from './newsApi'
-import { fetchHackerNews } from './hackerNewsApi'
 import { isPositiveNews } from '../utils/positivityFilter'
-import type { NewsItem } from '../types/news.types'
+import { fetchGuardianNews } from './guardianApi'
+import { fetchHackerNews } from './hackerNewsApi'
+import { fetchNewsApiNews } from './newsApi'
+
+export type SourceName = 'guardian' | 'newsapi' | 'hackernews'
 
 export interface AggregatorResult {
   news: NewsItem[]
   sources: {
-    guardian: 'ok' | 'error'
-    newsapi: 'ok' | 'error'
-    hackernews: 'ok' | 'error'
+    guardian: 'ok' | 'error' | 'skipped'
+    newsapi: 'ok' | 'error' | 'skipped'
+    hackernews: 'ok' | 'error' | 'skipped'
   }
 }
 
-export async function aggregateNews(): Promise<AggregatorResult> {
-  // Все три запроса идут параллельно.
-  // Promise.allSettled — в отличие от Promise.all — не падает если одна из API недоступна.
+const ALL_SOURCES: SourceName[] = ['guardian', 'newsapi', 'hackernews']
+
+export async function aggregateNews(
+  sources: SourceName[] = ALL_SOURCES,
+): Promise<AggregatorResult> {
+  // Запрашиваем только выбранные источники — остальные skipped
   const [guardianResult, newsApiResult, hnResult] = await Promise.allSettled([
-    fetchGuardianNews(),
-    fetchNewsApiNews(),
-    fetchHackerNews(),
+    sources.includes('guardian') ? fetchGuardianNews() : Promise.reject('skipped'),
+    sources.includes('newsapi') ? fetchNewsApiNews() : Promise.reject('skipped'),
+    sources.includes('hackernews') ? fetchHackerNews() : Promise.reject('skipped'),
   ])
 
-  const sources: AggregatorResult['sources'] = {
-    guardian: guardianResult.status === 'fulfilled' ? 'ok' : 'error',
-    newsapi: newsApiResult.status === 'fulfilled' ? 'ok' : 'error',
-    hackernews: hnResult.status === 'fulfilled' ? 'ok' : 'error',
+  const toStatus = (
+    result: PromiseSettledResult<NewsItem[]>,
+    name: SourceName,
+  ): 'ok' | 'error' | 'skipped' => {
+    if (!sources.includes(name)) return 'skipped'
+    return result.status === 'fulfilled' ? 'ok' : 'error'
   }
 
-  // Логируем, какие источники недоступны — полезно при дебаге
-  if (guardianResult.status === 'rejected') {
-    console.error('[Guardian] Failed:', guardianResult.reason)
-  }
-  if (newsApiResult.status === 'rejected') {
-    console.error('[NewsAPI] Failed:', newsApiResult.reason)
-  }
-  if (hnResult.status === 'rejected') {
-    console.error('[HackerNews] Failed:', hnResult.reason)
+  const sourcesStatus: AggregatorResult['sources'] = {
+    guardian: toStatus(guardianResult, 'guardian'),
+    newsapi: toStatus(newsApiResult, 'newsapi'),
+    hackernews: toStatus(hnResult, 'hackernews'),
   }
 
-  // Объединяем только успешные результаты
+  if (guardianResult.status === 'rejected' && sources.includes('guardian')) {
+    console.error('[Guardian]', guardianResult.reason)
+  }
+  if (newsApiResult.status === 'rejected' && sources.includes('newsapi')) {
+    console.error('[NewsAPI]', newsApiResult.reason)
+  }
+  if (hnResult.status === 'rejected' && sources.includes('hackernews')) {
+    console.error('[HackerNews]', hnResult.reason)
+  }
+
   const allNews: NewsItem[] = [
     ...(guardianResult.status === 'fulfilled' ? guardianResult.value : []),
     ...(newsApiResult.status === 'fulfilled' ? newsApiResult.value : []),
     ...(hnResult.status === 'fulfilled' ? hnResult.value : []),
   ]
 
-  // Фильтрация на сервере — трафик клиента не тратится
   const positiveNews = allNews.filter((item) => isPositiveNews(item.title, item.description))
 
-  // Если фильтр убрал всё — возвращаем первые 10 без фильтра (fallback как на клиенте)
-  const news = positiveNews.length > 0 ? positiveNews : allNews.slice(0, 10)
+  if (positiveNews.length === 0) {
+    console.warn(`[Aggregator] No positive news found out of ${allNews.length} total`)
+  }
 
-  console.log(`[Aggregator] Total: ${allNews.length}, Positive: ${positiveNews.length}, Returned: ${news.length}`)
+  console.log(
+    `[Aggregator] sources=[${sources}] total=${allNews.length} positive=${positiveNews.length}`,
+  )
 
-  return { news, sources }
+  return { news: positiveNews, sources: sourcesStatus }
 }
 ```
 
 ---
 
-## Шаг 8: Роут
+## Шаг 2: Обновить роут — принять и валидировать `?sources=`
 
-### Создать `server/src/routes/news.routes.ts`
+### Изменить `server/src/routes/news.routes.ts`
 
 ```typescript
 import { Router } from 'express'
+import { z } from 'zod'
+import type { AggregatorResult, SourceName } from '../services/newsAggregator'
 import { aggregateNews } from '../services/newsAggregator'
 import { getCached, setCached } from '../utils/cache'
-import type { AggregatorResult } from '../services/newsAggregator'
 
 export const newsRouter = Router()
 
-const CACHE_KEY = 'news:all'
+const VALID_SOURCES = ['guardian', 'newsapi', 'hackernews'] as const
 
-newsRouter.get('/', async (_req, res) => {
+const newsQuerySchema = z.object({
+  sources: z
+    .string()
+    .optional()
+    .transform((val) =>
+      val
+        ? (val.split(',').filter((s) => VALID_SOURCES.includes(s as SourceName)) as SourceName[])
+        : (['guardian', 'newsapi', 'hackernews'] as SourceName[]),
+    ),
+})
+
+newsRouter.get('/', async (req, res) => {
+  const parsed = newsQuerySchema.safeParse(req.query)
+
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid query parameters', details: parsed.error.issues })
+    return
+  }
+
+  const { sources } = parsed.data
+
+  // Ключ кэша включает список источников — разные наборы не мешают друг другу
+  const cacheKey = `news:${sources.sort().join(',')}`
+
   try {
-    // Проверяем кэш — если данные есть, внешние API не долбим
-    const cached = getCached<AggregatorResult>(CACHE_KEY)
+    const cached = getCached<AggregatorResult>(cacheKey)
     if (cached) {
-      console.log('[Cache] HIT — returning cached news')
+      console.log(`[Cache] HIT — ${cacheKey}`)
       res.json({ ...cached, cached: true })
       return
     }
 
-    console.log('[Cache] MISS — fetching from APIs')
-    const result = await aggregateNews()
+    console.log(`[Cache] MISS — ${cacheKey}`)
+    const result = await aggregateNews(sources)
 
-    setCached(CACHE_KEY, result)
+    setCached(cacheKey, result)
 
     res.json({ ...result, cached: false })
   } catch (error) {
@@ -515,128 +168,166 @@ newsRouter.get('/', async (_req, res) => {
 })
 ```
 
----
+> **Q46:** Фильтр источников — параметр запроса (не данные), поэтому идёт в query string, а не в body.
 
-## Шаг 9: Точка входа Express
-
-### 9.1 Создать `server/src/app.ts`
-
-```typescript
-import express from 'express'
-import cors from 'cors'
-import morgan from 'morgan'
-import { newsRouter } from './routes/news.routes'
-
-export function createApp() {
-  const app = express()
-
-  app.use(morgan('dev'))
-  app.use(cors({ origin: 'http://localhost:5173' }))
-  app.use(express.json())
-
-  app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() })
-  })
-
-  app.use('/api/news', newsRouter)
-
-  return app
-}
-```
-
-### 9.2 Создать `server/src/index.ts`
-
-```typescript
-import 'dotenv/config'
-import { createApp } from './app'
-
-const PORT = process.env.PORT ?? 3001
-
-const app = createApp()
-
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
-  console.log(`Health: http://localhost:${PORT}/api/health`)
-  console.log(`News:   http://localhost:${PORT}/api/news`)
-})
-```
-
----
-
-## Шаг 10: Проверка сервера
-
-### 10.1 Запустить
+### Проверка
 
 ```powershell
-cd server
-npm run dev
+cd server && npm run dev
+
+curl "http://localhost:3001/api/news?sources=guardian,hackernews"
+curl "http://localhost:3001/api/news?sources=newsapi"
+curl "http://localhost:3001/api/news"
 ```
 
-Ожидаемый вывод:
-```
-Server running on http://localhost:3001
-Health: http://localhost:3001/api/health
-News:   http://localhost:3001/api/news
-```
-
-### 10.2 Тест через браузер или curl
+### Коммит
 
 ```powershell
-# Проверка health
-curl http://localhost:3001/api/health
-
-# Получить новости (первый запрос — идёт в API, ~2-3 сек)
-curl http://localhost:3001/api/news
-
-# Повторный запрос — должен вернуться мгновенно из кэша
-curl http://localhost:3001/api/news
+git add server/src/services/newsAggregator.ts server/src/routes/news.routes.ts
+git commit -m "feat: #5 поддержка ?sources= в GET /api/news"
 ```
-
-В ответе должно быть:
-```json
-{
-  "news": [...],
-  "sources": { "guardian": "ok", "newsapi": "ok", "hackernews": "ok" },
-  "cached": false
-}
-```
-
-При повторном запросе `"cached": true`.
-
-### 10.3 Проверка fallback (одна API недоступна)
-
-Временно испортить ключ NewsAPI в `server/.env`:
-```
-NEWSAPI_KEY=invalid_key
-```
-
-Перезапустить сервер, сделать запрос. Ожидается:
-```json
-{
-  "sources": { "guardian": "ok", "newsapi": "error", "hackernews": "ok" },
-  "news": [...]
-}
-```
-
-В консоли: `[NewsAPI] Failed: NewsAPI error: 401 Unauthorized`
 
 ---
 
-## Шаг 11: Обновить клиент
+## Шаг 3: Добавить `source` в тип NewsDetailsData на клиенте
 
-После того как сервер работает — переключить клиент с Guardian API на собственный бэкенд.
+### Изменить `client/src/entities/news/api/apiNews/utils/transforms.types.ts`
 
-### 11.1 Добавить переменную в `client/.env`
+```typescript
+export type NewsSource = 'guardian' | 'newsapi' | 'hackernews'
 
-```env
-VITE_API_BASE_URL=http://localhost:3001
+/** Трансформированные данные новости */
+export interface NewsDetailsData {
+  id: string
+  title: string
+  image: string
+  description: string
+  published: string
+  author: string
+  tag: string
+  source?: NewsSource
+}
 ```
 
-Старые переменные `VITE_NEWS_API_KEY` и `VITE_NEWS_BASE_API_URL` можно закомментировать (нужны только для MSW-режима).
+> `source` опциональный — MSW-моки его не возвращают, чтобы не ломать dev-режим.
 
-### 11.2 Обновить `client/src/entities/news/api/rtk/newsApi.ts`
+---
 
-Заменить весь файл на упрощённую версию — сервер теперь возвращает готовые данные:
+## Шаг 4: Создать `useSourceFilter` hook
+
+### Создать `client/src/features/source-filter/useSourceFilter.ts`
+
+```typescript
+import { useLocalStorage } from '@shared/useLocalStorage'
+import type { NewsSource } from '@entities/news/api/apiNews/utils/transforms.types'
+
+export const ALL_SOURCES: NewsSource[] = ['guardian', 'newsapi', 'hackernews']
+
+export function useSourceFilter() {
+  const [selectedSources, setSelectedSources] = useLocalStorage<NewsSource[]>(
+    'news-sources',
+    ALL_SOURCES,
+  )
+
+  const toggle = (source: NewsSource) => {
+    setSelectedSources((prev) => {
+      // Нельзя снять все — оставляем хотя бы один источник
+      if (prev.includes(source) && prev.length === 1) return prev
+      return prev.includes(source) ? prev.filter((s) => s !== source) : [...prev, source]
+    })
+  }
+
+  const isSelected = (source: NewsSource) => selectedSources.includes(source)
+
+  // Строка для query param: "guardian,newsapi" — пересортированная, чтобы кэш был стабильным
+  const sourcesParam = [...selectedSources].sort().join(',')
+
+  return { selectedSources, sourcesParam, toggle, isSelected }
+}
+```
+
+---
+
+## Шаг 5: Создать компонент `SourceFilter`
+
+### Создать `client/src/features/source-filter/SourceFilter.tsx`
+
+```typescript
+import type { NewsSource } from '@entities/news/api/apiNews/utils/transforms.types'
+import { ALL_SOURCES } from './useSourceFilter'
+import styles from './styles.module.css'
+
+const SOURCE_LABELS: Record<NewsSource, string> = {
+  guardian: 'Guardian',
+  newsapi: 'NewsAPI',
+  hackernews: 'HackerNews',
+}
+
+interface SourceFilterProps {
+  selectedSources: NewsSource[]
+  onToggle: (source: NewsSource) => void
+}
+
+const SourceFilter = ({ selectedSources, onToggle }: SourceFilterProps): React.ReactNode => {
+  return (
+    <div className={styles.filter}>
+      {ALL_SOURCES.map((source) => (
+        <label key={source} className={styles.label}>
+          <input
+            type="checkbox"
+            checked={selectedSources.includes(source)}
+            onChange={() => onToggle(source)}
+            className={styles.checkbox}
+          />
+          {SOURCE_LABELS[source]}
+        </label>
+      ))}
+    </div>
+  )
+}
+
+export default SourceFilter
+```
+
+### Создать `client/src/features/source-filter/styles.module.css`
+
+```css
+.filter {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px 0;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  user-select: none;
+}
+
+.checkbox {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+```
+
+### Создать `client/src/features/source-filter/index.ts`
+
+```typescript
+export { default as SourceFilter } from './SourceFilter'
+export { useSourceFilter } from './useSourceFilter'
+```
+
+---
+
+## Шаг 6: Обновить RTK Query — принять `sources`
+
+### Изменить `client/src/entities/news/api/rtk/newsApi.ts`
 
 ```typescript
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
@@ -649,8 +340,9 @@ export const newsApi = createApi({
   baseQuery: fetchBaseQuery({ baseUrl: BASE_URL }),
   tagTypes: ['News'],
   endpoints: (builder) => ({
-    getNews: builder.query<NewsDetailsData[], void>({
-      query: () => '/api/news',
+    getNews: builder.query<NewsDetailsData[], string>({
+      // sources — строка вида "guardian,newsapi,hackernews"
+      query: (sources: string) => `/api/news?sources=${sources}`,
       transformResponse: (response: { news: NewsDetailsData[] }) => response.news,
       providesTags: ['News'],
     }),
@@ -665,22 +357,242 @@ export const newsApi = createApi({
 export const { useGetNewsQuery, useGetNewsDetailQuery } = newsApi
 ```
 
-> `getNewsDetail` пока не работает (роут не реализован) — это задача US 2.0.2. MSW-моки по-прежнему покрывают случай разработки.
+### Коммит
+
+```powershell
+git add client/src/entities/news/api/apiNews/utils/transforms.types.ts `
+        client/src/features/source-filter/ `
+        client/src/entities/news/api/rtk/newsApi.ts
+git commit -m "feat: #5 фича source-filter"
+```
 
 ---
 
-## Итог: что должно работать после этого шага
+## Шаг 7: Создать `SourceBadge` компонент
+
+### Создать `client/src/entities/news/SourceBadge/SourceBadge.tsx`
+
+```typescript
+import type { NewsSource } from '@entities/news/api/apiNews/utils/transforms.types'
+import styles from './styles.module.css'
+
+const SOURCE_CONFIG: Record<NewsSource, { label: string; colorClass: string }> = {
+  guardian: { label: 'Guardian', colorClass: styles.guardian },
+  newsapi: { label: 'NewsAPI', colorClass: styles.newsapi },
+  hackernews: { label: 'HN', colorClass: styles.hackernews },
+}
+
+interface SourceBadgeProps {
+  source: NewsSource
+}
+
+const SourceBadge = ({ source }: SourceBadgeProps): React.ReactNode => {
+  const config = SOURCE_CONFIG[source]
+  return <span className={`${styles.badge} ${config.colorClass}`}>{config.label}</span>
+}
+
+export default SourceBadge
+```
+
+### Создать `client/src/entities/news/SourceBadge/styles.module.css`
+
+```css
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.guardian {
+  background-color: #005689;
+  color: #fff;
+}
+
+.newsapi {
+  background-color: #1a73e8;
+  color: #fff;
+}
+
+.hackernews {
+  background-color: #ff6600;
+  color: #fff;
+}
+```
+
+### Создать `client/src/entities/news/SourceBadge/index.ts`
+
+```typescript
+export { default as SourceBadge } from './SourceBadge'
+```
+
+---
+
+## Шаг 8: Добавить badge в `NewsItem`
+
+### Изменить `client/src/entities/news/NewsItem/NewsItem.tsx`
+
+```typescript
+import { generatePath, useNavigate } from 'react-router-dom'
+import type { NewsSource } from '@entities/news/api/apiNews/utils/transforms.types'
+import { APP_ROUTES } from '@shared/config/routes'
+import Image from '@shared/Image'
+import { SourceBadge } from '../SourceBadge'
+import styles from './styles.module.css'
+
+interface NewsItemProps {
+  item: {
+    id: string
+    title: string
+    description: string
+    image: string
+    published: string
+    author: string
+    tag: string
+    source?: NewsSource
+  }
+}
+
+const NewsItem = ({ item }: NewsItemProps): React.ReactNode => {
+  const navigate = useNavigate()
+  const handleClick = (): void => {
+    navigate(generatePath(APP_ROUTES.NewsDetail, { id: item.id }))
+  }
+  return (
+    <div className={styles.item} onClick={handleClick}>
+      <Image image={item.image} className={styles.image ?? ''} />
+      <div className={styles.info}>
+        {item.source && <SourceBadge source={item.source} />}
+        <h3 className={styles.title}>{item.title}</h3>
+        <p className={styles.extra}>{item.description}</p>
+      </div>
+    </div>
+  )
+}
+
+export default NewsItem
+```
+
+### Коммит
+
+```powershell
+git add client/src/entities/news/SourceBadge/ `
+        client/src/entities/news/NewsItem/NewsItem.tsx
+git commit -m "feat: #5 компонент SourceBadge"
+```
+
+---
+
+## Шаг 9: Интегрировать SourceFilter в NewsFeed
+
+### Изменить `client/src/pages/Main/NewsFeed.tsx`
+
+```typescript
+import NewsBanner from '@entities/news/NewsBanner'
+import NewsList from '@entities/news/NewsList'
+import { useGetNewsQuery } from '@entities/news/api'
+import { SourceFilter, useSourceFilter } from '@features/source-filter'
+import Pagination from '@features/paginate-news/Pagination'
+import ErrorComponent from '@shared/ErrorComponent'
+import Skeleton from '@shared/Skeleton'
+
+const NewsFeed = (): React.ReactNode => {
+  const { selectedSources, sourcesParam, toggle } = useSourceFilter()
+
+  const {
+    data: news,
+    isLoading: isInitialLoading,
+    isFetching,
+    error: queryError,
+    refetch,
+  } = useGetNewsQuery(sourcesParam)
+
+  const isLoading = isInitialLoading || isFetching
+  const normalizedError = queryError ? new Error('Ошибка загрузки новостей') : null
+
+  if (normalizedError && !isLoading) {
+    return <ErrorComponent error={normalizedError} onRetry={refetch} />
+  }
+
+  return (
+    <>
+      <SourceFilter selectedSources={selectedSources} onToggle={toggle} />
+
+      {isLoading ? <Skeleton count={1} type="banner" height="520px" /> : news?.[0] && <NewsBanner item={news[0]} />}
+
+      {isLoading ? (
+        <Skeleton type="item" count={10} height="100px" />
+      ) : (
+        news && <Pagination data={news}>{(data) => <NewsList news={data} />}</Pagination>
+      )}
+    </>
+  )
+}
+
+export default NewsFeed
+```
+
+### Коммит
+
+```powershell
+git add client/src/pages/Main/NewsFeed.tsx
+git commit -m "feat: #5 интеграция source-filter в NewsFeed"
+```
+
+---
+
+## Шаг 10: Проверка
+
+### 10.1 Запустить всё
+
+```powershell
+# Терминал 1 — сервер
+cd server && npm run dev
+
+# Терминал 2 — клиент
+cd client && npm run dev
+```
+
+### 10.2 Чеклист проверки в браузере
 
 | Критерий | Как проверить |
 |---|---|
-| Агрегация из 3 источников | `GET /api/news` → `sources: { guardian: "ok", newsapi: "ok", hackernews: "ok" }` |
-| Promise.allSettled (parallel) | В консоли сервера — все три API стартуют одновременно, не последовательно |
-| Fallback при недоступной API | Сломать ключ NewsAPI → остальные новости всё равно приходят |
-| Фильтрация на сервере | В консоли: `[Aggregator] Total: X, Positive: Y` |
-| Кэш | Второй запрос мгновенный + `"cached": true` в ответе |
+| Тогглы видны | В ленте над новостями — 3 чекбокса |
+| Фильтрация работает | Снять HackerNews → HN-новости исчезают |
+| Персистентность | Перезагрузить страницу → выбор сохранился |
+| Query param | DevTools → Network → `GET /api/news?sources=guardian,newsapi` |
+| Source badge | На каждой карточке — цветной badge с источником |
+| Кэш по источникам | Повторный запрос с теми же sources → `"cached": true` |
+| Нельзя снять все | Снять все источники невозможно — последний остаётся |
+
+---
+
+## Итог: что должно работать
+
+| Критерий | Результат |
+|---|---|
+| Выбор источников в UI | 3 чекбокса, по умолчанию все включены |
+| Фильтрация на бэкенде | `?sources=` принимается и обрабатывается |
+| localStorage | Выбор сохраняется между сессиями |
+| Source badges | Guardian = синий, NewsAPI = голубой, HN = оранжевый |
+| Раздельный кэш | `news:guardian,newsapi` и `news:guardian` — разные записи |
 
 ---
 
 ## Следующий шаг
 
-**US 2.0.2** — RESTful API: добавить `GET /api/news/:id`, `POST /api/feedback`, `GET /api/health`, правильные HTTP-статусы, валидация query-параметров через Zod.
+**US 2.0.3** — RESTful API: `GET /api/news/:id`, `POST /api/feedback`, Zod-валидация, правильные HTTP-статусы.
+
+---
+
+## История коммитов этого инкремента
+
+```
+feat: #5 интеграция source-filter в NewsFeed   ← Шаг 9
+feat: #5 компонент SourceBadge                 ← Шаги 7–8
+feat: #5 фича source-filter                    ← Шаги 3–6
+feat: #5 поддержка ?sources= в GET /api/news   ← Шаги 1–2
+```
