@@ -1,112 +1,25 @@
-import { RawNewsItemArraySchema, RawNewsItemSchema } from '../schemas'
-import { transformNewsData, transformNewsDetailsData } from '../apiNews/utils/transforms'
-import type { NewsDetailsData } from '../apiNews/utils/transforms.types'
-import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query'
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
-import { NEWS_API_PATHS } from '../apiPaths'
+import type { NewsDetailsData } from '../apiNews/utils/transforms.types'
 
-const API_KEY: string = import.meta.env.VITE_NEWS_API_KEY
-const BASE_URL: string = import.meta.env.VITE_NEWS_BASE_API_URL
-
-interface CustomFetchArgs extends FetchArgs {
-  dataPath?: string
-}
-
-const baseQuery = fetchBaseQuery({
-  baseUrl: BASE_URL,
-})
-
-const extractDataByPath = (data: unknown, dataPath: string): unknown => {
-  const keys = dataPath.split('.')
-  let result: unknown = data
-
-  for (const key of keys) {
-    if (result === null || result === undefined || typeof result !== 'object') {
-      throw new Error(`Invalid data path: cannot access "${key}" on ${typeof result}`)
-    }
-
-    result = (result as Record<string, unknown>)[key]
-
-    if (result === undefined) {
-      throw new Error(`Invalid data path: missing key "${key}"`)
-    }
-  }
-
-  return result
-}
-
-const customBaseQuery: BaseQueryFn<CustomFetchArgs, unknown, FetchBaseQueryError> = async (
-  args,
-  api,
-  extraOptions,
-) => {
-  const res = await baseQuery(args, api, extraOptions)
-
-  if (res.error) {
-    return res
-  }
-
-  if (args.dataPath && res.data) {
-    try {
-      const extractedData = extractDataByPath(res.data, args.dataPath)
-
-      return {
-        ...res,
-        data: extractedData,
-      }
-    } catch (error) {
-      return {
-        error: {
-          status: 'CUSTOM_ERROR',
-          error: error instanceof Error ? error.message : String(error),
-        } as FetchBaseQueryError,
-      }
-    }
-  }
-
-  return res
-}
+const BASE_URL: string = import.meta.env.VITE_API_BASE_URL
 
 export const newsApi = createApi({
   reducerPath: 'newsApi',
-  baseQuery: customBaseQuery,
+  baseQuery: fetchBaseQuery({ baseUrl: BASE_URL }),
   tagTypes: ['News'],
   endpoints: (builder) => ({
     getNews: builder.query<NewsDetailsData[], void>({
-      query: (): CustomFetchArgs => ({
-        url: NEWS_API_PATHS.search,
-        params: {
-          'api-key': API_KEY,
-          'show-fields': 'thumbnail,trailText,byline',
-          section: 'science|environment|culture|technology|lifeandstyle',
-          'page-size': 50,
-        },
-        dataPath: 'response.results',
-      }),
-      transformResponse: (response: unknown): NewsDetailsData[] => {
-        const validatedData = RawNewsItemArraySchema.parse(response)
-        return transformNewsData(validatedData)
-      },
+      query: () => '/api/news',
+      transformResponse: (response: { news: NewsDetailsData[] }) => response.news,
       providesTags: ['News'],
     }),
 
+    // getNewsDetail — роут /api/news/:id будет реализован в US 2.0.2
     getNewsDetail: builder.query<NewsDetailsData, string>({
-      query: (id: string): CustomFetchArgs => ({
-        url: NEWS_API_PATHS.detail(id),
-        params: {
-          'api-key': API_KEY,
-          'show-fields': 'thumbnail,trailText,byline',
-        },
-        dataPath: 'response.content',
-      }),
-      transformResponse: (response: unknown): NewsDetailsData => {
-        const validatedData = RawNewsItemSchema.parse(response)
-        return transformNewsDetailsData(validatedData)
-      },
+      query: (id: string) => `/api/news/${id}`,
       providesTags: ['News'],
     }),
   }),
 })
 
 export const { useGetNewsQuery, useGetNewsDetailQuery } = newsApi
-
