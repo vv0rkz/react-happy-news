@@ -1,10 +1,26 @@
 {
   "name": "react-happy-news",
   "private": true,
-  "workspaces": ["client", "server"],
   "scripts": {
-    "dev:client": "npm run dev --workspace=client",
-    "dev:server": "npm run dev --workspace=server",
+    "dev": "pnpm --filter react-happy-news-server dev & pnpm --filter react-happy-news-client dev",
+    "dev:client": "pnpm --filter react-happy-news-client dev",
+    "dev:server": "pnpm --filter react-happy-news-server dev",
+    "build:client": "pnpm --filter react-happy-news-client build",
+    "lint": "pnpm --filter react-happy-news-client lint",
+    "test": "pnpm --filter react-happy-news-client test",
+    "type-check": "pnpm --filter react-happy-news-client type-check",
+    "jst": "jst",
+    "_": "jst",
     "prepare": "husky"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "msw"]
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.3.1",
+    "@commitlint/config-conventional": "^20.3.1",
+    "@vv0rkz/js-template": "^1.8.0",
+    "changelogen": "^0.6.2",
+    "husky": "^9.1.7"
   }
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-npm run gen:barrels --workspace=client
-npm run fix:imports --workspace=client
+pnpm --filter react-happy-news-client gen:barrels
+pnpm --filter react-happy-news-client fix:imports
 git add 'client/src/**/index.ts'
 git add -u
