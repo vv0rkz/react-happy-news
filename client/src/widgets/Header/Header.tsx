@@ -5,7 +5,7 @@ import styles from './styles.module.css'
 const MOCK_STORAGE_KEY = 'happyNews_mockMode'
 
 const Header = (): React.ReactNode => {
-  const [isMockEnabled, setIsMockEnabled] = useLocalStorage<boolean>(MOCK_STORAGE_KEY, false)
+  const [isMockEnabled, setIsMockEnabled] = useLocalStorage<boolean>({ key: MOCK_STORAGE_KEY, initialValue: false })
   const navigate = useNavigate()
 
   const toggleMock = (): void => {
