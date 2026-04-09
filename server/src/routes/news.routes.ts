@@ -1,16 +1,32 @@
 import { Router } from 'express'
+import { z } from 'zod'
 import type { AggregatorResult } from '../services/newsAggregator'
 import { aggregateNews } from '../services/newsAggregator'
+import { allSourceNames, SourceName } from '../types/news.types'
 import { getCached, setCached } from '../utils/cache'
 
 export const newsRouter = Router()
 
-const CACHE_KEY = 'news:all'
+const newsQuerySchema = z.object({
+  sources: z
+    .string()
+    .optional()
+    .transform((val) => (val ? val.split(',') : allSourceNames))
+    .pipe(z.array(z.nativeEnum(SourceName)).min(1)),
+})
 
-newsRouter.get('/', async (_req, res) => {
+newsRouter.get('/', async (req, res) => {
+  const parsed = newsQuerySchema.safeParse(req.query)
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() })
+    return
+  }
+
+  const { sources } = parsed.data
+  const cacheKey = `news:${sources.sort().join(',')}`
+
   try {
-    // Проверяем кэш — если данные есть, внешние API не долбим
-    const cached = getCached<AggregatorResult>(CACHE_KEY)
+    const cached = getCached<AggregatorResult>(cacheKey)
     if (cached) {
       console.log('[Cache] HIT — returning cached news')
       res.json({ ...cached, cached: true })
@@ -18,9 +34,9 @@ newsRouter.get('/', async (_req, res) => {
     }
 
     console.log('[Cache] MISS — fetching from APIs')
-    const result = await aggregateNews()
+    const result = await aggregateNews(sources)
 
-    setCached(CACHE_KEY, result)
+    setCached(cacheKey, result)
 
     res.json({ ...result, cached: false })
   } catch (error) {
