@@ -1,4 +1,4 @@
-import type { NewsItem } from '../types/news.types'
+import { SourceName, type NewsItem } from '../types/news.types'
 
 const BASE_URL = process.env.HACKERNEWS_BASE_URL!
 
@@ -42,6 +42,6 @@ export async function fetchHackerNews(): Promise<NewsItem[]> {
       published: item.time ? new Date(item.time * 1000).toISOString() : new Date().toISOString(),
       author: item.by ?? 'Unknown',
       tag: 'Technology',
-      source: 'hackernews' as const,
+      source: SourceName.HackerNews,
     }))
 }

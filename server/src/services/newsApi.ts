@@ -1,4 +1,4 @@
-import type { NewsItem } from '../types/news.types'
+import { SourceName, type NewsItem } from '../types/news.types'
 
 const BASE_URL = process.env.NEWSAPI_BASE_URL!
 const API_KEY = process.env.NEWSAPI_KEY!
@@ -44,6 +44,6 @@ export async function fetchNewsApiNews(): Promise<NewsItem[]> {
       published: article.publishedAt,
       author: article.author ?? article.source.name,
       tag: article.source.name,
-      source: 'newsapi' as const,
+      source: SourceName.NewsApi,
     }))
 }

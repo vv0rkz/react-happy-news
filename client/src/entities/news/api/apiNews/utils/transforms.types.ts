@@ -1,3 +1,6 @@
+// TODO: добавить тип источника (зеркало SourceName с сервера)
+// export type NewsSource = ...
+
 /** Трансформированные данные новости */
 export interface NewsDetailsData {
   id: string
@@ -7,4 +10,5 @@ export interface NewsDetailsData {
   published: string
   author: string
   tag: string
+  // TODO: добавить поле source — опциональное (MSW-моки его не возвращают)
 }

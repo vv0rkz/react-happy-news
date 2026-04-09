@@ -1,4 +1,4 @@
-import type { NewsItem } from '../types/news.types'
+import { SourceName, type NewsItem } from '../types/news.types'
 
 const BASE_URL = process.env.GUARDIAN_BASE_URL!
 const API_KEY = process.env.GUARDIAN_API_KEY!
@@ -47,6 +47,6 @@ export async function fetchGuardianNews(): Promise<NewsItem[]> {
     published: item.webPublicationDate,
     author: item.fields?.byline ?? 'Unknown',
     tag: item.sectionName,
-    source: 'guardian' as const,
+    source: SourceName.Guardian,
   }))
 }

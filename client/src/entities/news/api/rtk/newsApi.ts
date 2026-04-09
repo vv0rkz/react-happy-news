@@ -8,13 +8,15 @@ export const newsApi = createApi({
   baseQuery: fetchBaseQuery({ baseUrl: BASE_URL }),
   tagTypes: ['News'],
   endpoints: (builder) => ({
+    // TODO: тип аргумента void → string (sourcesParam: "guardian,newsapi,hackernews")
+    // TODO: query: (sources) => `/api/news?sources=${sources}`
     getNews: builder.query<NewsDetailsData[], void>({
       query: () => '/api/news',
       transformResponse: (response: { news: NewsDetailsData[] }) => response.news,
       providesTags: ['News'],
     }),
 
-    // getNewsDetail — роут /api/news/:id будет реализован в US 2.0.2
+    // getNewsDetail — роут /api/news/:id будет реализован в US 2.0.3
     getNewsDetail: builder.query<NewsDetailsData, string>({
       query: (id: string) => `/api/news/${id}`,
       providesTags: ['News'],
