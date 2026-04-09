@@ -231,17 +231,19 @@ Backend уже агрегирует новости из 3 источников, 
 - [ ] Preflight (OPTIONS) виден в DevTools
 - [ ] В проде — CORS ограничен конкретным доменом
 
-### US 2.0.5: Swagger-документация
+### US 2.0.5: Swagger-документация + OpenAPI codegen
 
 **Как** разработчик
-**Я хочу** интерактивную документацию API
-**Чтобы** тестировать endpoints без Postman
+**Я хочу** интерактивную документацию API и автогенерацию типов
+**Чтобы** тестировать endpoints без Postman и не писать типы вручную
 
 **Acceptance Criteria:**
 
 - [ ] Swagger UI на `/api/docs`
 - [ ] Все endpoints описаны с примерами
-- [ ] OpenAPI spec из JSDoc
+- [ ] OpenAPI spec из JSDoc (swagger-jsdoc)
+- [ ] `openapi-typescript` генерирует типы клиента из spec → убираем ручные типы (`NewsDetailsData` и др.)
+- [ ] Закрывает Q88: "OpenAPI spec → codegen" на практике
 
 ### US 2.0.6: HTTPS и безопасность
 
