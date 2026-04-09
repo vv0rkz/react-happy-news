@@ -1,6 +1,8 @@
 import { generatePath, useNavigate } from 'react-router-dom'
+import type { SourceName } from '@entities/news/api/apiNews/utils/transforms.types'
 import { APP_ROUTES } from '@shared/config/routes'
 import Image from '@shared/Image'
+import { SourceBadge } from '../SourceBadge'
 import styles from './styles.module.css'
 
 interface NewsItemProps {
@@ -12,6 +14,7 @@ interface NewsItemProps {
     published: string
     author: string
     tag: string
+    source?: SourceName
   }
 }
 
@@ -24,6 +27,7 @@ const NewsItem = ({ item }: NewsItemProps): React.ReactNode => {
     <div className={styles.item} onClick={handleClick}>
       <Image image={item.image} className={styles.image ?? ''} />
       <div className={styles.info}>
+        {item.source && <SourceBadge source={item.source} />}
         <h3 className={styles.title}>{item.title}</h3>
         <p className={styles.extra}>{item.description}</p>
       </div>

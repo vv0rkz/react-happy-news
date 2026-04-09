@@ -14,6 +14,10 @@ interface NewsListProps {
 }
 
 const NewsList = ({ news }: NewsListProps): React.ReactNode => {
+  if (news.length === 0) {
+    return <p className={styles.empty}>Нет новостей по выбранным источникам</p>
+  }
+
   return (
     <div className={styles.list}>
       {news.map((item) => (

@@ -2,7 +2,7 @@
   "name": "react-happy-news",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter react-happy-news-server dev & pnpm --filter react-happy-news-client dev",
+    "dev": "concurrently \"pnpm dev:server\" \"pnpm dev:client\"",
     "dev:client": "pnpm --filter react-happy-news-client dev",
     "dev:server": "pnpm --filter react-happy-news-server dev",
     "build:client": "pnpm --filter react-happy-news-client build",
@@ -14,13 +14,17 @@
     "prepare": "husky"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "msw"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "msw"
+    ]
   },
   "devDependencies": {
     "@commitlint/cli": "^20.3.1",
     "@commitlint/config-conventional": "^20.3.1",
     "@vv0rkz/js-template": "^1.8.0",
     "changelogen": "^0.6.2",
+    "concurrently": "^9.2.1",
     "husky": "^9.1.7"
   }
 }
