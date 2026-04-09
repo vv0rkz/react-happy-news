@@ -9,7 +9,7 @@
 - [ ] По умолчанию все включены
 - [ ] При отключении источника — его новости исчезают
 - [ ] Выбор сохраняется в localStorage
-- [ ] `GET /api/news?sources=guardian,newsapi` — бэкенд фильтрует
+- [x] `GET /api/news?sources=guardian,newsapi` — бэкенд фильтрует
 - [ ] Source badge на каждой карточке
 
 ---
@@ -26,7 +26,7 @@ git status
 
 ---
 
-## Шаг 1: Обновить агрегатор — принять `sources` параметр
+## ✅ Шаг 1: Обновить агрегатор — принять `sources` параметр
 
 ### Изменить `server/src/services/newsAggregator.ts`
 
@@ -108,7 +108,7 @@ export async function aggregateNews(
 
 ---
 
-## Шаг 2: Обновить роут — принять и валидировать `?sources=`
+## ✅ Шаг 2: Обновить роут — принять и валидировать `?sources=`
 
 ### Изменить `server/src/routes/news.routes.ts`
 
@@ -189,7 +189,7 @@ git commit -m "feat: #5 поддержка ?sources= в GET /api/news"
 
 ---
 
-## Шаг 3: Добавить `source` в тип NewsDetailsData на клиенте
+## ✅ Шаг 3: Добавить `source` в тип NewsDetailsData на клиенте
 
 ### Изменить `client/src/entities/news/api/apiNews/utils/transforms.types.ts`
 
@@ -213,7 +213,7 @@ export interface NewsDetailsData {
 
 ---
 
-## Шаг 4: Создать `useSourceFilter` hook
+## ✅ Шаг 4: Создать `useSourceFilter` hook
 
 ### Создать `client/src/features/source-filter/useSourceFilter.ts`
 
@@ -248,7 +248,7 @@ export function useSourceFilter() {
 
 ---
 
-## Шаг 5: Создать компонент `SourceFilter`
+## ✅ Шаг 5: Создать компонент `SourceFilter`
 
 ### Создать `client/src/features/source-filter/SourceFilter.tsx`
 
@@ -325,7 +325,7 @@ export { useSourceFilter } from './useSourceFilter'
 
 ---
 
-## Шаг 6: Обновить RTK Query — принять `sources`
+## ✅ Шаг 6: Обновить RTK Query — принять `sources`
 
 ### Изменить `client/src/entities/news/api/rtk/newsApi.ts`
 
@@ -368,7 +368,7 @@ git commit -m "feat: #5 фича source-filter"
 
 ---
 
-## Шаг 7: Создать `SourceBadge` компонент
+## ⚠️ Шаг 7: Создать `SourceBadge` компонент
 
 ### Создать `client/src/entities/news/SourceBadge/SourceBadge.tsx`
 
@@ -431,7 +431,7 @@ export { default as SourceBadge } from './SourceBadge'
 
 ---
 
-## Шаг 8: Добавить badge в `NewsItem`
+## ❌ Шаг 8: Добавить badge в `NewsItem`
 
 ### Изменить `client/src/entities/news/NewsItem/NewsItem.tsx`
 
@@ -486,7 +486,7 @@ git commit -m "feat: #5 компонент SourceBadge"
 
 ---
 
-## Шаг 9: Интегрировать SourceFilter в NewsFeed
+## ❌ Шаг 9: Интегрировать SourceFilter в NewsFeed
 
 ### Изменить `client/src/pages/Main/NewsFeed.tsx`
 
@@ -544,7 +544,7 @@ git commit -m "feat: #5 интеграция source-filter в NewsFeed"
 
 ---
 
-## Шаг 10: Проверка
+## ❌ Шаг 10: Проверка
 
 ### 10.1 Запустить всё
 
@@ -591,8 +591,8 @@ cd client && npm run dev
 ## История коммитов этого инкремента
 
 ```
-feat: #5 интеграция source-filter в NewsFeed   ← Шаг 9
-feat: #5 компонент SourceBadge                 ← Шаги 7–8
-feat: #5 фича source-filter                    ← Шаги 3–6
-feat: #5 поддержка ?sources= в GET /api/news   ← Шаги 1–2
+feat: #5 интеграция source-filter в NewsFeed   ← Шаг 9    (pending)
+feat: #5 компонент SourceBadge                 ← Шаги 7–8 (pending)
+feat: #5 фича source-filter                    ← Шаги 3–6 ✅ bc0c6cf
+feat: #5 поддержка ?sources= в GET /api/news   ← Шаги 1–2 ✅ 994d9c1
 ```
