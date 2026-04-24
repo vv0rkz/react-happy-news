@@ -1,8 +1,8 @@
-import { Router } from 'express'
 import { z } from 'zod'
+import { Router } from 'express'
 import type { AggregatorResult } from '../services/newsAggregator'
 import { aggregateNews } from '../services/newsAggregator'
-import { allSourceNames, SourceName } from '../types/news.types'
+import { allSourceNames, SourceName, type NewsItem } from '../types/news.types'
 import { getCached, setCached } from '../utils/cache'
 
 export const newsRouter = Router()
@@ -37,10 +37,21 @@ newsRouter.get('/', async (req, res) => {
     const result = await aggregateNews(sources)
 
     setCached(cacheKey, result)
+    result.news.forEach((item) => setCached(`newsItem:${item.id}`, item))
 
     res.json({ ...result, cached: false })
   } catch (error) {
     console.error('[GET /api/news] Error:', error)
     res.status(500).json({ error: 'Failed to fetch news' })
   }
+})
+
+newsRouter.get('/*', (req, res) => {
+  const id = req.path.slice(1)
+  const item = getCached<NewsItem>(`newsItem:${id}`)
+  if (!item) {
+    res.status(404).json({ error: 'News item not found' })
+    return
+  }
+  res.json(item)
 })
