@@ -25,4 +25,11 @@ export const handlers = [
     const item = transformNewsDetailsData(mockNewsDetailsData.response.content as RawNewsItem)
     return HttpResponse.json(item)
   }),
+
+  // TODO: добавить handler для POST /api/feedback
+  // http.post(`${BASE_URL}/api/feedback`, async ({ request }) => {
+  //   1. const body = await request.json() as { message?: string; email?: string }
+  //   2. Если body.message.length < 10 → HttpResponse.json({ error: '...' }, { status: 400 })
+  //   3. Иначе → HttpResponse.json({ ok: true, message: '...' }, { status: 201 })
+  // })
 ]

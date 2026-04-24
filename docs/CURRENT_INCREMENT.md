@@ -1,16 +1,17 @@
-# US 2.0.2 — Выбор источников новостей
+# US 2.0.3 — RESTful API
 
 **Статус:** `active`
 **Релиз:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md)
-**Покрывает вопросы:** Q46 (query vs body), Q79 (RTK Query → REST), FQ4 (FSD), FQ21 (иммутабельность)
+**Покрывает вопросы:** Q4 (400 vs 500), Q11 (GET vs POST), Q21 (коды ошибок), Q46 (query vs body), Q48 (HTTP-методы), Q85 (middleware chain)
 
 **Acceptance Criteria:**
-- [ ] Тогглы для каждого источника в UI (Guardian, NewsAPI, HackerNews)
-- [ ] По умолчанию все включены
-- [ ] При отключении источника — его новости исчезают
-- [ ] Выбор сохраняется в localStorage
-- [x] `GET /api/news?sources=guardian,newsapi` — бэкенд фильтрует
-- [ ] Source badge на каждой карточке
+- [ ] `GET /api/news/:id` — детали новости, 404 если не найдена
+- [ ] `POST /api/feedback` — принимает JSON body, возвращает 201
+- [ ] `GET /api/health` — уже есть ✅
+- [ ] HTTP-статусы: 200, 201, 400, 404, 500
+- [ ] Валидация body через Zod (feedback)
+- [ ] Global error handler — 500 без stack trace в проде
+- [ ] Форма обратной связи на клиенте (FeedbackForm)
 
 ---
 
@@ -26,547 +27,233 @@ git status
 
 ---
 
-## ✅ Шаг 1: Обновить агрегатор — принять `sources` параметр
+## Шаг 1: `GET /api/news/:id` — поиск в кэше
 
-### Изменить `server/src/services/newsAggregator.ts`
+### Изменить `server/src/routes/news.routes.ts`
 
-Добавить параметр `sources` — массив включённых источников. Если не передан → все три.
+**Подводный камень:** `GET /:id` нужно зарегистрировать _после_ `GET /` — иначе Express может конфликтовать.
+
+**Подводный камень 2:** `id` новости — строка типа `technology/2025-01-01/news-title`. Слэши внутри id могут сломать роутинг. Нужно проверить, как хранятся id в кэше.
+
+Как работает id-кэш: когда `GET /` агрегирует и кладёт результат в кэш по ключу `news:guardian,...` — нужно **параллельно** положить каждый `item` по ключу `newsItem:${item.id}`. Тогда `GET /:id` просто делает lookup.
 
 ```typescript
-import type { NewsItem } from '../types/news.types'
-import { isPositiveNews } from '../utils/positivityFilter'
-import { fetchGuardianNews } from './guardianApi'
-import { fetchHackerNews } from './hackerNewsApi'
-import { fetchNewsApiNews } from './newsApi'
+// 1. В GET '/' — после setCached(cacheKey, result) добавить:
+//    result.news.forEach(...) — для каждого item сделать setCached(`newsItem:${item.id}`, item)
 
-export type SourceName = 'guardian' | 'newsapi' | 'hackernews'
+// 2. Добавить новый роут:
+newsRouter.get('/:id', (req, res) => {
+  // 1. Достать item из кэша: getCached(`newsItem:${req.params.id}`)
+  // 2. Если нет — res.status(404).json(...)
+  // 3. Если есть — res.json(item)
+})
+```
 
-export interface AggregatorResult {
-  news: NewsItem[]
-  sources: {
-    guardian: 'ok' | 'error' | 'skipped'
-    newsapi: 'ok' | 'error' | 'skipped'
-    hackernews: 'ok' | 'error' | 'skipped'
-  }
-}
+### Коммит
 
-const ALL_SOURCES: SourceName[] = ['guardian', 'newsapi', 'hackernews']
+```powershell
+git add server/src/routes/news.routes.ts
+git commit -m "feat: #5 GET /api/news/:id — поиск по id в кэше"
+```
 
-export async function aggregateNews(
-  sources: SourceName[] = ALL_SOURCES,
-): Promise<AggregatorResult> {
-  // Запрашиваем только выбранные источники — остальные skipped
-  const [guardianResult, newsApiResult, hnResult] = await Promise.allSettled([
-    sources.includes('guardian') ? fetchGuardianNews() : Promise.reject('skipped'),
-    sources.includes('newsapi') ? fetchNewsApiNews() : Promise.reject('skipped'),
-    sources.includes('hackernews') ? fetchHackerNews() : Promise.reject('skipped'),
-  ])
+---
 
-  const toStatus = (
-    result: PromiseSettledResult<NewsItem[]>,
-    name: SourceName,
-  ): 'ok' | 'error' | 'skipped' => {
-    if (!sources.includes(name)) return 'skipped'
-    return result.status === 'fulfilled' ? 'ok' : 'error'
-  }
+## Шаг 2: `POST /api/feedback`
 
-  const sourcesStatus: AggregatorResult['sources'] = {
-    guardian: toStatus(guardianResult, 'guardian'),
-    newsapi: toStatus(newsApiResult, 'newsapi'),
-    hackernews: toStatus(hnResult, 'hackernews'),
-  }
+### Создать `server/src/routes/feedback.routes.ts`
 
-  if (guardianResult.status === 'rejected' && sources.includes('guardian')) {
-    console.error('[Guardian]', guardianResult.reason)
-  }
-  if (newsApiResult.status === 'rejected' && sources.includes('newsapi')) {
-    console.error('[NewsAPI]', newsApiResult.reason)
-  }
-  if (hnResult.status === 'rejected' && sources.includes('hackernews')) {
-    console.error('[HackerNews]', hnResult.reason)
-  }
+**Q46:** Данные формы — в body, не в query string. Здесь и нужен POST.
+**Q21:** Успешное создание ресурса → 201 Created (не 200).
 
-  const allNews: NewsItem[] = [
-    ...(guardianResult.status === 'fulfilled' ? guardianResult.value : []),
-    ...(newsApiResult.status === 'fulfilled' ? newsApiResult.value : []),
-    ...(hnResult.status === 'fulfilled' ? hnResult.value : []),
-  ]
+```typescript
+import { Router } from 'express'
+import { z } from 'zod'
 
-  const positiveNews = allNews.filter((item) => isPositiveNews(item.title, item.description))
+export const feedbackRouter = Router()
 
-  if (positiveNews.length === 0) {
-    console.warn(`[Aggregator] No positive news found out of ${allNews.length} total`)
-  }
+// Zod-схема: message обязателен (min 10, max 1000), email опциональный
+const feedbackSchema = z.object({
+  // ...
+})
 
-  console.log(
-    `[Aggregator] sources=[${sources}] total=${allNews.length} positive=${positiveNews.length}`,
-  )
+feedbackRouter.post('/', (req, res) => {
+  // 1. feedbackSchema.safeParse(req.body)
+  // 2. Если !parsed.success → res.status(400).json({ error: parsed.error.flatten() })
+  // 3. console.log('[Feedback]', parsed.data)
+  // 4. res.status(201).json({ ok: true, message: '...' })
+})
+```
 
-  return { news: positiveNews, sources: sourcesStatus }
+---
+
+## Шаг 3: Global error handler middleware
+
+### Создать `server/src/middleware/errorHandler.ts`
+
+**Q4:** Неожиданная ошибка (crash) → 500. Это отличается от ошибки валидации (400) — там мы сами вернули ответ.
+**Подводный камень:** Express error handler — это функция с **4 аргументами**: `(err, req, res, next)`. Если написать 3 — Express не распознает его как error handler.
+
+```typescript
+import type { ErrorRequestHandler } from 'express'
+
+export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+  // 1. console.error('[Unhandled Error]', err)
+  // 2. isProd = process.env.NODE_ENV === 'production'
+  // 3. res.status(500).json({
+  //      error: 'Internal Server Error',
+  //      // в проде — только message без stack trace
+  //      // в dev — добавить message из err для отладки
+  //    })
 }
 ```
 
 ---
 
-## ✅ Шаг 2: Обновить роут — принять и валидировать `?sources=`
+## Шаг 4: Подключить новые роуты в `app.ts`
 
-### Изменить `server/src/routes/news.routes.ts`
+### Изменить `server/src/app.ts`
+
+**Подводный камень:** `errorHandler` должен быть **последним** `app.use()` — он ловит то, что не было поймано раньше.
 
 ```typescript
-import { Router } from 'express'
-import { z } from 'zod'
-import type { AggregatorResult, SourceName } from '../services/newsAggregator'
-import { aggregateNews } from '../services/newsAggregator'
-import { getCached, setCached } from '../utils/cache'
+// После app.use('/api/news', newsRouter) добавить:
+// app.use('/api/feedback', feedbackRouter)
 
-export const newsRouter = Router()
-
-const VALID_SOURCES = ['guardian', 'newsapi', 'hackernews'] as const
-
-const newsQuerySchema = z.object({
-  sources: z
-    .string()
-    .optional()
-    .transform((val) =>
-      val
-        ? (val.split(',').filter((s) => VALID_SOURCES.includes(s as SourceName)) as SourceName[])
-        : (['guardian', 'newsapi', 'hackernews'] as SourceName[]),
-    ),
-})
-
-newsRouter.get('/', async (req, res) => {
-  const parsed = newsQuerySchema.safeParse(req.query)
-
-  if (!parsed.success) {
-    res.status(400).json({ error: 'Invalid query parameters', details: parsed.error.issues })
-    return
-  }
-
-  const { sources } = parsed.data
-
-  // Ключ кэша включает список источников — разные наборы не мешают друг другу
-  const cacheKey = `news:${sources.sort().join(',')}`
-
-  try {
-    const cached = getCached<AggregatorResult>(cacheKey)
-    if (cached) {
-      console.log(`[Cache] HIT — ${cacheKey}`)
-      res.json({ ...cached, cached: true })
-      return
-    }
-
-    console.log(`[Cache] MISS — ${cacheKey}`)
-    const result = await aggregateNews(sources)
-
-    setCached(cacheKey, result)
-
-    res.json({ ...result, cached: false })
-  } catch (error) {
-    console.error('[GET /api/news] Error:', error)
-    res.status(500).json({ error: 'Failed to fetch news' })
-  }
-})
+// В самом конце, перед return app:
+// app.use(errorHandler)
 ```
-
-> **Q46:** Фильтр источников — параметр запроса (не данные), поэтому идёт в query string, а не в body.
 
 ### Проверка
 
 ```powershell
 cd server && npm run dev
 
-curl "http://localhost:3001/api/news?sources=guardian,hackernews"
-curl "http://localhost:3001/api/news?sources=newsapi"
+# Список → потом взять реальный id из ответа
 curl "http://localhost:3001/api/news"
+
+# Детали по id
+curl "http://localhost:3001/api/news/<id-из-предыдущего>"
+
+# 404
+curl "http://localhost:3001/api/news/fake-id"
+
+# Feedback → 201
+curl -X POST http://localhost:3001/api/feedback `
+  -H "Content-Type: application/json" `
+  -d '{"message":"Отличный сайт, очень позитивно!","email":"test@test.com"}'
+
+# Ошибка валидации → 400
+curl -X POST http://localhost:3001/api/feedback `
+  -H "Content-Type: application/json" `
+  -d '{"message":"коротко"}'
 ```
 
 ### Коммит
 
 ```powershell
-git add server/src/services/newsAggregator.ts server/src/routes/news.routes.ts
-git commit -m "feat: #5 поддержка ?sources= в GET /api/news"
+git add server/src/routes/feedback.routes.ts `
+        server/src/middleware/errorHandler.ts `
+        server/src/app.ts
+git commit -m "feat: #5 POST /api/feedback, errorHandler middleware"
 ```
 
 ---
 
-## ✅ Шаг 3: Добавить `source` в тип NewsDetailsData на клиенте
-
-### Изменить `client/src/entities/news/api/apiNews/utils/transforms.types.ts`
-
-```typescript
-export type NewsSource = 'guardian' | 'newsapi' | 'hackernews'
-
-/** Трансформированные данные новости */
-export interface NewsDetailsData {
-  id: string
-  title: string
-  image: string
-  description: string
-  published: string
-  author: string
-  tag: string
-  source?: NewsSource
-}
-```
-
-> `source` опциональный — MSW-моки его не возвращают, чтобы не ломать dev-режим.
-
----
-
-## ✅ Шаг 4: Создать `useSourceFilter` hook
-
-### Создать `client/src/features/source-filter/useSourceFilter.ts`
-
-```typescript
-import { useLocalStorage } from '@shared/useLocalStorage'
-import type { NewsSource } from '@entities/news/api/apiNews/utils/transforms.types'
-
-export const ALL_SOURCES: NewsSource[] = ['guardian', 'newsapi', 'hackernews']
-
-export function useSourceFilter() {
-  const [selectedSources, setSelectedSources] = useLocalStorage<NewsSource[]>(
-    'news-sources',
-    ALL_SOURCES,
-  )
-
-  const toggle = (source: NewsSource) => {
-    setSelectedSources((prev) => {
-      // Нельзя снять все — оставляем хотя бы один источник
-      if (prev.includes(source) && prev.length === 1) return prev
-      return prev.includes(source) ? prev.filter((s) => s !== source) : [...prev, source]
-    })
-  }
-
-  const isSelected = (source: NewsSource) => selectedSources.includes(source)
-
-  // Строка для query param: "guardian,newsapi" — пересортированная, чтобы кэш был стабильным
-  const sourcesParam = [...selectedSources].sort().join(',')
-
-  return { selectedSources, sourcesParam, toggle, isSelected }
-}
-```
-
----
-
-## ✅ Шаг 5: Создать компонент `SourceFilter`
-
-### Создать `client/src/features/source-filter/SourceFilter.tsx`
-
-```typescript
-import type { NewsSource } from '@entities/news/api/apiNews/utils/transforms.types'
-import { ALL_SOURCES } from './useSourceFilter'
-import styles from './styles.module.css'
-
-const SOURCE_LABELS: Record<NewsSource, string> = {
-  guardian: 'Guardian',
-  newsapi: 'NewsAPI',
-  hackernews: 'HackerNews',
-}
-
-interface SourceFilterProps {
-  selectedSources: NewsSource[]
-  onToggle: (source: NewsSource) => void
-}
-
-const SourceFilter = ({ selectedSources, onToggle }: SourceFilterProps): React.ReactNode => {
-  return (
-    <div className={styles.filter}>
-      {ALL_SOURCES.map((source) => (
-        <label key={source} className={styles.label}>
-          <input
-            type="checkbox"
-            checked={selectedSources.includes(source)}
-            onChange={() => onToggle(source)}
-            className={styles.checkbox}
-          />
-          {SOURCE_LABELS[source]}
-        </label>
-      ))}
-    </div>
-  )
-}
-
-export default SourceFilter
-```
-
-### Создать `client/src/features/source-filter/styles.module.css`
-
-```css
-.filter {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 8px 0;
-}
-
-.label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  user-select: none;
-}
-
-.checkbox {
-  cursor: pointer;
-  width: 16px;
-  height: 16px;
-}
-```
-
-### Создать `client/src/features/source-filter/index.ts`
-
-```typescript
-export { default as SourceFilter } from './SourceFilter'
-export { useSourceFilter } from './useSourceFilter'
-```
-
----
-
-## ✅ Шаг 6: Обновить RTK Query — принять `sources`
+## Шаг 5: `postFeedback` mutation в RTK Query
 
 ### Изменить `client/src/entities/news/api/rtk/newsApi.ts`
 
+**FQ36:** Mutation (не query) — потому что меняет данные на сервере (POST).
+
 ```typescript
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
-import type { NewsDetailsData } from '../apiNews/utils/transforms.types'
+// Добавить интерфейсы:
+interface FeedbackPayload {
+  // message: string
+  // email?: string
+}
 
-const BASE_URL: string = import.meta.env.VITE_API_BASE_URL
+interface FeedbackResponse {
+  // ok: boolean
+  // message: string
+}
 
-export const newsApi = createApi({
-  reducerPath: 'newsApi',
-  baseQuery: fetchBaseQuery({ baseUrl: BASE_URL }),
-  tagTypes: ['News'],
-  endpoints: (builder) => ({
-    getNews: builder.query<NewsDetailsData[], string>({
-      // sources — строка вида "guardian,newsapi,hackernews"
-      query: (sources: string) => `/api/news?sources=${sources}`,
-      transformResponse: (response: { news: NewsDetailsData[] }) => response.news,
-      providesTags: ['News'],
-    }),
+// В endpoints добавить:
+postFeedback: builder.mutation<FeedbackResponse, FeedbackPayload>({
+  // query: (body) => ({ url: '/api/feedback', method: 'POST', body })
+}),
 
-    getNewsDetail: builder.query<NewsDetailsData, string>({
-      query: (id: string) => `/api/news/${id}`,
-      providesTags: ['News'],
-    }),
-  }),
-})
+// Экспортировать usePostFeedbackMutation
+```
 
-export const { useGetNewsQuery, useGetNewsDetailQuery } = newsApi
+---
+
+## Шаг 6: Компонент `FeedbackForm`
+
+### Создать `client/src/features/feedback/FeedbackForm.tsx`
+
+**Подводный камень:** `usePostFeedbackMutation` возвращает кортеж `[trigger, result]`.
+`result` содержит `isLoading`, `isSuccess`, `isError`.
+
+```typescript
+const FeedbackForm = (): React.ReactNode => {
+  // 1. useState для message и email
+  // 2. const [postFeedback, { isLoading, isSuccess, isError }] = usePostFeedbackMutation()
+  // 3. handleSubmit: e.preventDefault() → postFeedback({ message, email || undefined })
+  // 4. Если isSuccess — показать "Спасибо!"
+  // 5. Кнопка disabled когда isLoading или message.length < 10
+}
+```
+
+### Создать `client/src/features/feedback/styles.module.css`
+
+Нужны классы: `.form`, `.textarea`, `.input`, `.button`, `.button:disabled`, `.success`, `.error`
+
+### Создать `client/src/features/feedback/index.ts`
+
+```typescript
+export { default as FeedbackForm } from './FeedbackForm'
 ```
 
 ### Коммит
 
 ```powershell
-git add client/src/entities/news/api/apiNews/utils/transforms.types.ts `
-        client/src/features/source-filter/ `
-        client/src/entities/news/api/rtk/newsApi.ts
-git commit -m "feat: #5 фича source-filter"
+git add client/src/entities/news/api/rtk/newsApi.ts `
+        client/src/features/feedback/
+git commit -m "feat: #5 FeedbackForm + postFeedback mutation"
 ```
 
 ---
 
-## ⚠️ Шаг 7: Создать `SourceBadge` компонент
+## Шаг 7: MSW handler для `POST /api/feedback`
 
-### Создать `client/src/entities/news/SourceBadge/SourceBadge.tsx`
-
-```typescript
-import type { NewsSource } from '@entities/news/api/apiNews/utils/transforms.types'
-import styles from './styles.module.css'
-
-const SOURCE_CONFIG: Record<NewsSource, { label: string; colorClass: string }> = {
-  guardian: { label: 'Guardian', colorClass: styles.guardian },
-  newsapi: { label: 'NewsAPI', colorClass: styles.newsapi },
-  hackernews: { label: 'HN', colorClass: styles.hackernews },
-}
-
-interface SourceBadgeProps {
-  source: NewsSource
-}
-
-const SourceBadge = ({ source }: SourceBadgeProps): React.ReactNode => {
-  const config = SOURCE_CONFIG[source]
-  return <span className={`${styles.badge} ${config.colorClass}`}>{config.label}</span>
-}
-
-export default SourceBadge
-```
-
-### Создать `client/src/entities/news/SourceBadge/styles.module.css`
-
-```css
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.guardian {
-  background-color: #005689;
-  color: #fff;
-}
-
-.newsapi {
-  background-color: #1a73e8;
-  color: #fff;
-}
-
-.hackernews {
-  background-color: #ff6600;
-  color: #fff;
-}
-```
-
-### Создать `client/src/entities/news/SourceBadge/index.ts`
+### Изменить `client/src/app/mocks/handlers.ts`
 
 ```typescript
-export { default as SourceBadge } from './SourceBadge'
+// Добавить в handlers[]:
+http.post(`${BASE_URL}/api/feedback`, async ({ request }) => {
+  // 1. const body = await request.json()
+  // 2. Проверить длину message — если < 10, вернуть 400
+  // 3. Вернуть { ok: true, message: '...' } со статусом 201
+}),
 ```
 
 ---
 
-## ❌ Шаг 8: Добавить badge в `NewsItem`
+## Шаг 8: Footer с `FeedbackForm` в `App.tsx`
 
-### Изменить `client/src/entities/news/NewsItem/NewsItem.tsx`
+### Изменить `client/src/app/App.tsx`
 
 ```typescript
-import { generatePath, useNavigate } from 'react-router-dom'
-import type { NewsSource } from '@entities/news/api/apiNews/utils/transforms.types'
-import { APP_ROUTES } from '@shared/config/routes'
-import Image from '@shared/Image'
-import { SourceBadge } from '../SourceBadge'
-import styles from './styles.module.css'
-
-interface NewsItemProps {
-  item: {
-    id: string
-    title: string
-    description: string
-    image: string
-    published: string
-    author: string
-    tag: string
-    source?: NewsSource
-  }
-}
-
-const NewsItem = ({ item }: NewsItemProps): React.ReactNode => {
-  const navigate = useNavigate()
-  const handleClick = (): void => {
-    navigate(generatePath(APP_ROUTES.NewsDetail, { id: item.id }))
-  }
-  return (
-    <div className={styles.item} onClick={handleClick}>
-      <Image image={item.image} className={styles.image ?? ''} />
-      <div className={styles.info}>
-        {item.source && <SourceBadge source={item.source} />}
-        <h3 className={styles.title}>{item.title}</h3>
-        <p className={styles.extra}>{item.description}</p>
-      </div>
-    </div>
-  )
-}
-
-export default NewsItem
+// После <Outlet /> добавить <footer> с <FeedbackForm />
+// Стиль footer — inline или отдельный CSS, по вкусу
 ```
 
 ### Коммит
 
 ```powershell
-git add client/src/entities/news/SourceBadge/ `
-        client/src/entities/news/NewsItem/NewsItem.tsx
-git commit -m "feat: #5 компонент SourceBadge"
+git add client/src/app/mocks/handlers.ts client/src/app/App.tsx
+git commit -m "feat: #5 Footer + FeedbackForm + MSW mock"
 ```
-
----
-
-## ❌ Шаг 9: Интегрировать SourceFilter в NewsFeed
-
-### Изменить `client/src/pages/Main/NewsFeed.tsx`
-
-```typescript
-import NewsBanner from '@entities/news/NewsBanner'
-import NewsList from '@entities/news/NewsList'
-import { useGetNewsQuery } from '@entities/news/api'
-import { SourceFilter, useSourceFilter } from '@features/source-filter'
-import Pagination from '@features/paginate-news/Pagination'
-import ErrorComponent from '@shared/ErrorComponent'
-import Skeleton from '@shared/Skeleton'
-
-const NewsFeed = (): React.ReactNode => {
-  const { selectedSources, sourcesParam, toggle } = useSourceFilter()
-
-  const {
-    data: news,
-    isLoading: isInitialLoading,
-    isFetching,
-    error: queryError,
-    refetch,
-  } = useGetNewsQuery(sourcesParam)
-
-  const isLoading = isInitialLoading || isFetching
-  const normalizedError = queryError ? new Error('Ошибка загрузки новостей') : null
-
-  if (normalizedError && !isLoading) {
-    return <ErrorComponent error={normalizedError} onRetry={refetch} />
-  }
-
-  return (
-    <>
-      <SourceFilter selectedSources={selectedSources} onToggle={toggle} />
-
-      {isLoading ? <Skeleton count={1} type="banner" height="520px" /> : news?.[0] && <NewsBanner item={news[0]} />}
-
-      {isLoading ? (
-        <Skeleton type="item" count={10} height="100px" />
-      ) : (
-        news && <Pagination data={news}>{(data) => <NewsList news={data} />}</Pagination>
-      )}
-    </>
-  )
-}
-
-export default NewsFeed
-```
-
-### Коммит
-
-```powershell
-git add client/src/pages/Main/NewsFeed.tsx
-git commit -m "feat: #5 интеграция source-filter в NewsFeed"
-```
-
----
-
-## ❌ Шаг 10: Проверка
-
-### 10.1 Запустить всё
-
-```powershell
-# Терминал 1 — сервер
-cd server && npm run dev
-
-# Терминал 2 — клиент
-cd client && npm run dev
-```
-
-### 10.2 Чеклист проверки в браузере
-
-| Критерий | Как проверить |
-|---|---|
-| Тогглы видны | В ленте над новостями — 3 чекбокса |
-| Фильтрация работает | Снять HackerNews → HN-новости исчезают |
-| Персистентность | Перезагрузить страницу → выбор сохранился |
-| Query param | DevTools → Network → `GET /api/news?sources=guardian,newsapi` |
-| Source badge | На каждой карточке — цветной badge с источником |
-| Кэш по источникам | Повторный запрос с теми же sources → `"cached": true` |
-| Нельзя снять все | Снять все источники невозможно — последний остаётся |
 
 ---
 
@@ -574,25 +261,24 @@ cd client && npm run dev
 
 | Критерий | Результат |
 |---|---|
-| Выбор источников в UI | 3 чекбокса, по умолчанию все включены |
-| Фильтрация на бэкенде | `?sources=` принимается и обрабатывается |
-| localStorage | Выбор сохраняется между сессиями |
-| Source badges | Guardian = синий, NewsAPI = голубой, HN = оранжевый |
-| Раздельный кэш | `news:guardian,newsapi` и `news:guardian` — разные записи |
+| `GET /api/news/:id` | 200 с данными или 404 |
+| `POST /api/feedback` | 201 при успехе, 400 при ошибке валидации |
+| Error handler | 500 без stack trace в проде |
+| FeedbackForm | Форма в footer, loading / success / error |
 
 ---
 
 ## Следующий шаг
 
-**US 2.0.3** — RESTful API: `GET /api/news/:id`, `POST /api/feedback`, Zod-валидация, правильные HTTP-статусы.
+**US 2.0.5** — Swagger-документация: `/api/docs`, JSDoc-аннотации на роутах, swagger-jsdoc + swagger-ui-express.
 
 ---
 
 ## История коммитов этого инкремента
 
 ```
-feat: #5 интеграция source-filter в NewsFeed   ← Шаг 9    (pending)
-feat: #5 компонент SourceBadge                 ← Шаги 7–8 (pending)
-feat: #5 фича source-filter                    ← Шаги 3–6 ✅ bc0c6cf
-feat: #5 поддержка ?sources= в GET /api/news   ← Шаги 1–2 ✅ 994d9c1
+feat: #5 Footer + FeedbackForm + MSW mock         ← Шаги 7–8 (pending)
+feat: #5 FeedbackForm + postFeedback mutation      ← Шаги 5–6 (pending)
+feat: #5 POST /api/feedback, errorHandler          ← Шаги 2–4 (pending)
+feat: #5 GET /api/news/:id                         ← Шаг 1   (pending)
 ```
