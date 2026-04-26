@@ -26,10 +26,11 @@ export const handlers = [
     return HttpResponse.json(item)
   }),
 
-  // TODO: добавить handler для POST /api/feedback
-  // http.post(`${BASE_URL}/api/feedback`, async ({ request }) => {
-  //   1. const body = await request.json() as { message?: string; email?: string }
-  //   2. Если body.message.length < 10 → HttpResponse.json({ error: '...' }, { status: 400 })
-  //   3. Иначе → HttpResponse.json({ ok: true, message: '...' }, { status: 201 })
-  // })
+  http.post(`${BASE_URL}/api/feedback`, async ({ request }) => {
+    const body = (await request.json()) as { message?: string; email?: string }
+    if (!body.message || body.message.length < 10) {
+      return HttpResponse.json({ error: 'Message must be at least 10 characters' }, { status: 400 })
+    }
+    return HttpResponse.json({ ok: true, message: 'Спасибо за отзыв!' }, { status: 201 })
+  }),
 ]

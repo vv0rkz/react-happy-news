@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import Header from '@widgets/Header'
-// TODO: импортировать FeedbackForm из '@features/feedback'
+import { FeedbackForm } from '@features/feedback'
 import './App.css'
 
 function App() {
@@ -8,8 +8,9 @@ function App() {
     <>
       <Header />
       <Outlet />
-      {/* TODO: добавить <footer> с <FeedbackForm /> после <Outlet />
-          стиль footer — на твой вкус, минимум: padding + borderTop */}
+      <footer style={{ borderTop: '1px solid #eee', paddingTop: '32px', marginTop: '64px' }}>
+        <FeedbackForm />
+      </footer>
     </>
   )
 }
