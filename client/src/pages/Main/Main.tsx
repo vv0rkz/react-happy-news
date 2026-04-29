@@ -1,10 +1,17 @@
+import { ErrorBoundary } from 'react-error-boundary'
+import ErrorComponent from '@shared/ErrorComponent'
 import NewsFeed from './NewsFeed'
-// import styles from './styles.module.css'
 
 const Main = (): React.ReactNode => {
   return (
     <main>
-      <NewsFeed />
+      <ErrorBoundary
+        fallbackRender={({ error, resetErrorBoundary }) => (
+          <ErrorComponent error={error instanceof Error ? error : new Error(String(error))} onRetry={resetErrorBoundary} />
+        )}
+      >
+        <NewsFeed />
+      </ErrorBoundary>
     </main>
   )
 }

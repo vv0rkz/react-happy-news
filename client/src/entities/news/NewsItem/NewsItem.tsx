@@ -24,14 +24,14 @@ const NewsItem = ({ item }: NewsItemProps): React.ReactNode => {
     navigate(generatePath(APP_ROUTES.NewsDetail, { id: item.id }))
   }
   return (
-    <div className={styles.item} onClick={handleClick}>
+    <article className={styles.item} onClick={handleClick}>
       <Image image={item.image} className={styles.image ?? ''} />
       <div className={styles.info}>
         {item.source && <SourceBadge source={item.source} />}
         <h3 className={styles.title}>{item.title}</h3>
         <p className={styles.extra}>{item.description}</p>
       </div>
-    </div>
+    </article>
   )
 }
 

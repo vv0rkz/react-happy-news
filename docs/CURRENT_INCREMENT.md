@@ -1,16 +1,15 @@
-# US 2.0.5 — Swagger-документация + OpenAPI codegen
+# US 2.0.7 — Архитектурный рефакторинг
 
 **Статус:** `active`
 **Релиз:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md)
-**Покрывает вопросы:** Q33 (документация API), Q34 (swagger-jsdoc), Q88 (OpenAPI spec → codegen)
-
-**Подход:** `@asteasolutions/zod-to-openapi` — генерация spec из Zod-схем (единственный источник правды).
+**Покрывает вопросы:** FQ1 (SOLID/SRP), FQ4 (FSD), FQ5 (FSD vs Atomic), FQ6 (Container/Presentational), FQ55 (Error Boundaries), FQ78 (семантические теги)
 
 **Acceptance Criteria:**
-- [ ] Swagger UI доступен на `GET /api/docs`
-- [ ] Все endpoints описаны через реальные Zod-схемы — без JSDoc-комментариев
-- [ ] `openapi-typescript` генерирует типы клиента из spec
-- [ ] Клиент использует сгенерированные типы вместо ручных
+- [ ] Container/Presentational: `NewsFeedContainer` (логика) + `NewsFeedView` (рендеринг)
+- [ ] Error Boundaries вокруг NewsFeed и NewsDetail
+- [ ] Семантические теги: `<article>`, `<main>`, `<nav>`, `<header>`
+- [ ] Vercel деплой клиента работает (monorepo `vercel.json`)
+- [ ] Релиз v2.0.0 смерджен в `main`
 
 ---
 
@@ -21,240 +20,181 @@
 
 ---
 
-## Шаг 1: Установить зависимости
+## Шаг 1: Container/Presentational в `pages/Main`
 
-```powershell
-pnpm --filter react-happy-news-server add @asteasolutions/zod-to-openapi swagger-ui-express
-pnpm --filter react-happy-news-server add -D @types/swagger-ui-express
+**FQ6:** Container знает о данных и состоянии; Presentational — только рендеринг через props. Это SRP на уровне компонентов.
 
-pnpm --filter react-happy-news-client add -D openapi-typescript
+### Что сейчас
+
+Посмотри на `client/src/pages/Main/` — там наверняка один компонент, который одновременно делает RTK Query хук и рендерит UI.
+
+### Что сделать
+
+Разбить на два файла:
+
 ```
+pages/Main/
+├── NewsFeedContainer.tsx   ← логика: useGetNewsQuery, useSourceFilter, фильтрация, пагинация
+└── NewsFeedView.tsx        ← рендеринг: принимает props, ничего не знает об API
+```
+
+Сигнатуры:
+
+```typescript
+// NewsFeedView.tsx
+interface NewsFeedViewProps {
+  news: NewsDetailsData[]
+  isLoading: boolean
+  isError: boolean
+  // ...pagination props, source filter props
+}
+
+const NewsFeedView = (props: NewsFeedViewProps): React.ReactNode => { ... }
+
+// NewsFeedContainer.tsx
+const NewsFeedContainer = (): React.ReactNode => {
+  // хуки, RTK Query, useSourceFilter, usePaginateNews
+  // → передаёт всё в NewsFeedView через props
+}
+```
+
+**Подводный камень:** `NewsFeedContainer` должен быть дефолтным экспортом страницы (подключён в роутере), `NewsFeedView` — переиспользуемый компонент.
 
 ### Коммит
 
 ```powershell
-git add server/package.json client/package.json pnpm-lock.yaml
-git commit -m "build: #5 добавить zod-to-openapi, swagger-ui-express, openapi-typescript"
+git add client/src/pages/Main/
+git commit -m "refactor: #5 Container/Presentational для NewsFeed"
 ```
 
 ---
 
-## Шаг 2: Создать `server/src/swagger/registry.ts`
+## Шаг 2: Error Boundaries
 
-Это центральный файл, где регистрируются все схемы и пути.
+**FQ55:** Error Boundary ловит JS-ошибки в дочерних компонентах во время рендера. Без них — белый экран.
 
-```typescript
-import { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi'
+### Установить `react-error-boundary`
 
-// Singleton-реестр — все роуты импортируют его и регистрируют свои схемы
-export const registry = new OpenAPIRegistry()
+```powershell
+pnpm --filter react-happy-news-client add react-error-boundary
 ```
 
----
-
-## Шаг 3: Создать `server/src/swagger/schemas.ts`
-
-Здесь регистрируем переиспользуемые схемы (компоненты). Они будут отображаться в разделе `#/components/schemas`.
+### Обернуть NewsFeed и NewsDetail
 
 ```typescript
-import { z } from 'zod'
-import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi'
-import { registry } from './registry'
-import { SourceName } from '../types/news.types'
+import { ErrorBoundary } from 'react-error-boundary'
 
-// ⚠️  Вызвать extendZodWithOpenApi(z) ОДИН РАЗ — до любого использования .openapi()
-extendZodWithOpenApi(z)
-
-export const NewsItemSchema = registry.register(
-  'NewsItem',
-  z.object({
-    id:          z.string().openapi({ example: 'technology/2025/jan/01/news-title' }),
-    title:       z.string().openapi({ example: 'Scientists discover new renewable energy source' }),
-    description: z.string(),
-    image:       z.string().url(),
-    published:   z.string().datetime(),
-    author:      z.string(),
-    tag:         z.string().openapi({ example: 'Technology' }),
-    source:      z.nativeEnum(SourceName),
-  }),
-)
-
-export const FeedbackPayloadSchema = registry.register(
-  'FeedbackPayload',
-  z.object({
-    message: z.string().min(10).max(1000).openapi({ example: 'Отличный сайт, очень позитивно!' }),
-    email:   z.string().email().optional().openapi({ example: 'user@example.com' }),
-  }),
-)
-
-export const FeedbackResponseSchema = registry.register(
-  'FeedbackResponse',
-  z.object({
-    ok:      z.boolean(),
-    message: z.string(),
-  }),
-)
+// В роутере или в самих страницах:
+<ErrorBoundary fallback={<ErrorComponent message="Что-то пошло не так" />}>
+  <NewsFeedContainer />
+</ErrorBoundary>
 ```
 
-⚠️ **Подводный камень:** `extendZodWithOpenApi(z)` нужно вызвать **до** первого `.openapi()`. Лучше делать это в `schemas.ts` при импорте.
-
----
-
-## Шаг 4: Зарегистрировать пути в роутах
-
-### Изменить `server/src/routes/news.routes.ts`
-
-```typescript
-import { z } from 'zod'
-import { registry } from '../swagger/registry'
-import { NewsItemSchema } from '../swagger/schemas'
-import { SourceName } from '../types/news.types'
-
-// Регистрация пути для GET /api/news
-registry.registerPath({
-  method: 'get',
-  path: '/api/news',
-  tags: ['News'],
-  summary: 'Получить агрегированные позитивные новости',
-  request: {
-    query: z.object({
-      sources: z.string().optional().openapi({
-        example: 'guardian,newsapi',
-        description: 'Источники через запятую. Доступные: guardian, newsapi, hackernews',
-      }),
-    }),
-  },
-  responses: {
-    200: {
-      description: 'Список позитивных новостей',
-      content: {
-        'application/json': {
-          schema: z.object({
-            news:    z.array(NewsItemSchema),
-            sources: z.record(z.nativeEnum(SourceName), z.enum(['ok', 'error', 'skipped'])),
-            cached:  z.boolean(),
-          }),
-        },
-      },
-    },
-    400: { description: 'Невалидный параметр sources' },
-  },
-})
-
-// Регистрация пути для GET /api/news/:id
-registry.registerPath({
-  method: 'get',
-  path: '/api/news/{id}',
-  tags: ['News'],
-  summary: 'Получить новость по id',
-  request: {
-    params: z.object({ id: z.string().openapi({ example: 'technology/2025/jan/01/title' }) }),
-  },
-  responses: {
-    200:  { description: 'Данные новости', content: { 'application/json': { schema: NewsItemSchema } } },
-    404:  { description: 'Новость не найдена' },
-  },
-})
-```
-
-### Изменить `server/src/routes/feedback.routes.ts`
-
-```typescript
-import { registry } from '../swagger/registry'
-import { FeedbackPayloadSchema, FeedbackResponseSchema } from '../swagger/schemas'
-
-registry.registerPath({
-  method: 'post',
-  path: '/api/feedback',
-  tags: ['Feedback'],
-  summary: 'Отправить отзыв',
-  request: {
-    body: {
-      required: true,
-      content: { 'application/json': { schema: FeedbackPayloadSchema } },
-    },
-  },
-  responses: {
-    201: { description: 'Принято', content: { 'application/json': { schema: FeedbackResponseSchema } } },
-    400: { description: 'Ошибка валидации (message < 10 символов)' },
-  },
-})
-```
-
-⚠️ **Подводный камень:** Регистрации путей **должны быть выполнены до** того, как `OpenApiGeneratorV3` вызывается в `app.ts`. Импортируй роуты до генерации spec.
-
----
-
-## Шаг 5: Подключить Swagger UI в `app.ts`
-
-```typescript
-import { OpenApiGeneratorV3 } from '@asteasolutions/zod-to-openapi'
-import swaggerUi from 'swagger-ui-express'
-import { registry } from './swagger/registry'
-
-// ⚠️  Импортируй роуты ПЕРЕД генерацией spec — они регистрируют пути в registry
-import './routes/news.routes'       // side-effect: регистрация путей
-import './routes/feedback.routes'   // то же
-
-// Генерация spec из registry
-const generator = new OpenApiGeneratorV3(registry.definitions)
-const openApiSpec = generator.generateDocument({
-  openapi: '3.0.0',
-  info: { title: 'React Happy News API', version: '2.0.0' },
-  servers: [{ url: 'http://localhost:3001' }],
-})
-
-// UI и JSON-эндпоинт
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec))
-app.get('/api/docs.json', (_req, res) => res.json(openApiSpec))
-```
-
-⚠️ **Подводный камень с circular imports:** роуты уже импортируются в `app.ts` через `app.use(...)`. Регистрации путей в registry произойдут при первом импорте — убедись, что `registry` создан до импорта роутов.
+⚠️ **Подводный камень:** RTK Query ошибки (`isError`) — это НЕ то, что ловит Error Boundary. EB ловит исключения во время рендера. Оба механизма нужны.
 
 ### Коммит
 
 ```powershell
-git add server/src/swagger/ server/src/routes/news.routes.ts server/src/routes/feedback.routes.ts server/src/app.ts
-git commit -m "feat: #5 Swagger через zod-to-openapi, UI на /api/docs"
+git add client/src/
+git commit -m "refactor: #5 Error Boundaries вокруг NewsFeed и NewsDetail"
 ```
 
 ---
 
-## Шаг 6: Сгенерировать типы для клиента
+## Шаг 3: Семантические теги
 
-```powershell
-# 1. Запустить сервер
-pnpm dev:server
+**FQ78:** `<article>`, `<main>`, `<nav>`, `<header>`, `<footer>` — важны для доступности и SEO.
 
-# 2. Сгенерировать типы из живого spec
-pnpm --filter react-happy-news-client exec npx openapi-typescript http://localhost:3001/api/docs.json -o src/shared/api/openapi.d.ts
-```
+### Что проверить и исправить
 
-Или из файла (не нужен запущенный сервер):
-
-```powershell
-# Сохранить spec
-curl http://localhost:3001/api/docs.json > client/src/shared/api/openapi.json
-
-# Сгенерировать типы
-pnpm --filter react-happy-news-client exec npx openapi-typescript client/src/shared/api/openapi.json -o client/src/shared/api/openapi.d.ts
-```
-
-Использование в клиенте:
-
-```typescript
-import type { components } from '@/shared/api/openapi'
-
-type NewsItem = components['schemas']['NewsItem']
-type FeedbackPayload = components['schemas']['FeedbackPayload']
-```
+| Компонент | Что заменить |
+|---|---|
+| `App.tsx` | `<>` → `<main>` вокруг `<Outlet />` |
+| `Header` | убедиться что обёрнут в `<header>` |
+| Карточка новости | `<div>` → `<article>` |
+| Список новостей | `<div>` → `<ul>` + `<li>` |
+| Footer с FeedbackForm | уже `<footer>` ✅ |
 
 ### Коммит
 
 ```powershell
-git add client/src/shared/api/
-git commit -m "feat: #5 OpenAPI-типы для клиента"
+git add client/src/
+git commit -m "refactor: #5 семантические теги (article, main, nav)"
 ```
+
+---
+
+## Шаг 4: Vercel деплой (monorepo)
+
+**Контекст:** Проект стал pnpm-монорепом (`client/` + `server/`). Vercel раньше мог видеть `index.html` в корне — теперь его нет. Нужен `vercel.json`, который объясняет Vercel где искать клиент.
+
+**Важно:** Сервер Express на Vercel не живёт как обычный процесс — Vercel Serverless Functions работают иначе. Поэтому деплоим **только клиент** (статика), сервер остаётся либо на Railway/Render, либо рассматриваем позже. Клиент через `VITE_API_BASE_URL` в Vercel env vars указывает на внешний сервер.
+
+### Структура решения
+
+```json
+// vercel.json в корне монорепо
+{
+  "buildCommand": "pnpm build:client",
+  "outputDirectory": "client/dist",
+  "installCommand": "pnpm install",
+  "framework": null
+}
+```
+
+### Что нужно сделать
+
+1. Создать `vercel.json` в корне (содержимое выше)
+2. В Vercel Dashboard → Settings → Environment Variables добавить `VITE_API_BASE_URL` → URL продакшн-сервера
+3. Проверить что `client/dist` появляется после `pnpm build:client`
+4. Для SPA-роутинга (React Router) добавить в `vercel.json` rewrites:
+
+```json
+{
+  "buildCommand": "pnpm build:client",
+  "outputDirectory": "client/dist",
+  "installCommand": "pnpm install",
+  "framework": null,
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
+```
+
+⚠️ **Подводный камень:** без `rewrites` прямой переход на `/news/123` даст 404 от Vercel, а не от React Router.
+
+### Коммит
+
+```powershell
+git add vercel.json
+git commit -m "build: #5 vercel.json для monorepo деплоя клиента"
+```
+
+---
+
+## Шаг 5: Release v2.0.0 → merge в main
+
+Это **завершающий инкремент** релиза v2.0. После мержа ветка `v2.0.0-*` уходит в `main`.
+
+### Workflow (через `jst`)
+
+```powershell
+# 1. Убедиться что все коммиты на ветке
+git log --oneline main..HEAD
+
+# 2. Сгенерировать CHANGELOG + обновить README + создать тег
+npm run _ release
+
+# 3. Запушить тег и ветку
+npm run _ push-release
+
+# 4. Создать PR или смерджить напрямую (зависит от настроек репо)
+git checkout main
+git merge --no-ff v2.0.0-backend-and-many-news-api-filter
+git push origin main
+```
+
+⚠️ **Подводный камень:** `pre-push` хук проверяет формат ветки `v{version}-{name}`. На `main` этой проверки нет — пушить можно.
+
+⚠️ **Подводный камень:** `npm run _ release` читает коммиты с момента последнего тега. Убедись что все нужные коммиты есть на ветке перед запуском.
 
 ---
 
@@ -262,23 +202,26 @@ git commit -m "feat: #5 OpenAPI-типы для клиента"
 
 | Критерий | Результат |
 |---|---|
-| `GET /api/docs` | Swagger UI с реальными схемами |
-| `GET /api/docs.json` | OpenAPI spec в JSON |
-| Zod-схемы = документация | Не разойдутся никогда |
-| `openapi.d.ts` в клиенте | Типы автогенерированы из spec |
+| `NewsFeedContainer` + `NewsFeedView` | Логика и UI разделены |
+| Error Boundary на ленте | Ошибка рендера → fallback, не белый экран |
+| Семантические теги | article, main, header, nav, footer |
+| Vercel деплой | Клиент доступен по Vercel URL |
+| main актуален | v2.0.0 смерджен, тег создан |
 
 ---
 
 ## Следующий шаг
 
-**US 2.0.7** — Архитектурный рефакторинг: Container/Presentational, Error Boundaries, семантические теги.
+**US 2.0.2** — Выбор источников (source filter UI + source badges) — уже в следующем релизе.
 
 ---
 
 ## История коммитов этого инкремента
 
 ```
-feat: #5 OpenAPI-типы для клиента                    ← Шаг 6   (pending)
-feat: #5 Swagger через zod-to-openapi, UI на /api/docs ← Шаги 2–5 (pending)
-build: #5 zod-to-openapi, swagger-ui-express          ← Шаг 1   (pending)
+chore: #5 merge v2.0.0 в main                       ← Шаг 5 (pending)
+build: #5 vercel.json для monorepo деплоя            ← Шаг 4 (pending)
+refactor: #5 семантические теги                     ← Шаг 3 (pending)
+refactor: #5 Error Boundaries                       ← Шаг 2 (pending)
+refactor: #5 Container/Presentational для NewsFeed  ← Шаг 1 (pending)
 ```
