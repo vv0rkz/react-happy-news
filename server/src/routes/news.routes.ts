@@ -4,6 +4,49 @@ import type { AggregatorResult } from '../services/newsAggregator'
 import { aggregateNews } from '../services/newsAggregator'
 import { allSourceNames, SourceName, type NewsItem } from '../types/news.types'
 import { getCached, setCached } from '../utils/cache'
+import { registry } from '../swagger/registry'
+import { NewsItemSchema, NewsListResponseSchema } from '../swagger/schemas'
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/news',
+  tags: ['News'],
+  summary: 'Получить агрегированные позитивные новости',
+  request: {
+    query: z.object({
+      sources: z.string().optional().openapi({
+        example: 'guardian,newsapi',
+        description: 'Источники через запятую. Доступные: guardian, newsapi, hackernews',
+      }),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Список позитивных новостей',
+      content: { 'application/json': { schema: NewsListResponseSchema } },
+    },
+    400: { description: 'Невалидный параметр sources' },
+  },
+})
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/news/{id}',
+  tags: ['News'],
+  summary: 'Получить новость по id',
+  request: {
+    params: z.object({
+      id: z.string().openapi({ example: 'technology/2025/jan/01/title' }),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Данные новости',
+      content: { 'application/json': { schema: NewsItemSchema } },
+    },
+    404: { description: 'Новость не найдена' },
+  },
+})
 
 export const newsRouter = Router()
 

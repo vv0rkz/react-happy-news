@@ -1,9 +1,7 @@
 import { z } from 'zod'
-import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi'
 import { registry } from './registry'
 import { SourceName } from '../types/news.types'
-
-extendZodWithOpenApi(z)
+import './setup'
 
 export const NewsItemSchema = registry.register(
   'NewsItem',
