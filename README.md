@@ -11,7 +11,9 @@
 <img src="docs/v1.4.0.gif" width="400" />
 
 **Функционал:**
-- сделана отдельная страница по новости
+- добавлена основа для бэкенда
+- поддержка ?sources= в GET /api/news
+- фича source-filter
 
 **Релиз:** https://github.com/vv0rkz/react-happy-news/releases/tag/v1.4.0
 

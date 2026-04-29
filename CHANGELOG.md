@@ -1,5 +1,58 @@
 # Changelog
 
+## v1.4.0...v2.0.0
+
+[compare changes](https://github.com/vv0rkz/react-happy-news/compare/v1.4.0...v2.0.0)
+
+### ✨ Новые фичи
+
+- #5 добавлена основа для бэкенда ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+- #5 поддержка ?sources= в GET /api/news ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+- #5 фича source-filter ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+- #5 SourceBadge, NewsFeed, empty state, MSW и тесты хэндлеров ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+- #5 GET /api/news/:id — поиск по id в кэше ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+- #5 POST /api/feedback, errorHandler middleware ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+- #5 FeedbackForm + postFeedback mutation ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+- #5 Footer + FeedbackForm + MSW mock ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+- #5 Swagger UI на /api/docs через zod-to-openapi ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+- #5 OpenAPI-типы клиента (openapi-typescript) + gen:openapi скрипты ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+
+### 🐛 Исправления
+
+- #5 CORS для 127.0.0.1:5173, Vite host 127.0.0.1, EADDRINUSE сообщение ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+- #5 MSW mock режим доступен в production (demo mode) ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+
+### ♻️ Рефакторинг
+
+- #18 сделана миграция на typescript ([#18](https://github.com/vv0rkz/react-happy-news/issues/18))
+- Fsd ([357fa75](https://github.com/vv0rkz/react-happy-news/commit/357fa75))
+- #5 Container/Presentational для NewsFeed ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+
+### 📖 Documentation
+
+- Update README with demo releases ([ed093a9](https://github.com/vv0rkz/react-happy-news/commit/ed093a9))
+- Обновлен ROADMAP ([3f97609](https://github.com/vv0rkz/react-happy-news/commit/3f97609))
+- #5 обновить CURRENT_INCREMENT на US 2.0.5 Swagger ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+- #5 обновить план US 2.0.5 под zod-to-openapi ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+
+### 📦 Build
+
+- Добавелны базовые тесты ([9af334b](https://github.com/vv0rkz/react-happy-news/commit/9af334b))
+- Добавлен rtk query, msw ([322c81e](https://github.com/vv0rkz/react-happy-news/commit/322c81e))
+- Исправлен настройка для тестов ([280a539](https://github.com/vv0rkz/react-happy-news/commit/280a539))
+- #5 zod-to-openapi v7, swagger-ui-express, openapi-typescript ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+- #5 vercel.json для monorepo деплоя клиента ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+
+### 🏡 Chore
+
+- Jst, pnpm ([adab4eb](https://github.com/vv0rkz/react-happy-news/commit/adab4eb))
+- Jst, pnpm ([34d5f17](https://github.com/vv0rkz/react-happy-news/commit/34d5f17))
+- #5 версия 2.0.0, demo в docs/demo ([#5](https://github.com/vv0rkz/react-happy-news/issues/5))
+
+### ❤️ Contributors
+
+- Vv0rkz <ivanchebykin4@gmail.com>
+
 ## v1.4.0
 
 [compare changes](https://github.com/vv0rkz/react-happy-news/compare/v1.3.0...v1.4.0)
