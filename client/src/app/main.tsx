@@ -9,8 +9,6 @@ import { store } from './store'
 const MOCK_STORAGE_KEY = 'happyNews_mockMode'
 
 async function enableMocking(): Promise<void> {
-  if (!import.meta.env.DEV) return
-
   const isMockEnabled = localStorage.getItem(MOCK_STORAGE_KEY) === 'true'
   if (!isMockEnabled) return
 
