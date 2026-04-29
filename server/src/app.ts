@@ -8,11 +8,16 @@ import { registry } from './swagger/registry'
 import { newsRouter } from './routes/news.routes'
 import { feedbackRouter } from './routes/feedback.routes'
 import { errorHandler } from './middleware/errorHandler'
+import { packageVersion } from './packageInfo'
 
 // Импорты роутов выше уже зарегистрировали пути в registry — теперь генерируем spec
 const openApiSpec = new OpenApiGeneratorV3(registry.definitions).generateDocument({
   openapi: '3.0.0',
-  info: { title: 'React Happy News API', version: '2.0.0', description: 'Aggregates positive news from Guardian, NewsAPI, HackerNews' },
+  info: {
+    title: 'React Happy News API',
+    version: packageVersion,
+    description: 'Aggregates positive news from Guardian, NewsAPI, HackerNews',
+  },
   servers: [{ url: 'http://localhost:3001' }],
 })
 

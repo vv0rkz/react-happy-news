@@ -12,7 +12,9 @@
     "test:ui": "vitest --ui",
     "preview": "vite preview",
     "gen:barrels": "node scripts/gen-barrels.js",
-    "fix:imports": "node scripts/update-imports.js"
+    "fix:imports": "node scripts/update-imports.js",
+    "gen:openapi": "openapi-typescript ./src/shared/api/openapi.json -o ./src/shared/api/openapi.d.ts",
+    "gen:openapi:sync": "node ./scripts/fetch-openapi.mjs && openapi-typescript ./src/shared/api/openapi.json -o ./src/shared/api/openapi.d.ts"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",

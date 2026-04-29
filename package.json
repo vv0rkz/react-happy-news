@@ -9,6 +9,8 @@
     "lint": "pnpm --filter react-happy-news-client lint",
     "test": "pnpm --filter react-happy-news-client test",
     "type-check": "pnpm --filter react-happy-news-client type-check",
+    "gen:openapi": "pnpm --filter react-happy-news-client gen:openapi",
+    "gen:openapi:sync": "pnpm --filter react-happy-news-client gen:openapi:sync",
     "jst": "jst",
     "_": "jst",
     "prepare": "husky"

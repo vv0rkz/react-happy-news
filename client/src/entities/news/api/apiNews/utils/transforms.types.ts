@@ -1,4 +1,7 @@
-// TODO: добавить тип источника (зеркало SourceName с сервера)
+import type { components } from '@shared/api/openapi'
+
+// TODO: добавить тип источника — зеркало SourceName с сервера (`news.types`)
+
 export enum SourceName {
   Guardian = 'guardian',
   NewsApi = 'newsapi',
@@ -6,26 +9,8 @@ export enum SourceName {
 }
 export const allSourceNames = Object.values(SourceName)
 
-export interface NewsItem {
-  id: string
-  title: string
-  image: string
-  description: string
-  published: string
-  author: string
-  tag: string
-  source: SourceName
-}
+/** Соответствует OpenAPI `components.schemas.NewsItem` и серверному типу NewsItem */
+export type NewsItem = components['schemas']['NewsItem']
 
-/** Трансформированные данные новости */
-export interface NewsDetailsData {
-  id: string
-  title: string
-  image: string
-  description: string
-  published: string
-  author: string
-  tag: string
-  source?: SourceName
-  // TODO: добавить поле source — опциональное (MSW-моки его не возвращают)
-}
+/** Трансформированные данные новости (для карточек / детальной страницы) */
+export type NewsDetailsData = components['schemas']['NewsItem']
