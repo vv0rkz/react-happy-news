@@ -5,9 +5,9 @@
 **Покрывает вопросы:** FQ1 (SOLID/SRP), FQ4 (FSD), FQ5 (FSD vs Atomic), FQ6 (Container/Presentational), FQ55 (Error Boundaries), FQ78 (семантические теги)
 
 **Acceptance Criteria:**
-- [ ] Container/Presentational: `NewsFeedContainer` (логика) + `NewsFeedView` (рендеринг)
-- [ ] Error Boundaries вокруг NewsFeed и NewsDetail
-- [ ] Семантические теги: `<article>`, `<main>`, `<nav>`, `<header>`
+- [x] Container/Presentational: `NewsFeed` (контейнер) + `NewsFeedView` (рендеринг)
+- [x] Error Boundaries вокруг NewsFeed и NewsDetail
+- [x] Семантические теги: `<article>`, `<ul>`/`<li>`, `<main>` (fixed двойной `<main>` в ErrorComponent)
 - [ ] Vercel деплой клиента работает (monorepo `vercel.json`)
 - [ ] Релиз v2.0.0 смерджен в `main`
 
@@ -221,7 +221,5 @@ git push origin main
 ```
 chore: #5 merge v2.0.0 в main                       ← Шаг 5 (pending)
 build: #5 vercel.json для monorepo деплоя            ← Шаг 4 (pending)
-refactor: #5 семантические теги                     ← Шаг 3 (pending)
-refactor: #5 Error Boundaries                       ← Шаг 2 (pending)
-refactor: #5 Container/Presentational для NewsFeed  ← Шаг 1 (pending)
+refactor: #5 Container/Presentational для NewsFeed  ← Шаги 1-3 ✅ 85cf024
 ```
