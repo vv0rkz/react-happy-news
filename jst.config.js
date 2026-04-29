@@ -87,7 +87,7 @@ export default {
     requireDemo: true,
 
     /** Директория для демо-файлов */
-    demoDir: 'docs/demo',
+    demoDir: 'docs',
 
     /** Допустимые форматы демо-файлов */
     demoFormats: ['gif', 'png'],
