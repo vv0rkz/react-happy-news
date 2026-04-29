@@ -1,6 +1,7 @@
 import { isPositiveNews } from '@entities/news/helpers/filterPositiveNews'
 import type { RawNewsItem } from '../../schemas'
 import type { NewsDetailsData } from './transforms.types'
+import { SourceName } from './transforms.types'
 
 export const transformNewsDetailsData = (newsItem: RawNewsItem): NewsDetailsData => {
   return {
@@ -11,6 +12,7 @@ export const transformNewsDetailsData = (newsItem: RawNewsItem): NewsDetailsData
     published: newsItem.webPublicationDate,
     author: newsItem.fields?.byline || 'Unknown',
     tag: newsItem.sectionName,
+    source: SourceName.Guardian,
   }
 }
 

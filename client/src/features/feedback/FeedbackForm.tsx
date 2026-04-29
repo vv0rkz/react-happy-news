@@ -10,7 +10,11 @@ const FeedbackForm = (): React.ReactNode => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (message.trim().length < 10) return
-    postFeedback({ message: message.trim(), email: email.trim() || undefined })
+    const trimmedEmail = email.trim()
+    postFeedback({
+      message: message.trim(),
+      ...(trimmedEmail !== '' ? { email: trimmedEmail } : {}),
+    })
   }
 
   if (isSuccess) {

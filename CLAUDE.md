@@ -23,6 +23,10 @@ pnpm build:client
 pnpm lint             # eslint on client
 pnpm type-check       # tsc --noEmit on client
 pnpm test             # vitest on client
+
+# OpenAPI-клиентские типы (`client/src/shared/api/openapi.{json,d.ts}`)
+pnpm gen:openapi      # пересобрать .d.ts из закоммиченного openapi.json (без сервера)
+pnpm gen:openapi:sync  # скачать spec с http://localhost:3001 + обновить json и d.ts (нужен запущенный сервер)
 ```
 
 Run a single client test:

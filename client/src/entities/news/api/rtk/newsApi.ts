@@ -1,15 +1,9 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
+import type { components } from '@shared/api/openapi'
 import type { NewsDetailsData } from '../apiNews/utils/transforms.types'
 
-interface FeedbackPayload {
-  message: string
-  email?: string
-}
-
-interface FeedbackResponse {
-  ok: boolean
-  message: string
-}
+type FeedbackPayload = components['schemas']['FeedbackPayload']
+type FeedbackResponse = components['schemas']['FeedbackResponse']
 
 const BASE_URL: string = import.meta.env.VITE_API_BASE_URL
 
@@ -20,7 +14,7 @@ export const newsApi = createApi({
   endpoints: (builder) => ({
     getNews: builder.query<NewsDetailsData[], string>({
       query: (sources) => `/api/news?sources=${sources}`,
-      transformResponse: (response: { news: NewsDetailsData[] }) => response.news,
+      transformResponse: (response: components['schemas']['NewsListResponse']) => response.news,
       providesTags: ['News'],
     }),
 
