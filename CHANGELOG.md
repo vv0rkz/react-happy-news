@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.4.0...v2.0.0
+## v2.0.0
 
 [compare changes](https://github.com/vv0rkz/react-happy-news/compare/v1.4.0...v2.0.0)
 
