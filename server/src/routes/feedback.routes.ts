@@ -1,5 +1,27 @@
 import { Router } from 'express'
 import { z } from 'zod'
+import { registry } from '../swagger/registry'
+import { FeedbackPayloadSchema, FeedbackResponseSchema } from '../swagger/schemas'
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/feedback',
+  tags: ['Feedback'],
+  summary: 'Отправить отзыв',
+  request: {
+    body: {
+      required: true,
+      content: { 'application/json': { schema: FeedbackPayloadSchema } },
+    },
+  },
+  responses: {
+    201: {
+      description: 'Принято',
+      content: { 'application/json': { schema: FeedbackResponseSchema } },
+    },
+    400: { description: 'Ошибка валидации (message < 10 символов)' },
+  },
+})
 
 export const feedbackRouter = Router()
 
