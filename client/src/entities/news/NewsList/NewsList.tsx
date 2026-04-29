@@ -19,11 +19,13 @@ const NewsList = ({ news }: NewsListProps): React.ReactNode => {
   }
 
   return (
-    <div className={styles.list}>
+    <ul className={styles.list}>
       {news.map((item) => (
-        <NewsItem key={item.id} item={item} />
+        <li key={item.id} className={styles.listItem}>
+          <NewsItem item={item} />
+        </li>
       ))}
-    </div>
+    </ul>
   )
 }
 

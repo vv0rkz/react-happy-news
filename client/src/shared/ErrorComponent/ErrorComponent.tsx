@@ -7,7 +7,7 @@ interface ErrorComponentProps {
 
 function ErrorComponent({ error, onRetry }: ErrorComponentProps): React.ReactNode {
   return (
-    <main className={styles.main}>
+    <div className={styles.main}>
       <div className={styles.errorContainer}>
         <div className={styles.errorIcon}>📡</div>
         <h2 className={styles.errorTitle}>Ошибка подключения</h2>
@@ -24,7 +24,7 @@ function ErrorComponent({ error, onRetry }: ErrorComponentProps): React.ReactNod
           🔄 Попробовать снова
         </button>
       </div>
-    </main>
+    </div>
   )
 }
 
