@@ -25,7 +25,7 @@
   "devDependencies": {
     "@commitlint/cli": "^20.3.1",
     "@commitlint/config-conventional": "^20.3.1",
-    "@vv0rkz/js-template": "^1.8.0",
+    "@vv0rkz/js-template": "^1.8.3",
     "changelogen": "^0.6.2",
     "concurrently": "^9.2.1",
     "husky": "^9.1.7"
