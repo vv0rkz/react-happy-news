@@ -8,9 +8,7 @@
 ### 🟢 v2.0.0
 
 **Демо работы**  
-<a href="docs/v2.0.0.gif"><img src="docs/v2.0.0.png" alt="v2.0.0 demo preview" width="400" /></a>
-
-*v2.0.0 — нажми на превью чтобы увидеть анимацию*
+<img src="docs/demo/v2.0.0.png" alt="v2.0.0 demo preview" width="400" /><img src="docs/demo/v2.0.0.gif" alt="v2.0.0 demo animation" width="400" />
 
 **Функционал:**
 - добавлена основа для бэкенда
@@ -24,9 +22,7 @@
 ### 🟢 v1.4.0
 
 **Демо работы**  
-<a href="docs/v1.4.0.gif"><img src="docs/v1.4.0.png" alt="v1.4.0 demo preview" width="400" /></a>
-
-*v1.4.0 — нажми на превью чтобы увидеть анимацию*
+<img src="docs/demo/v1.4.0.png" alt="v1.4.0 demo preview" width="400" /><img src="docs/demo/v1.4.0.gif" alt="v1.4.0 demo animation" width="400" />
 
 **Функционал:**
 - сделана отдельная страница по новости
@@ -38,9 +34,7 @@
 ### 🟢 v1.3.0
 
 **Демо работы**  
-<a href="docs/v1.3.0.gif"><img src="docs/v1.3.0.png" alt="v1.3.0 demo preview" width="400" /></a>
-
-*v1.3.0 — нажми на превью чтобы увидеть анимацию*
+<img src="docs/demo/v1.3.0.png" alt="v1.3.0 demo preview" width="400" /><img src="docs/demo/v1.3.0.gif" alt="v1.3.0 demo animation" width="400" />
 
 **Функционал:**
 - сделал базовую пагинацию для новостей
@@ -52,9 +46,7 @@
 ### 🟢 v1.2.0
 
 **Демо работы**  
-<a href="docs/v1.2.0.gif"><img src="docs/v1.2.0.png" alt="v1.2.0 demo preview" width="400" /></a>
-
-*v1.2.0 — нажми на превью чтобы увидеть анимацию*
+<img src="docs/demo/v1.2.0.png" alt="v1.2.0 demo preview" width="400" /><img src="docs/demo/v1.2.0.gif" alt="v1.2.0 demo animation" width="400" />
 
 **Функционал:**
 - сделаны моки для первого запроса, чтобы работало без бэка
@@ -66,9 +58,7 @@
 ### 🟢 v1.1.0
 
 **Демо работы**  
-<a href="docs/v1.1.0.gif"><img src="docs/v1.1.0.png" alt="v1.1.0 demo preview" width="400" /></a>
-
-*v1.1.0 — нажми на превью чтобы увидеть анимацию*
+<img src="docs/demo/v1.1.0.png" alt="v1.1.0 demo preview" width="400" /><img src="docs/demo/v1.1.0.gif" alt="v1.1.0 demo animation" width="400" />
 
 **Функционал:**
 - добавлен skeleton для новостей
@@ -81,9 +71,7 @@
 ### 🟢 v1.0.0
 
 **Демо работы**  
-<a href="docs/v1.0.0.gif"><img src="docs/v1.0.0.png" alt="v1.0.0 demo preview" width="400" /></a>
-
-*v1.0.0 — нажми на превью чтобы увидеть анимацию*
+<img src="docs/demo/v1.0.0.png" alt="v1.0.0 demo preview" width="400" /><img src="docs/demo/v1.0.0.gif" alt="v1.0.0 demo animation" width="400" />
 
 **Функционал:**
 - добалено базовое представление NewsBanner

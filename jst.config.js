@@ -83,14 +83,23 @@ export default {
    * Настройки релиза (`jst release`)
    */
   release: {
-    /** Требовать GIF/PNG демо перед релизом (true | false) */
-    requireDemo: true,
+    demo: {
+      /** Требовать демо перед релизом */
+      enable: true, // было: release.requireDemo
 
-    /** Директория для демо-файлов */
-    demoDir: 'docs',
+      /** Директория для демо-файлов */
+      dir: 'docs/demo', // было: release.demoDir
 
-    /** Допустимые форматы демо-файлов */
-    demoFormats: ['gif', 'png'],
+      /** Допустимые форматы */
+      formats: ['gif', 'png'], // было: release.demoFormats
+
+      /**
+       * Способ отображения в README
+       * 'click'        — PNG превью, клик открывает GIF (экономит трафик)
+       * 'side-by-side' — PNG + GIF рядом (GIF грузится автоматически)
+       */
+      style: 'side-by-side',
+    },
   },
 
   /**
