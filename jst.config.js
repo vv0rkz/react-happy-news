@@ -98,7 +98,7 @@ export default {
        * 'click'        — PNG превью, клик открывает GIF (экономит трафик)
        * 'side-by-side' — PNG + GIF рядом (GIF грузится автоматически)
        */
-      style: 'side-by-side',
+      style: 'click',
     },
   },
 

@@ -15,8 +15,8 @@ importers:
         specifier: ^20.3.1
         version: 20.5.0
       '@vv0rkz/js-template':
-        specifier: ^1.8.3
-        version: 1.8.3(@types/node@25.5.2)(conventional-commits-parser@6.4.0)(typescript@5.9.3)
+        specifier: ^1.8.4
+        version: 1.8.4(@types/node@25.5.2)(conventional-commits-parser@6.4.0)(typescript@5.9.3)
       changelogen:
         specifier: ^0.6.2
         version: 0.6.2
@@ -1161,8 +1161,8 @@ packages:
   '@vitest/utils@4.1.2':
     resolution: {integrity: sha512-xw2/TiX82lQHA06cgbqRKFb5lCAy3axQ4H4SoUFhUsg+wztiet+co86IAMDtF6Vm1hc7J6j09oh/rgDn+JdKIQ==}
 
-  '@vv0rkz/js-template@1.8.3':
-    resolution: {integrity: sha512-dopI3L5ab9Rx1tBQJaceLznp9YzBCGBP+Wzsa/aphszNfg88o4paM92wKOOe1CBvWBqtYEKyCFwC5Vw90rq3FA==}
+  '@vv0rkz/js-template@1.8.4':
+    resolution: {integrity: sha512-8zXDTv2Z4eXMf5LD0ObFAFM8SH5cvUF1dW/uRpj80vlvA85ctPK407y6MUyzlUGZgB5mil8U4Ag1f/dY30vRRA==}
     hasBin: true
 
   accepts@1.3.8:
@@ -3726,7 +3726,7 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.0
 
-  '@vv0rkz/js-template@1.8.3(@types/node@25.5.2)(conventional-commits-parser@6.4.0)(typescript@5.9.3)':
+  '@vv0rkz/js-template@1.8.4(@types/node@25.5.2)(conventional-commits-parser@6.4.0)(typescript@5.9.3)':
     dependencies:
       '@commitlint/cli': 20.5.0(@types/node@25.5.2)(conventional-commits-parser@6.4.0)(typescript@5.9.3)
       '@commitlint/config-conventional': 20.5.0
