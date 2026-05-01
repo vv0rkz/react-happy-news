@@ -1,200 +1,253 @@
-# US 2.0.7 — Архитектурный рефакторинг
+# US 2.1.1 — Live-лента новостей через SSE
 
 **Статус:** `active`
 **Релиз:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md)
-**Покрывает вопросы:** FQ1 (SOLID/SRP), FQ4 (FSD), FQ5 (FSD vs Atomic), FQ6 (Container/Presentational), FQ55 (Error Boundaries), FQ78 (семантические теги)
+**Issue:** `#36`
+**Покрывает вопросы:** Q10 (real-time данные), Q59 (без перезагрузки), Q82 (кроме REST), Q90 (WS vs SSE vs long poll)
 
 **Acceptance Criteria:**
-- [x] Container/Presentational: `NewsFeed` (контейнер) + `NewsFeedView` (рендеринг)
-- [x] Error Boundaries вокруг NewsFeed и NewsDetail
-- [x] Семантические теги: `<article>`, `<ul>`/`<li>`, `<main>` (fixed двойной `<main>` в ErrorComponent)
-- [ ] Vercel деплой клиента работает (monorepo `vercel.json`)
-- [ ] Релиз v2.0.0 смерджен в `main`
+- [ ] Backend: cron каждые 5 минут фетчит свежие новости → фильтрует → пушит через SSE
+- [ ] Backend: `GET /api/news/stream` — SSE endpoint
+- [ ] Backend: sseManager управляет подключениями (Map клиентов) и heartbeat
+- [ ] Frontend: `features/live-news/useLiveNews.ts` — EventSource + cleanup
+- [ ] Frontend: `features/live-news/LiveIndicator.tsx` — `● Live` / `○ Offline`
+- [ ] Новые новости вставляются вверх ленты в `NewsFeedContainer`
+- [ ] EventSource закрывается при unmount (cleanup в useEffect)
 
 ---
 
 ## Git
 
-**Ветка:** `v2.0.0-backend-and-many-news-api-filter` (текущая)
-**Issue:** `#5`
-
----
-
-## Шаг 1: Container/Presentational в `pages/Main`
-
-**FQ6:** Container знает о данных и состоянии; Presentational — только рендеринг через props. Это SRP на уровне компонентов.
-
-### Что сейчас
-
-Посмотри на `client/src/pages/Main/` — там наверняка один компонент, который одновременно делает RTK Query хук и рендерит UI.
-
-### Что сделать
-
-Разбить на два файла:
-
-```
-pages/Main/
-├── NewsFeedContainer.tsx   ← логика: useGetNewsQuery, useSourceFilter, фильтрация, пагинация
-└── NewsFeedView.tsx        ← рендеринг: принимает props, ничего не знает об API
-```
-
-Сигнатуры:
-
-```typescript
-// NewsFeedView.tsx
-interface NewsFeedViewProps {
-  news: NewsDetailsData[]
-  isLoading: boolean
-  isError: boolean
-  // ...pagination props, source filter props
-}
-
-const NewsFeedView = (props: NewsFeedViewProps): React.ReactNode => { ... }
-
-// NewsFeedContainer.tsx
-const NewsFeedContainer = (): React.ReactNode => {
-  // хуки, RTK Query, useSourceFilter, usePaginateNews
-  // → передаёт всё в NewsFeedView через props
-}
-```
-
-**Подводный камень:** `NewsFeedContainer` должен быть дефолтным экспортом страницы (подключён в роутере), `NewsFeedView` — переиспользуемый компонент.
-
-### Коммит
+**Ветка:** `v2.1.0-live-sse-feed` (создать от `main`)
+**Issue:** `#36`
 
 ```powershell
-git add client/src/pages/Main/
-git commit -m "refactor: #5 Container/Presentational для NewsFeed"
-```
-
----
-
-## Шаг 2: Error Boundaries
-
-**FQ55:** Error Boundary ловит JS-ошибки в дочерних компонентах во время рендера. Без них — белый экран.
-
-### Установить `react-error-boundary`
-
-```powershell
-pnpm --filter react-happy-news-client add react-error-boundary
-```
-
-### Обернуть NewsFeed и NewsDetail
-
-```typescript
-import { ErrorBoundary } from 'react-error-boundary'
-
-// В роутере или в самих страницах:
-<ErrorBoundary fallback={<ErrorComponent message="Что-то пошло не так" />}>
-  <NewsFeedContainer />
-</ErrorBoundary>
-```
-
-⚠️ **Подводный камень:** RTK Query ошибки (`isError`) — это НЕ то, что ловит Error Boundary. EB ловит исключения во время рендера. Оба механизма нужны.
-
-### Коммит
-
-```powershell
-git add client/src/
-git commit -m "refactor: #5 Error Boundaries вокруг NewsFeed и NewsDetail"
-```
-
----
-
-## Шаг 3: Семантические теги
-
-**FQ78:** `<article>`, `<main>`, `<nav>`, `<header>`, `<footer>` — важны для доступности и SEO.
-
-### Что проверить и исправить
-
-| Компонент | Что заменить |
-|---|---|
-| `App.tsx` | `<>` → `<main>` вокруг `<Outlet />` |
-| `Header` | убедиться что обёрнут в `<header>` |
-| Карточка новости | `<div>` → `<article>` |
-| Список новостей | `<div>` → `<ul>` + `<li>` |
-| Footer с FeedbackForm | уже `<footer>` ✅ |
-
-### Коммит
-
-```powershell
-git add client/src/
-git commit -m "refactor: #5 семантические теги (article, main, nav)"
-```
-
----
-
-## Шаг 4: Vercel деплой (monorepo)
-
-**Контекст:** Проект стал pnpm-монорепом (`client/` + `server/`). Vercel раньше мог видеть `index.html` в корне — теперь его нет. Нужен `vercel.json`, который объясняет Vercel где искать клиент.
-
-**Важно:** Сервер Express на Vercel не живёт как обычный процесс — Vercel Serverless Functions работают иначе. Поэтому деплоим **только клиент** (статика), сервер остаётся либо на Railway/Render, либо рассматриваем позже. Клиент через `VITE_API_BASE_URL` в Vercel env vars указывает на внешний сервер.
-
-### Структура решения
-
-```json
-// vercel.json в корне монорепо
-{
-  "buildCommand": "pnpm build:client",
-  "outputDirectory": "client/dist",
-  "installCommand": "pnpm install",
-  "framework": null
-}
-```
-
-### Что нужно сделать
-
-1. Создать `vercel.json` в корне (содержимое выше)
-2. В Vercel Dashboard → Settings → Environment Variables добавить `VITE_API_BASE_URL` → URL продакшн-сервера
-3. Проверить что `client/dist` появляется после `pnpm build:client`
-4. Для SPA-роутинга (React Router) добавить в `vercel.json` rewrites:
-
-```json
-{
-  "buildCommand": "pnpm build:client",
-  "outputDirectory": "client/dist",
-  "installCommand": "pnpm install",
-  "framework": null,
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
-}
-```
-
-⚠️ **Подводный камень:** без `rewrites` прямой переход на `/news/123` даст 404 от Vercel, а не от React Router.
-
-### Коммит
-
-```powershell
-git add vercel.json
-git commit -m "build: #5 vercel.json для monorepo деплоя клиента"
-```
-
----
-
-## Шаг 5: Release v2.0.0 → merge в main
-
-Это **завершающий инкремент** релиза v2.0. После мержа ветка `v2.0.0-*` уходит в `main`.
-
-### Workflow (через `jst`)
-
-```powershell
-# 1. Убедиться что все коммиты на ветке
-git log --oneline main..HEAD
-
-# 2. Сгенерировать CHANGELOG + обновить README + создать тег
-npm run _ release
-
-# 3. Запушить тег и ветку
-npm run _ push-release
-
-# 4. Создать PR или смерджить напрямую (зависит от настроек репо)
 git checkout main
-git merge --no-ff v2.0.0-backend-and-many-news-api-filter
-git push origin main
+git checkout -b v2.1.0-live-sse-feed
 ```
 
-⚠️ **Подводный камень:** `pre-push` хук проверяет формат ветки `v{version}-{name}`. На `main` этой проверки нет — пушить можно.
+---
 
-⚠️ **Подводный камень:** `npm run _ release` читает коммиты с момента последнего тега. Убедись что все нужные коммиты есть на ветке перед запуском.
+## Архитектура
+
+```
+server/src/
+├── utils/
+│   └── sseManager.ts          ← Map клиентов, send(), broadcast(), heartbeat
+├── services/
+│   └── newsCron.ts            ← node-cron: fetch → filter → broadcast
+└── routes/
+    └── newsStream.routes.ts   ← GET /api/news/stream
+
+client/src/
+└── features/
+    └── live-news/
+        ├── useLiveNews.ts     ← EventSource, onmessage, cleanup, статус
+        ├── LiveIndicator.tsx  ← UI индикатор (● Live / ○ Offline)
+        └── index.ts           ← barrel (auto-generated)
+```
+
+---
+
+## Шаг 1: sseManager
+
+**Файл:** `server/src/utils/sseManager.ts`
+
+**FSD-аналогия:** утилита без зависимостей от конкретных роутов — переиспользуется cron'ом и роутом.
+
+```typescript
+// Типы
+type SseClient = {
+  id: string
+  response: express.Response
+}
+
+// Что должен уметь sseManager:
+// - clients: Map<string, SseClient> — все активные подключения
+// - addClient(id, res): установить SSE-заголовки, добавить в Map
+// - removeClient(id): удалить из Map
+// - broadcast(data): отправить всем клиентам строку в формате SSE
+// - startHeartbeat(): setInterval → каждые 30с send ":\n\n" (keep-alive)
+```
+
+**SSE-формат сообщения:**
+```
+data: {"id":"...","title":"..."}\n\n
+```
+
+**Подводный камень:** SSE требует специфических заголовков:
+```
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Connection: keep-alive
+```
+Без них браузер не распознает поток.
+
+**Подводный камень:** при дисконнекте клиента `req.on('close', ...)` → нужно вызвать `removeClient`, иначе Map растёт вечно.
+
+### Коммит
+```powershell
+git add server/src/utils/sseManager.ts
+git commit -m "feat: #36 sseManager — управление SSE-подключениями"
+```
+
+---
+
+## Шаг 2: SSE endpoint
+
+**Файл:** `server/src/routes/newsStream.routes.ts`
+
+```typescript
+// GET /api/news/stream
+// 1. Сгенерировать уникальный clientId (crypto.randomUUID())
+// 2. Вызвать sseManager.addClient(clientId, res)
+// 3. При req.on('close') → sseManager.removeClient(clientId)
+// 4. Не закрывать res — соединение держится открытым
+```
+
+**Подключить в `app.ts`:**
+```typescript
+app.use('/api/news/stream', newsStreamRouter)
+```
+
+**Подводный камень:** роут `/api/news/stream` должен быть зарегистрирован **до** роута `/api/news/:id`, иначе Express поймает `stream` как `:id`.
+
+### Коммит
+```powershell
+git add server/src/routes/newsStream.routes.ts server/src/app.ts
+git commit -m "feat: #36 GET /api/news/stream — SSE endpoint"
+```
+
+---
+
+## Шаг 3: Cron-задача
+
+**Файл:** `server/src/services/newsCron.ts`
+
+**Установить зависимость:**
+```powershell
+pnpm --filter react-happy-news-server add node-cron
+pnpm --filter react-happy-news-server add -D @types/node-cron
+```
+
+```typescript
+// Что делает cron:
+// 1. cron.schedule('*/5 * * * *', async () => { ... })
+// 2. Вызвать aggregateNews() — существующий сервис
+// 3. Получить только новые новости (те, которых ещё не было)
+//    → простой способ: сравнить по id с lastSeenIds: Set<string>
+// 4. Для каждой новой: sseManager.broadcast(JSON.stringify(newsItem))
+// 5. Обновить lastSeenIds
+```
+
+**Запустить в `index.ts`:**
+```typescript
+import { startNewsCron } from './services/newsCron'
+startNewsCron()
+```
+
+**Подводный камень:** cron запускается при старте сервера — первый тик будет через 5 минут. Для дев-режима можно добавить немедленный вызов при старте или уменьшить интервал через env-переменную.
+
+**Подводный камень:** `aggregateNews` уже кэширует результат на 5 минут. Cron должен инвалидировать кэш перед вызовом или использовать отдельный метод без кэша.
+
+### Коммит
+```powershell
+git add server/src/services/newsCron.ts server/src/index.ts
+git commit -m "feat: #36 newsCron — cron-задача для live-ленты"
+```
+
+---
+
+## Шаг 4: useLiveNews
+
+**Файл:** `client/src/features/live-news/useLiveNews.ts`
+
+**FSD:** feature-слой, не знает о конкретных страницах.
+
+```typescript
+type LiveNewsStatus = 'connecting' | 'connected' | 'error' | 'closed'
+
+interface UseLiveNewsReturn {
+  newItems: NewsDetailsData[]   // накопленные новые новости
+  status: LiveNewsStatus
+  clearNewItems: () => void     // сбросить после вставки в основной список
+}
+
+// Внутри хука:
+// 1. useState для newItems и status
+// 2. useEffect(() => {
+//      const es = new EventSource(`${VITE_API_BASE_URL}/api/news/stream`)
+//      es.onopen = () => setStatus('connected')
+//      es.onmessage = (e) => {
+//        const item = JSON.parse(e.data) as NewsDetailsData
+//        setNewItems(prev => [item, ...prev])
+//      }
+//      es.onerror = () => setStatus('error')
+//      return () => { es.close(); setStatus('closed') }  // cleanup!
+//    }, [])
+```
+
+**Подводный камень:** `EventSource` не поддерживает кастомные заголовки (в отличие от fetch). Авторизация через query-параметр или cookie, не через Authorization header.
+
+**Подводный камень:** `es.onerror` срабатывает и при reconnect — браузер сам переподключается. Не нужно делать reconnect вручную. Отличить временную ошибку от окончательной можно по `es.readyState`.
+
+### Коммит
+```powershell
+git add client/src/features/live-news/useLiveNews.ts
+git commit -m "feat: #36 useLiveNews — EventSource подписка"
+```
+
+---
+
+## Шаг 5: LiveIndicator
+
+**Файл:** `client/src/features/live-news/LiveIndicator.tsx`
+
+```typescript
+interface LiveIndicatorProps {
+  status: LiveNewsStatus
+}
+
+// Рендер:
+// 'connected' → <span>● Live</span>  (зелёный)
+// 'connecting' → <span>○ Connecting...</span>  (серый)
+// 'error' | 'closed' → <span>○ Offline</span>  (красный)
+```
+
+**Где разместить:** в `widgets/Header` или над лентой в `NewsFeedView` — на усмотрение, главное не в entities (это feature-слой).
+
+### Коммит
+```powershell
+git add client/src/features/live-news/LiveIndicator.tsx
+git commit -m "feat: #36 LiveIndicator — статус SSE-соединения"
+```
+
+---
+
+## Шаг 6: Подключить в NewsFeedContainer
+
+**Файл:** `client/src/pages/Main/NewsFeedContainer.tsx`
+
+```typescript
+// 1. const { newItems, status, clearNewItems } = useLiveNews()
+// 2. useEffect(() => {
+//      if (newItems.length > 0) {
+//        // вставить newItems в начало основного списка
+//        // очистить newItems через clearNewItems()
+//      }
+//    }, [newItems])
+// 3. Передать status в NewsFeedView → LiveIndicator
+```
+
+**Подводный камень:** данные RTK Query и данные SSE — две разные системы. Не нужно инвалидировать RTK-кэш. Просто объединяй: `[...newItems, ...rtkData]`.
+
+**Подводный камень:** дублирование. Если cron присылает новость, которая уже есть в RTK-кэше (например, при первой загрузке) — нужно дедуплицировать по `id`.
+
+### Коммит
+```powershell
+git add client/src/pages/Main/NewsFeedContainer.tsx client/src/pages/Main/NewsFeedView.tsx
+git commit -m "feat: #36 подключить useLiveNews в NewsFeedContainer"
+```
 
 ---
 
@@ -202,24 +255,21 @@ git push origin main
 
 | Критерий | Результат |
 |---|---|
-| `NewsFeedContainer` + `NewsFeedView` | Логика и UI разделены |
-| Error Boundary на ленте | Ошибка рендера → fallback, не белый экран |
-| Семантические теги | article, main, header, nav, footer |
-| Vercel деплой | Клиент доступен по Vercel URL |
-| main актуален | v2.0.0 смерджен, тег создан |
-
----
-
-## Следующий шаг
-
-**US 2.0.2** — Выбор источников (source filter UI + source badges) — уже в следующем релизе.
+| `GET /api/news/stream` | Открытое SSE-соединение, заголовки text/event-stream |
+| Cron каждые 5 мин | Новые новости приходят без перезагрузки |
+| `● Live` в UI | Виден когда соединение активно |
+| Закрытие вкладки | EventSource закрывается (cleanup) |
+| Дедупликация | Одна новость не появляется дважды |
 
 ---
 
 ## История коммитов этого инкремента
 
 ```
-chore: #5 merge v2.0.0 в main                       ← Шаг 5 (pending)
-build: #5 vercel.json для monorepo деплоя            ← Шаг 4 (pending)
-refactor: #5 Container/Presentational для NewsFeed  ← Шаги 1-3 ✅ 85cf024
+feat: #36 подключить useLiveNews в NewsFeedContainer   ← Шаг 6 (pending)
+feat: #36 LiveIndicator — статус SSE-соединения        ← Шаг 5 (pending)
+feat: #36 useLiveNews — EventSource подписка           ← Шаг 4 (pending)
+feat: #36 newsCron — cron-задача для live-ленты        ← Шаг 3 (pending)
+feat: #36 GET /api/news/stream — SSE endpoint          ← Шаг 2 (pending)
+feat: #36 sseManager — управление SSE-подключениями   ← Шаг 1 (pending)
 ```
