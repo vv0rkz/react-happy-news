@@ -6,7 +6,9 @@ import swaggerUi from 'swagger-ui-express'
 import { OpenApiGeneratorV3 } from '@asteasolutions/zod-to-openapi'
 import { registry } from './swagger/registry'
 import { newsRouter } from './routes/news.routes'
+import { newsStreamRouter } from './routes/newsStream.routes'
 import { feedbackRouter } from './routes/feedback.routes'
+import { sseManager } from './utils/sseManager'
 import { errorHandler } from './middleware/errorHandler'
 import { packageVersion } from './packageInfo'
 
@@ -36,8 +38,11 @@ export function createApp() {
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec))
   app.get('/api/docs.json', (_req, res) => res.json(openApiSpec))
 
+  app.use('/api/news/stream', newsStreamRouter)
   app.use('/api/news', newsRouter)
   app.use('/api/feedback', feedbackRouter)
+
+  sseManager.startHeartbeat()
 
   app.use(errorHandler)
 
