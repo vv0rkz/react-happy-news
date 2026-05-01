@@ -6,7 +6,7 @@
 **Покрывает вопросы:** Q10 (real-time данные), Q59 (без перезагрузки), Q82 (кроме REST), Q90 (WS vs SSE vs long poll)
 
 **Acceptance Criteria:**
-- [ ] Backend: cron каждые 5 минут фетчит свежие новости → фильтрует → пушит через SSE
+- [x] Backend: cron каждые 5 минут фетчит свежие новости → фильтрует → пушит через SSE
 - [x] Backend: `GET /api/news/stream` — SSE endpoint
 - [x] Backend: sseManager управляет подключениями (Map клиентов) и heartbeat
 - [ ] Frontend: `features/live-news/useLiveNews.ts` — EventSource + cleanup
@@ -269,7 +269,7 @@ git commit -m "feat: #36 подключить useLiveNews в NewsFeedContainer"
 feat: #36 подключить useLiveNews в NewsFeedContainer   ← Шаг 6 (pending)
 feat: #36 LiveIndicator — статус SSE-соединения        ← Шаг 5 (pending)
 feat: #36 useLiveNews — EventSource подписка           ← Шаг 4 (pending)
-feat: #36 newsCron — cron-задача для live-ленты        ← Шаг 3 (pending)
+feat: #36 newsCron — cron-задача для live-ленты        ← Шаг 3 ✅
 feat: #36 GET /api/news/stream — SSE endpoint          ← Шаг 2 ✅
 feat: #36 sseManager — управление SSE-подключениями   ← Шаг 1 ✅
 ```
