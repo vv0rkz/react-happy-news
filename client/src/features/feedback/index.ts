@@ -1,1 +1,1 @@
-export { default as FeedbackForm } from './FeedbackForm'
+export { FeedbackForm } from './FeedbackForm'

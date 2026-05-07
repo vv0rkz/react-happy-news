@@ -9,7 +9,7 @@ interface ImageProps {
   image: string
   className?: string
 }
-const Image = ({ image, className }: ImageProps): React.ReactNode => {
+export const Image = ({ image, className }: ImageProps): React.ReactNode => {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [imgSrc, setImgSrc] = useState<string>(image || FALLBACK_IMAGE)
 
@@ -52,7 +52,5 @@ const Image = ({ image, className }: ImageProps): React.ReactNode => {
     </div>
   )
 }
-
-export default Image
 
 export type { ImageProps }

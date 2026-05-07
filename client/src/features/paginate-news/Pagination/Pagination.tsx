@@ -6,7 +6,7 @@ interface PaginationProps<T> {
   children: (data: T[]) => React.ReactNode
 }
 
-function Pagination<T>({ data, children }: PaginationProps<T>): React.ReactNode {
+export function Pagination<T>({ data, children }: PaginationProps<T>): React.ReactNode {
   const { paginatedData, currentPage, totalPages, nextPage, prevPage, isFirstPage, isLastPage } = usePagination(
     data ?? [],
     2,
@@ -32,5 +32,3 @@ function Pagination<T>({ data, children }: PaginationProps<T>): React.ReactNode 
     </>
   )
 }
-
-export default Pagination

@@ -11,9 +11,7 @@ interface SourceBadgeProps {
   source: SourceName
 }
 
-const SourceBadge = ({ source }: SourceBadgeProps): React.ReactNode => {
+export const SourceBadge = ({ source }: SourceBadgeProps): React.ReactNode => {
   const config = SOURCE_CONFIG[source]
   return <span className={`${styles.badge} ${config.colorClass}`}>{config.label}</span>
 }
-
-export default SourceBadge

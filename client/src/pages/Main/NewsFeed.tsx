@@ -1,9 +1,9 @@
 import { useGetNewsQuery } from '@entities/news/api'
 import { useSourceFilter } from '@features/source-filter'
-import ErrorComponent from '@shared/ErrorComponent'
-import NewsFeedView from './NewsFeedView'
+import { ErrorComponent } from '@shared/ErrorComponent'
+import { NewsFeedView } from './NewsFeedView'
 
-const NewsFeed = (): React.ReactNode => {
+export const NewsFeed = (): React.ReactNode => {
   const { selectedSources, sourcesParam, toggle } = useSourceFilter()
 
   const {
@@ -23,5 +23,3 @@ const NewsFeed = (): React.ReactNode => {
 
   return <NewsFeedView news={news} isLoading={isLoading} selectedSources={selectedSources} onToggle={toggle} />
 }
-
-export default NewsFeed

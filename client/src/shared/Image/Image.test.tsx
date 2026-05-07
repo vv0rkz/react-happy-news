@@ -1,6 +1,6 @@
 import { fireEvent, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import Image from './Image'
+import { Image } from './Image'
 
 const IMAGE_URL = 'https://example.com/image.jpg'
 

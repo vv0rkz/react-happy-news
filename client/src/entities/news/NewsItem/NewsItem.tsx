@@ -1,7 +1,7 @@
 import { generatePath, useNavigate } from 'react-router-dom'
 import type { SourceName } from '@entities/news/api/apiNews/utils/transforms.types'
 import { APP_ROUTES } from '@shared/config/routes'
-import Image from '@shared/Image'
+import { Image } from '@shared/Image'
 import { SourceBadge } from '../SourceBadge'
 import styles from './styles.module.css'
 
@@ -18,7 +18,7 @@ interface NewsItemProps {
   }
 }
 
-const NewsItem = ({ item }: NewsItemProps): React.ReactNode => {
+export const NewsItem = ({ item }: NewsItemProps): React.ReactNode => {
   const navigate = useNavigate()
   const handleClick = (): void => {
     navigate(generatePath(APP_ROUTES.NewsDetail, { id: item.id }))
@@ -34,5 +34,3 @@ const NewsItem = ({ item }: NewsItemProps): React.ReactNode => {
     </article>
   )
 }
-
-export default NewsItem

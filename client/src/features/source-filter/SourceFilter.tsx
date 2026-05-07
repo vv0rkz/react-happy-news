@@ -12,7 +12,7 @@ interface SourceFilterProps {
   onToggle: (source: SourceName) => void
 }
 
-const SourceFilter = ({ selectedSources, onToggle }: SourceFilterProps): React.ReactNode => {
+export const SourceFilter = ({ selectedSources, onToggle }: SourceFilterProps): React.ReactNode => {
   return (
     <div className={styles.filter}>
       {allSourceNames.map((source) => (
@@ -29,5 +29,3 @@ const SourceFilter = ({ selectedSources, onToggle }: SourceFilterProps): React.R
     </div>
   )
 }
-
-export default SourceFilter

@@ -1,4 +1,4 @@
-import NewsItem from '../NewsItem'
+import { NewsItem } from '../NewsItem'
 import styles from './styles.module.css'
 
 interface NewsListProps {
@@ -13,7 +13,7 @@ interface NewsListProps {
   }>
 }
 
-const NewsList = ({ news }: NewsListProps): React.ReactNode => {
+export const NewsList = ({ news }: NewsListProps): React.ReactNode => {
   if (news.length === 0) {
     return <p className={styles.empty}>Нет новостей по выбранным источникам</p>
   }
@@ -28,5 +28,3 @@ const NewsList = ({ news }: NewsListProps): React.ReactNode => {
     </ul>
   )
 }
-
-export default NewsList

@@ -1,2 +1,2 @@
-export { default as ReadersCount } from './ReadersCount'
+export { ReadersCount } from './ReadersCount'
 export { useLiveReaders } from './useLiveReaders'

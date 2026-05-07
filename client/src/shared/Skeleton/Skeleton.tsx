@@ -9,7 +9,7 @@ interface SkeletonProps {
   className?: string
 }
 
-const Skeleton = ({ count = 1, type = 'banner', height, width, className }: SkeletonProps): React.ReactNode => {
+export const Skeleton = ({ count = 1, type = 'banner', height, width, className }: SkeletonProps): React.ReactNode => {
   const style: Record<string, string> = {}
   if (height) style.height = height
   if (width) style.width = width
@@ -22,5 +22,3 @@ const Skeleton = ({ count = 1, type = 'banner', height, width, className }: Skel
     </ul>
   )
 }
-
-export default Skeleton

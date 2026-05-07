@@ -1,10 +1,10 @@
 import type { NewsDetailsData } from '@entities/news/api/apiNews/utils/transforms.types'
 import type { SourceName } from '@entities/news/api/apiNews/utils/transforms.types'
-import NewsBanner from '@entities/news/NewsBanner'
-import NewsList from '@entities/news/NewsList'
-import Pagination from '@features/paginate-news/Pagination'
+import { NewsBanner } from '@entities/news/NewsBanner'
+import { NewsList } from '@entities/news/NewsList'
+import { Pagination } from '@features/paginate-news/Pagination'
 import { SourceFilter } from '@features/source-filter'
-import Skeleton from '@shared/Skeleton'
+import { Skeleton } from '@shared/Skeleton'
 
 interface NewsFeedViewProps {
   news: NewsDetailsData[] | undefined
@@ -13,7 +13,7 @@ interface NewsFeedViewProps {
   onToggle: (source: SourceName) => void
 }
 
-const NewsFeedView = ({ news, isLoading, selectedSources, onToggle }: NewsFeedViewProps): React.ReactNode => {
+export const NewsFeedView = ({ news, isLoading, selectedSources, onToggle }: NewsFeedViewProps): React.ReactNode => {
   return (
     <>
       <SourceFilter selectedSources={selectedSources} onToggle={onToggle} />
@@ -27,5 +27,3 @@ const NewsFeedView = ({ news, isLoading, selectedSources, onToggle }: NewsFeedVi
     </>
   )
 }
-
-export default NewsFeedView

@@ -5,7 +5,7 @@ interface ErrorComponentProps {
   onRetry: () => void
 }
 
-function ErrorComponent({ error, onRetry }: ErrorComponentProps): React.ReactNode {
+export function ErrorComponent({ error, onRetry }: ErrorComponentProps): React.ReactNode {
   return (
     <div className={styles.main}>
       <div className={styles.errorContainer}>
@@ -27,5 +27,3 @@ function ErrorComponent({ error, onRetry }: ErrorComponentProps): React.ReactNod
     </div>
   )
 }
-
-export default ErrorComponent

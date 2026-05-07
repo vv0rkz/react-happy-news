@@ -1,8 +1,8 @@
 import { ErrorBoundary } from 'react-error-boundary'
-import ErrorComponent from '@shared/ErrorComponent'
-import NewsFeed from './NewsFeed'
+import { ErrorComponent } from '@shared/ErrorComponent'
+import { NewsFeed } from './NewsFeed'
 
-const Main = (): React.ReactNode => {
+export const Main = (): React.ReactNode => {
   return (
     <main>
       <ErrorBoundary
@@ -15,5 +15,3 @@ const Main = (): React.ReactNode => {
     </main>
   )
 }
-
-export default Main

@@ -5,7 +5,7 @@ interface ReadersCountProps {
   articleId: string
 }
 
-const ReadersCount = ({ articleId }: ReadersCountProps): React.ReactNode => {
+export const ReadersCount = ({ articleId }: ReadersCountProps): React.ReactNode => {
   const { count, status } = useLiveReaders(articleId)
 
   if (status !== 'connected' || count <= 0) {
@@ -19,5 +19,3 @@ const ReadersCount = ({ articleId }: ReadersCountProps): React.ReactNode => {
     </div>
   )
 }
-
-export default ReadersCount

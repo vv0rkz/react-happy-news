@@ -1,14 +1,14 @@
-import NewsBanner from '@entities/news/NewsBanner'
+import { NewsBanner } from '@entities/news/NewsBanner'
 import { useGetNewsDetailQuery } from '@entities/news/api'
 import { ReadersCount } from '@features/live-readers'
-import ErrorComponent from '@shared/ErrorComponent'
-import Skeleton from '@shared/Skeleton'
+import { ErrorComponent } from '@shared/ErrorComponent'
+import { Skeleton } from '@shared/Skeleton'
 
 interface NewsDetailViewProps {
   id: string
 }
 
-const NewsDetailView = ({ id }: NewsDetailViewProps): React.ReactNode => {
+export const NewsDetailView = ({ id }: NewsDetailViewProps): React.ReactNode => {
   const { data, isLoading: isInitialLoading, isFetching, error: queryError, refetch } = useGetNewsDetailQuery(id)
 
   const isLoading = isInitialLoading || isFetching
@@ -33,5 +33,3 @@ const NewsDetailView = ({ id }: NewsDetailViewProps): React.ReactNode => {
     </>
   )
 }
-
-export default NewsDetailView

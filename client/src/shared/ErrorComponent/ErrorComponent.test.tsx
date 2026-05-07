@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import ErrorComponent from './ErrorComponent'
+import { ErrorComponent } from './ErrorComponent'
 
 describe('ErrorComponent', () => {
   const mockError = new Error('Ошибка подключения к серверу')

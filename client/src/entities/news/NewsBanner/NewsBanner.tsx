@@ -1,5 +1,5 @@
 import { formatTimeAgo } from '@shared/formatTimeAgo'
-import Image from '@shared/Image'
+import { Image } from '@shared/Image'
 import styles from './styles.module.css'
 
 interface NewsBannerProps {
@@ -14,7 +14,7 @@ interface NewsBannerProps {
   }
 }
 
-const NewsBanner = ({ item }: NewsBannerProps): React.ReactNode => {
+export const NewsBanner = ({ item }: NewsBannerProps): React.ReactNode => {
   return (
     <div className={styles.banner}>
       <Image image={item.image} className={styles.image ?? ''} />
@@ -25,5 +25,3 @@ const NewsBanner = ({ item }: NewsBannerProps): React.ReactNode => {
     </div>
   )
 }
-
-export default NewsBanner

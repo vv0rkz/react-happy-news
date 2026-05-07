@@ -1,9 +1,9 @@
-import Header from '@widgets/Header'
+import { Header } from '@widgets/Header'
 import { Outlet } from 'react-router-dom'
 // import { FeedbackForm } from '@features/feedback'
 import './App.css'
 
-function App() {
+export function App(): React.ReactNode {
   return (
     <>
       <Header />
@@ -14,5 +14,3 @@ function App() {
     </>
   )
 }
-
-export default App

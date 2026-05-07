@@ -182,19 +182,19 @@ interface UseLiveReadersReturn {
 
 ## Шаг 6: Миграция на named exports (после завершения readers count)
 
-**Статус шага:** отложен до завершения US 2.1.1
+**Статус шага:** в процессе
 
 **Цель:** закрепить единый стиль `named exports` в клиенте и включить lint-правило, чтобы новые `default export` не появлялись.
 
 ```typescript
 // План:
-// 1. Обновить ESLint-конфиг клиента так, чтобы он покрывал TS/TSX.
-// 2. Подключить eslint-plugin-import.
-// 3. Включить правило import/no-default-export сначала как "warn".
-// 4. Мигрировать экспорт/импорт по слоям FSD:
+// 1. ✅ Обновить ESLint-конфиг клиента так, чтобы он покрывал TS/TSX.
+// 2. ✅ Подключить eslint-plugin-import.
+// 3. ✅ Включить правило import/no-default-export сначала как "warn".
+// 4. 🔄 Мигрировать экспорт/импорт по слоям FSD:
 //    shared -> entities -> features -> widgets -> pages -> app.
-// 5. Обновить barrel-экспорты после миграции.
-// 6. Прогнать lint + type-check.
+// 5. 🔄 Обновить barrel-экспорты после миграции.
+// 6. ✅ Прогнать lint + type-check.
 // 7. После стабилизации переключить правило на "error".
 ```
 

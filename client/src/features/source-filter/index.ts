@@ -1,2 +1,2 @@
-export { default as SourceFilter } from './SourceFilter'
+export { SourceFilter } from './SourceFilter'
 export { useSourceFilter } from './useSourceFilter'
