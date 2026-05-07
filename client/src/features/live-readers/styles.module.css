@@ -1,0 +1,25 @@
+.container {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  border: 1px solid #d8efe0;
+  border-radius: 999px;
+  background-color: #f2fbf5;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #2e7d32;
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+}
+
+.text {
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}

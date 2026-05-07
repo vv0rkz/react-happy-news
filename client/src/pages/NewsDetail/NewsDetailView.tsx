@@ -1,5 +1,6 @@
 import NewsBanner from '@entities/news/NewsBanner'
 import { useGetNewsDetailQuery } from '@entities/news/api'
+import { ReadersCount } from '@features/live-readers'
 import ErrorComponent from '@shared/ErrorComponent'
 import Skeleton from '@shared/Skeleton'
 
@@ -19,7 +20,16 @@ const NewsDetailView = ({ id }: NewsDetailViewProps): React.ReactNode => {
 
   return (
     <>
-      {isLoading ? <Skeleton count={1} type="banner" height="520px" /> : data && <NewsBanner item={data} />}
+      {isLoading ? (
+        <Skeleton count={1} type="banner" height="520px" />
+      ) : (
+        data && (
+          <>
+            <ReadersCount articleId={id} />
+            <NewsBanner item={data} />
+          </>
+        )
+      )}
     </>
   )
 }

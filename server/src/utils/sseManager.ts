@@ -24,6 +24,12 @@ export const sseManager = {
   removeClient(id: string) {
     clients.delete(id)
   },
+  send(id: string, data: string) {
+    const client = clients.get(id)
+    if (client) {
+      client.response.write(`data: ${data}\n\n`)
+    }
+  },
   broadcast(data: string) {
     for (const [, client] of clients) {
       client.response.write(`data: ${data}\n\n`)

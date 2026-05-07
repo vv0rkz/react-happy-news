@@ -16,15 +16,15 @@
 
 ## User Stories
 
-### US 2.1.1: Live-лента через SSE — 🔄 ACTIVE
+### US 2.1.1: Live-счётчик читателей через SSE — 🔄 ACTIVE
 
-- [ ] Backend: cron каждые 5 минут фетчит свежие новости
-- [ ] Backend: SSE endpoint `GET /api/news/stream`
-- [ ] Backend: sseManager — управление подключениями, heartbeat
-- [ ] Frontend: `features/live-news/` — `useLiveNews.ts`, `LiveIndicator.tsx`
-- [ ] Новая новость плавно появляется вверху ленты
-- [ ] `Live ●` индикатор когда SSE-соединение активно
-- [ ] При закрытии вкладки EventSource закрывается (cleanup)
+- [x] Backend: sseManager — управление подключениями, heartbeat
+- [ ] Backend: readersTracker — per-article комнаты `Map<articleId, Set<clientId>>`
+- [ ] Backend: SSE endpoint `GET /api/news/readers?articleId=`
+- [ ] Frontend: `features/live-readers/useLiveReaders.ts` — EventSource подписка
+- [ ] Frontend: `features/live-readers/ReadersCount.tsx` — бейдж "● N читают сейчас"
+- [ ] Бейдж на детальной странице новости
+- [ ] При закрытии вкладки EventSource закрывается (cleanup + счётчик уменьшается)
 
 ### US 2.1.2: Polling health-check + retry — ⏳ pending
 

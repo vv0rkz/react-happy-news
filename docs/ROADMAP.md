@@ -56,14 +56,14 @@ Backend уже агрегирует новости из 3 источников, 
 [HackerNews API]─┘     (агрегатор)          (v2.x)
                         │                    │
                         ├─ REST API          ├─ Выбор источников
-                        ├─ SSE (live)        ├─ Live-лента
-                        ├─ WebSocket         ├─ Счётчик читателей
+                        ├─ SSE (live)        ├─ Счётчик читателей
+                        ├─ WebSocket         ├─ Live-реакции
                         ├─ GraphQL           ├─ Аналитика позитивности
                         ├─ JWT Auth          ├─ Личный кабинет
                         └─ Docker + CI/CD    └─ Закладки + Streak
 ```
 
-**Killer Feature — "Positivity Stream":** живой трекер позитивности. Бэкенд каждые N минут агрегирует свежие новости, фильтрует, пушит подписанным клиентам. Счётчик "сегодня X% новостей — позитивные" обновляется в реальном времени.
+**Killer Feature — "Positivity Stream":** живой трекер позитивности. Пользователь видит сколько людей читает ту же статью (SSE), выражает реакцию 😊❤️🌟 и видит реакции других в реальном времени (WebSocket). Счётчик "сегодня X% новостей — позитивные" обновляется в реальном времени (GraphQL).
 
 ---
 
@@ -72,8 +72,8 @@ Backend уже агрегирует новости из 3 источников, 
 | Релиз     | Название            | Ключевые фичи для пользователя                                     | Срок           |
 | --------- | ------------------- | ------------------------------------------------------------------ | -------------- |
 | **v2.0**  | Multi-Source News   | Выбор источников, source badges, детальная страница, feedback      | 4–5 дн.        |
-| **v2.1**  | Positivity Stream   | Живая лента (SSE), health-индикатор, продвинутый поиск, сортировка | 3–4 дн.        |
-| **v2.2**  | Social & Engagement | Live-читатели (WS), "сейчас на сайте", share                       | 3–4 дн.        |
+| **v2.1**  | Positivity Stream   | Счётчик читателей (SSE), health-индикатор, продвинутый поиск       | 3–4 дн.        |
+| **v2.2**  | Social & Engagement | Live-реакции (WS), топ реакций, share                              | 3–4 дн.        |
 | **v2.3**  | Персонализация      | Аккаунт, закладки, Positivity Tracker, streak, тёмная тема         | 4–5 дн.        |
 | **v2.4**  | Analytics           | Дашборд позитивности, графики, Protocol Comparison                 | 3–4 дн.        |
 | **v2.5**  | Production          | Accessibility, Docker, CI/CD, performance audit                    | 3–4 дн.        |
@@ -403,29 +403,28 @@ client/src/
 
 # RELEASE v2.1 — Positivity Stream
 
-> Лента оживает: новые позитивные новости появляются без перезагрузки. Пользователь видит, работает ли сервер. Может сортировать и искать по категориям.
+> Статья оживает: пользователь видит сколько людей читают её прямо сейчас. Видит, работает ли сервер. Может сортировать и искать по категориям.
 
 ## Фичи v2.1
 
-### F2.1.1: Живая лента новостей (SSE)
+### F2.1.1: Счётчик читателей статьи (SSE)
 
 **Что видит пользователь:**
 
-- Индикатор "● Live" в углу — соединение активно
-- Каждые 5 минут в ленте плавно появляются новые позитивные новости
-- Новая новость — анимация вставки вверху списка
-- При закрытии вкладки — соединение корректно закрывается
+- На странице статьи — бейдж "● N читают сейчас"
+- Бейдж обновляется в реальном времени по мере прихода/ухода читателей
+- При закрытии вкладки — соединение корректно закрывается, счётчик уменьшается
 
 **Что нужно сделать:**
 
-| Сторона  | Задача                                                                |
-| -------- | --------------------------------------------------------------------- |
-| Backend  | Cron-задача: каждые 5 мин fetch → filter → push через SSE             |
-| Backend  | `GET /api/news/stream` — SSE endpoint                                 |
-| Backend  | sseManager: управление подключениями, heartbeat                       |
-| Frontend | FSD-фича `features/live-news/`: `useLiveNews.ts`, `LiveIndicator.tsx` |
-| Frontend | EventSource подписка + cleanup при unmount                            |
-| Frontend | Анимация вставки новой новости                                        |
+| Сторона  | Задача                                                                        |
+| -------- | ----------------------------------------------------------------------------- |
+| Backend  | `sseManager`: управление подключениями, heartbeat                             |
+| Backend  | `readersTracker`: per-article комнаты `Map<articleId, Set<clientId>>`         |
+| Backend  | `GET /api/news/readers?articleId=` — SSE endpoint                             |
+| Frontend | FSD-фича `features/live-readers/`: `useLiveReaders.ts`, `ReadersCount.tsx`    |
+| Frontend | EventSource подписка + cleanup при unmount                                    |
+| Frontend | `encodeURIComponent(articleId)` — Guardian ID содержит слеши                  |
 
 ### F2.1.2: Health-индикатор
 
@@ -472,20 +471,21 @@ client/src/
 
 ## User Stories v2.1
 
-### US 2.1.1: Live-обновления через SSE
+### US 2.1.1: Счётчик читателей через SSE
 
 **Как** читатель
-**Я хочу** видеть новые позитивные новости без перезагрузки
-**Чтобы** быть в курсе в реальном времени
+**Я хочу** видеть, сколько людей читают ту же статью
+**Чтобы** чувствовать, что позитивные новости важны не только мне
 
 **Acceptance Criteria:**
 
-- [ ] Backend: cron каждые 5 минут фетчит свежие новости
-- [ ] Backend: SSE endpoint `GET /api/news/stream`
-- [ ] Frontend: EventSource подписывается на поток
-- [ ] Новая новость плавно появляется вверху ленты
-- [ ] "Live ●" индикатор, когда SSE-соединение активно
-- [ ] При закрытии вкладки — EventSource закрывается (cleanup)
+- [x] Backend: sseManager — подключения, heartbeat
+- [ ] Backend: readersTracker — `Map<articleId, Set<clientId>>`
+- [ ] Backend: SSE endpoint `GET /api/news/readers?articleId=`
+- [ ] Frontend: `useLiveReaders(articleId)` — EventSource подписка
+- [ ] Frontend: `ReadersCount` — бейдж "● N читают сейчас"
+- [ ] Бейдж виден на детальной странице статьи
+- [ ] При закрытии вкладки — EventSource закрывается, счётчик уменьшается
 
 ### US 2.1.2: Polling health-check + retry
 
@@ -519,7 +519,7 @@ client/src/
 ### US 2.1.4: Оптимизация рендеринга
 
 **Как** пользователь
-**Я хочу** чтобы при SSE-обновлениях страница не тормозила
+**Я хочу** чтобы страница не тормозила при частых обновлениях счётчика
 **Чтобы** UX оставался плавным
 
 **Acceptance Criteria:**
@@ -536,18 +536,17 @@ client/src/
 
 ```
 server/src/
-├── services/
-│   └── newsCron.ts            ← cron: fetch → filter → push
-├── routes/
-│   └── newsStream.routes.ts   ← SSE endpoint
-└── utils/
-    └── sseManager.ts          ← управление SSE-подключениями
+├── utils/
+│   ├── sseManager.ts          ← Map клиентов, send(), broadcast(), heartbeat
+│   └── readersTracker.ts      ← Map<articleId, Set<clientId>>, join(), leave()
+└── routes/
+    └── news.routes.ts         ← GET /readers?articleId= (перед wildcard /*)
 
 client/src/
 ├── features/
-│   ├── live-news/             ← НОВАЯ ФИЧА
-│   │   ├── useLiveNews.ts
-│   │   ├── LiveIndicator.tsx
+│   ├── live-readers/          ← НОВАЯ ФИЧА
+│   │   ├── useLiveReaders.ts
+│   │   ├── ReadersCount.tsx
 │   │   └── index.ts
 │   ├── health-check/          ← НОВАЯ ФИЧА
 │   │   ├── useHealthCheck.ts
@@ -568,7 +567,6 @@ client/src/
 | --------------- | ------------------------------- |
 | SSE (сервер)    | Нативный Node.js (res.write)    |
 | SSE (клиент)    | EventSource API                 |
-| Cron            | node-cron                       |
 | Виртуализация   | react-window                    |
 | Bundle analysis | vite-bundle-visualizer          |
 | Debounce        | lodash.debounce или custom hook |
@@ -625,36 +623,42 @@ client/src/
 
 # RELEASE v2.2 — Social & Engagement
 
-> Пользователь видит, что он не один: сколько людей читают ту же статью, сколько людей на сайте прямо сейчас.
+> Пользователь выражает эмоцию от статьи — 😊 ❤️ 🌟 — и видит реакции других читателей в реальном времени. Реакции приходят быстро и часто, поэтому открытый WebSocket-канал дешевле HTTP на каждый клик.
 
 ## Фичи v2.2
 
-### F2.2.1: Счётчик читателей статьи (Live Readers)
+### F2.2.1: Live-реакции на статью (WebSocket)
 
 **Что видит пользователь:**
 
-- На странице статьи: "5 читают сейчас"
-- Счётчик обновляется в реальном времени
-- При уходе со страницы — число уменьшается
+- На странице статьи — панель реакций: 😊 ❤️ 🌟 🙏
+- При нажатии — реакция мгновенно уходит на сервер через WS
+- Реакции других читателей появляются в реальном времени
+- При закрытии вкладки — WS закрывается корректно
 
 **Что нужно сделать:**
 
-| Сторона  | Задача                                                              |
-| -------- | ------------------------------------------------------------------- |
-| Backend  | WebSocket-сервер на том же порту                                    |
-| Backend  | Трекер: `Map<articleId, Set<connectionId>>`                         |
-| Backend  | Heartbeat (ping/pong) для проверки живых соединений                 |
-| Frontend | `features/live-readers/`: `useWebSocket.ts`, `useArticleReaders.ts` |
-| Frontend | Клиент → `{ type: "join", articleId }` при открытии статьи          |
-| Frontend | Клиент → `{ type: "leave", articleId }` при закрытии                |
-| Frontend | Reconnect при разрыве (exponential backoff, max 3 попытки)          |
+| Сторона  | Задача                                                               |
+| -------- | -------------------------------------------------------------------- |
+| Backend  | WebSocket-сервер на том же порту                                     |
+| Backend  | `reactionsTracker`: `Map<articleId, Record<emoji, count>>`           |
+| Backend  | Heartbeat (ping/pong) для проверки живых соединений                  |
+| Backend  | При получении реакции → обновить счётчик → broadcast в room          |
+| Frontend | `features/live-reactions/`: `useWebSocket.ts`, `useReactions.ts`     |
+| Frontend | Клиент → `{ type: "react", articleId, emoji }` при нажатии          |
+| Frontend | Reconnect при разрыве (exponential backoff, max 3 попытки)           |
 
-### F2.2.2: Онлайн-счётчик в Header
+### F2.2.2: Топ реакций по статьям
 
 **Что видит пользователь:**
 
-- В header: "142 на сайте"
-- Число обновляется live через тот же WebSocket
+- На главной странице — карточки с бейджем самой популярной реакции
+- "🌟 142" рядом с заголовком самой вдохновляющей новости
+
+**Что нужно сделать:**
+
+- Backend: `GET /api/news/reactions/top` — топ реакций по articleId
+- Frontend: бейдж на `NewsItem`, данные из RTK Query (polling или ручной refetch)
 
 ### F2.2.3: Поделиться новостью (Share)
 
@@ -666,31 +670,30 @@ client/src/
 
 ## User Stories v2.2
 
-### US 2.2.1: Счётчик онлайн-читателей
+### US 2.2.1: Live-реакции через WebSocket
 
 **Как** читатель
-**Я хочу** видеть, сколько людей читают ту же статью
-**Чтобы** чувствовать, что позитивные новости важны не только мне
+**Я хочу** выразить эмоцию от статьи и видеть реакции других
+**Чтобы** чувствовать связь с другими читателями позитивных новостей
 
 **Acceptance Criteria:**
 
-- [ ] WebSocket-сервер отслеживает, кто какую статью читает
-- [ ] При открытии: `{ type: "join", articleId }`
-- [ ] При закрытии: `{ type: "leave", articleId }`
-- [ ] Подписчики получают обновлённый счётчик
-- [ ] Общий "сейчас на сайте: N" в header
-- [ ] Reconnect при разрыве (exponential backoff)
-- [ ] Max 3 попытки → fallback на polling
+- [ ] WebSocket-сервер обрабатывает `{ type: "react", articleId, emoji }`
+- [ ] `reactionsTracker` хранит счётчики реакций per-article
+- [ ] Broadcast обновлённых счётчиков всем в комнате статьи
+- [ ] Heartbeat (ping/pong): сервер пингует каждые 30с
+- [ ] Reconnect при разрыве (exponential backoff, max 3 попытки)
+- [ ] Max 3 попытки → fallback (реакции недоступны, UI degrade gracefully)
 
 ### US 2.2.2: Нагрузочное тестирование WS
 
 **Как** разработчик
 **Я хочу** проверить лимиты WS-сервера
-**Чтобы** настроить reconnect
+**Чтобы** настроить reconnect и throttle
 
 **Acceptance Criteria:**
 
-- [ ] Скрипт `simulate-readers.ts`: N ботов, случайные статьи
+- [ ] Скрипт `simulate-reactions.ts`: N ботов, случайные реакции
 - [ ] Мониторинг: соединения, latency, memory
 - [ ] Тест: throttle → reconnect
 - [ ] Тест: kill server → клиент переживает
@@ -698,15 +701,15 @@ client/src/
 ### US 2.2.3: React Patterns на практике
 
 **Как** разработчик
-**Я хочу** реализовать паттерны в контексте live-readers
+**Я хочу** реализовать паттерны в контексте live-реакций
 **Чтобы** уметь выбирать паттерн под задачу
 
 **Acceptance Criteria:**
 
 - [ ] **Provider**: `<WebSocketProvider>` — Context с WS-соединением
-- [ ] **Compound**: `<ReadersInfo>` + `<ReadersInfo.Count />` + `<ReadersInfo.Badge />`
+- [ ] **Compound**: `<ReactionsPanel>` + `<ReactionsPanel.Button />` + `<ReactionsPanel.Count />`
 - [ ] **Observer**: WS = Subject, компоненты = Observers
-- [ ] **HOC**: `withReaderCount(Component)` — сравнить с hook-подходом
+- [ ] **HOC**: `withReactions(Component)` — сравнить с hook-подходом
 - [ ] **Factory**: `createApiAdapter(source)` — фабрика для API-адаптеров
 - [ ] **useSyncExternalStore**: WS store → React rendering
 
@@ -715,19 +718,18 @@ client/src/
 ```
 server/src/
 ├── ws/
-│   ├── wsServer.ts             ← WebSocket-сервер
-│   ├── readersTracker.ts       ← Map<articleId, Set<connectionId>>
-│   └── heartbeat.ts            ← ping/pong
+│   ├── wsServer.ts              ← WebSocket-сервер
+│   ├── reactionsTracker.ts      ← Map<articleId, Record<emoji, count>>
+│   └── heartbeat.ts             ← ping/pong
 └── scripts/
-    └── simulate-readers.ts     ← нагрузочный скрипт
+    └── simulate-reactions.ts    ← нагрузочный скрипт
 
 client/src/
 ├── features/
-│   ├── live-readers/           ← НОВАЯ ФИЧА
-│   │   ├── useWebSocket.ts     ← generic: connect, send, reconnect
-│   │   ├── useArticleReaders.ts
-│   │   ├── ReadersCounter.tsx
-│   │   ├── OnlineCounter.tsx
+│   ├── live-reactions/          ← НОВАЯ ФИЧА
+│   │   ├── useWebSocket.ts      ← generic: connect, send, reconnect
+│   │   ├── useReactions.ts      ← реакции per-article
+│   │   ├── ReactionsPanel.tsx   ← кнопки + счётчики
 │   │   ├── ShareButton.tsx
 │   │   └── index.ts
 ```
@@ -746,38 +748,38 @@ client/src/
 <details>
 <summary>Backend: 8 вопросов</summary>
 
-| #   | Тема                    | Как закрывается                       |
-| --- | ----------------------- | ------------------------------------- |
-| Q14 | WS-библиотека           | ws (нативный)                         |
-| Q41 | WebSocket vs REST       | REST для данных, WS для live-счётчика |
-| Q42 | Полный переход на WS    | Нет кэша, статусов, сложнее дебаг     |
-| Q43 | Риски persistent WS     | Память, scaling                       |
-| Q44 | Нестабильное соединение | heartbeat → reconnect                 |
-| Q60 | Когда WebSocket         | Двусторонняя связь, частые обновления |
-| Q71 | WS vs HTTP              | Persistent vs request-response        |
-| Q89 | Reconnect WS            | Detect → backoff → reconnect → re-sub |
+| #   | Тема                    | Как закрывается                          |
+| --- | ----------------------- | ---------------------------------------- |
+| Q14 | WS-библиотека           | ws (нативный)                            |
+| Q41 | WebSocket vs REST       | REST для данных, WS для live-реакций     |
+| Q42 | Полный переход на WS    | Нет кэша, статусов, сложнее дебаг        |
+| Q43 | Риски persistent WS     | Память, scaling                          |
+| Q44 | Нестабильное соединение | heartbeat → reconnect                    |
+| Q60 | Когда WebSocket         | Двусторонняя связь, частые быстрые клики |
+| Q71 | WS vs HTTP              | Persistent vs request-response           |
+| Q89 | Reconnect WS            | Detect → backoff → reconnect → re-sub    |
 
 </details>
 
 <details>
 <summary>Frontend: 14 вопросов</summary>
 
-| #    | Тема                 | Как закрывается                        |
-| ---- | -------------------- | -------------------------------------- |
-| FQ7  | HOC Pattern          | withReaderCount — сравнение с хуком    |
-| FQ8  | Compound Pattern     | ReadersInfo.Count + ReadersInfo.Badge  |
-| FQ10 | Provider Pattern     | WebSocketProvider                      |
-| FQ11 | Observer Pattern     | WS = Subject, компоненты = Observers   |
-| FQ12 | Factory Pattern      | createApiAdapter(source)               |
-| FQ24 | Основные хуки        | Обзор всех используемых                |
-| FQ26 | Custom hooks         | useWebSocket, useArticleReaders        |
-| FQ27 | useReducer           | WS-состояние: status, readers, error   |
-| FQ28 | Rules of Hooks       | Linked list — почему нельзя в условиях |
-| FQ29 | Cleanup useEffect    | Закрытие WS при unmount                |
-| FQ30 | Deps useEffect       | Stale closure, бесконечный цикл        |
-| FQ31 | useRef               | WS instance, interval ID               |
-| FQ32 | useSyncExternalStore | WS store → React                       |
-| FQ33 | Lifecycle → hooks    | componentDidMount → useEffect          |
+| #    | Тема                 | Как закрывается                          |
+| ---- | -------------------- | ---------------------------------------- |
+| FQ7  | HOC Pattern          | withReactions — сравнение с хуком        |
+| FQ8  | Compound Pattern     | ReactionsPanel.Button + ReactionsPanel.Count |
+| FQ10 | Provider Pattern     | WebSocketProvider                        |
+| FQ11 | Observer Pattern     | WS = Subject, компоненты = Observers     |
+| FQ12 | Factory Pattern      | createApiAdapter(source)                 |
+| FQ24 | Основные хуки        | Обзор всех используемых                  |
+| FQ26 | Custom hooks         | useWebSocket, useReactions               |
+| FQ27 | useReducer           | WS-состояние: status, reactions, error   |
+| FQ28 | Rules of Hooks       | Linked list — почему нельзя в условиях   |
+| FQ29 | Cleanup useEffect    | Закрытие WS при unmount                  |
+| FQ30 | Deps useEffect       | Stale closure, бесконечный цикл          |
+| FQ31 | useRef               | WS instance, interval ID                 |
+| FQ32 | useSyncExternalStore | WS store → React                         |
+| FQ33 | Lifecycle → hooks    | componentDidMount → useEffect            |
 
 </details>
 
@@ -1391,12 +1393,12 @@ react-happy-news/
 | **Детальная страница (бэкенд)**          | v2.0  | —                 |
 | **Форма обратной связи**                 | v2.0  | —                 |
 | **Swagger-документация**                 | v2.0  | —                 |
-| **Живая лента (SSE)**                    | v2.1  | v2.0              |
+| **Счётчик читателей статьи (SSE)**       | v2.1  | v2.0              |
 | **Health-индикатор**                     | v2.1  | v2.0              |
 | **Расширенный поиск + сортировка**       | v2.1  | v2.0              |
 | **Виртуализация ленты**                  | v2.1  | —                 |
-| **Счётчик читателей (WS)**               | v2.2  | v2.0              |
-| **"Сейчас на сайте" (WS)**               | v2.2  | v2.2/WS           |
+| **Live-реакции (WS)**                    | v2.2  | v2.0              |
+| **Топ реакций по статьям**               | v2.2  | v2.2/WS           |
 | **Поделиться новостью**                  | v2.2  | —                 |
 | **Регистрация / Логин**                  | v2.3  | v2.0              |
 | **Закладки**                             | v2.3  | v2.3/Auth         |
@@ -1462,8 +1464,8 @@ react-happy-news/
 | Релиз     | Фичи                                     | Срок       | Q   | FQ  | %     |
 | --------- | ---------------------------------------- | ---------- | --- | --- | ----- |
 | **v2.0**  | Source Filter, Badges, Detail, Feedback  | 4–5 дн.    | 34  | 16  | 29.4% |
-| **v2.1**  | Live лента, Health, Поиск, Виртуализация | 3–4 дн.    | 12  | 15  | 45.3% |
-| **v2.2**  | Live Readers, Online, Share              | 3–4 дн.    | 8   | 14  | 58.2% |
+| **v2.1**  | Readers Counter, Health, Поиск, Виртуализация | 3–4 дн. | 12  | 15  | 45.3% |
+| **v2.2**  | Live Reactions, Топ реакций, Share       | 3–4 дн.    | 8   | 14  | 58.2% |
 | **v2.3**  | Auth, Закладки, Tracker, Streak, Тема    | 4–5 дн.    | 19  | 21  | 81.8% |
 | **v2.4**  | Analytics, Protocols, Storybook          | 3–4 дн.    | 7   | 9   | 91.2% |
 | **v2.5**  | A11y, Docker, CI/CD, HTTPS               | 3–4 дн.    | 9   | 6   | 100%  |
@@ -1477,6 +1479,6 @@ react-happy-news/
 
 - Хочешь live-фичи → начни с v2.1 (SSE)
 - Хочешь персонализацию → начни с v2.3 (Auth)
-- Хочешь закрыть React-паттерны → начни с v2.2 (WS)
+- Хочешь React-паттерны + WS → начни с v2.2 (live-реакции)
 
 Рекомендуемый порядок: **v2.0 → v2.1 → v2.2 → v2.3 → v2.4 → v2.5**

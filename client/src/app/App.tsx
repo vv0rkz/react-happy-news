@@ -1,6 +1,6 @@
-import { Outlet } from 'react-router-dom'
 import Header from '@widgets/Header'
-import { FeedbackForm } from '@features/feedback'
+import { Outlet } from 'react-router-dom'
+// import { FeedbackForm } from '@features/feedback'
 import './App.css'
 
 function App() {
@@ -8,9 +8,9 @@ function App() {
     <>
       <Header />
       <Outlet />
-      <footer style={{ borderTop: '1px solid #eee', paddingTop: '32px', marginTop: '64px' }}>
+      {/* <footer style={{ borderTop: '1px solid #eee', paddingTop: '32px', marginTop: '64px' }}>
         <FeedbackForm />
-      </footer>
+      </footer> */}
     </>
   )
 }
