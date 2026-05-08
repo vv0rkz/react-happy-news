@@ -1,6 +1,6 @@
 import type { HealthStatus } from '@features/health-check'
 import { StatusBadge } from '@features/health-check'
-import { Badge, Button, Container, Group, Text } from '@mantine/core'
+import { ActionIcon, Badge, Button, Container, Group, Text, Tooltip, useMantineColorScheme } from '@mantine/core'
 import { useLocalStorage } from '@shared/useLocalStorage'
 import { useNavigate } from 'react-router-dom'
 import styles from './styles.module.css'
@@ -14,6 +14,7 @@ interface HeaderProps {
 export const Header = ({ status }: HeaderProps): React.ReactNode => {
   const [isMockEnabled, setIsMockEnabled] = useLocalStorage<boolean>({ key: MOCK_STORAGE_KEY, initialValue: false })
   const navigate = useNavigate()
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme()
 
   const toggleMock = (): void => {
     const next = !isMockEnabled
@@ -31,13 +32,25 @@ export const Header = ({ status }: HeaderProps): React.ReactNode => {
         <Group justify="space-between" align="center">
           <Text
             component="h1"
-            className={styles.title}
+            className={styles.title ?? ''}
             onClick={() => navigate('/')}
           >
             Happy News 🌞
           </Text>
           <Group gap="sm">
             <StatusBadge status={status} />
+            <Tooltip label={colorScheme === 'dark' ? 'Светлая тема' : 'Тёмная тема'} withArrow>
+              <ActionIcon
+                onClick={() => toggleColorScheme()}
+                variant="light"
+                color="indigo"
+                size="lg"
+                radius="xl"
+                aria-label="Переключить тему"
+              >
+                {colorScheme === 'dark' ? '☀️' : '🌙'}
+              </ActionIcon>
+            </Tooltip>
             <Button
               onClick={toggleMock}
               variant={isMockEnabled ? 'filled' : 'light'}
