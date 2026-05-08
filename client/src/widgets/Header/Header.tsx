@@ -1,5 +1,6 @@
 import type { HealthStatus } from '@features/health-check'
 import { StatusBadge } from '@features/health-check'
+import { Badge, Button, Container, Group, Text } from '@mantine/core'
 import { useLocalStorage } from '@shared/useLocalStorage'
 import { useNavigate } from 'react-router-dom'
 import styles from './styles.module.css'
@@ -26,19 +27,35 @@ export const Header = ({ status }: HeaderProps): React.ReactNode => {
 
   return (
     <header className={styles.header}>
-      <div className={styles.container}>
-        <h1 className={styles.title} onClick={() => navigate('/')}>
-          Happy News 🌞
-        </h1>
-        <div className={styles.controls}>
-          <StatusBadge status={status} />
-          <button onClick={toggleMock} className={styles.toggleButton}>
-            <span className={styles.icon}>{isMockEnabled ? '🔧' : '🌐'}</span>
-            <span className={styles.label}>Mock</span>
-            <span className={isMockEnabled ? styles.statusOn : styles.statusOff}>{isMockEnabled ? 'ON' : 'OFF'}</span>
-          </button>
-        </div>
-      </div>
+      <Container size="lg">
+        <Group justify="space-between" align="center">
+          <Text
+            component="h1"
+            className={styles.title}
+            onClick={() => navigate('/')}
+          >
+            Happy News 🌞
+          </Text>
+          <Group gap="sm">
+            <StatusBadge status={status} />
+            <Button
+              onClick={toggleMock}
+              variant={isMockEnabled ? 'filled' : 'light'}
+              color={isMockEnabled ? 'orange' : 'indigo'}
+              size="sm"
+              radius="xl"
+              leftSection={isMockEnabled ? '🔧' : '🌐'}
+              rightSection={
+                <Badge size="xs" color={isMockEnabled ? 'orange' : 'gray'} variant="filled">
+                  {isMockEnabled ? 'ON' : 'OFF'}
+                </Badge>
+              }
+            >
+              Mock
+            </Button>
+          </Group>
+        </Group>
+      </Container>
     </header>
   )
 }

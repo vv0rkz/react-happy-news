@@ -5,8 +5,8 @@ import type { SortOption } from '@features/news-filter'
 import { SearchInput, SortSelect } from '@features/news-filter'
 import { Pagination } from '@features/paginate-news/Pagination'
 import { SourceFilter } from '@features/source-filter'
+import { Divider, Group, Stack } from '@mantine/core'
 import { Skeleton } from '@shared/Skeleton'
-import styles from './NewsFeedView.module.css'
 
 interface NewsFeedViewProps {
   news: NewsDetailsData[] | undefined
@@ -30,14 +30,15 @@ export const NewsFeedView = ({
   onSortChange,
 }: NewsFeedViewProps): React.ReactNode => {
   return (
-    <>
-      <div className={styles.controls}>
+    <Stack gap="lg">
+      <Stack gap="sm">
         <SourceFilter selectedSources={selectedSources} onToggle={onToggle} />
-        <div className={styles.filterRow}>
+        <Group gap="sm" wrap="wrap">
           <SearchInput value={searchQuery} onChange={onSearchChange} />
           <SortSelect value={sort} onChange={onSortChange} />
-        </div>
-      </div>
+        </Group>
+        <Divider />
+      </Stack>
 
       {isLoading ? <Skeleton count={1} type="banner" height="520px" /> : news?.[0] && <NewsBanner item={news[0]} />}
 
@@ -46,6 +47,6 @@ export const NewsFeedView = ({
       ) : (
         news && <Pagination data={news}>{(data) => <NewsList news={data} />}</Pagination>
       )}
-    </>
+    </Stack>
   )
 }

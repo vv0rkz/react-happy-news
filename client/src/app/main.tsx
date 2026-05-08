@@ -1,10 +1,19 @@
+import { MantineProvider, createTheme } from '@mantine/core'
+import '@mantine/core/styles.css'
+import { Notifications } from '@mantine/notifications'
+import '@mantine/notifications/styles.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'
 import { RouterProvider } from 'react-router-dom'
-import '../index.css'
 import { router } from './router'
 import { store } from './store'
+
+const theme = createTheme({
+  primaryColor: 'indigo',
+  defaultRadius: 'md',
+  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+})
 
 const MOCK_STORAGE_KEY = 'happyNews_mockMode'
 
@@ -26,9 +35,12 @@ if (!rootElement) {
 enableMocking().finally(() => {
   createRoot(rootElement).render(
     <StrictMode>
-      <Provider store={store}>
-        <RouterProvider router={router} />
-      </Provider>
+      <MantineProvider theme={theme}>
+        <Notifications position="bottom-center" />
+        <Provider store={store}>
+          <RouterProvider router={router} />
+        </Provider>
+      </MantineProvider>
     </StrictMode>,
   )
 })

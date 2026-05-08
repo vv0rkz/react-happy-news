@@ -1,15 +1,11 @@
 import { OfflineBanner, useHealthCheck } from '@features/health-check'
-import type { ToastMessage } from '@shared/Toast'
-import { Toast } from '@shared/Toast'
+import { notifications } from '@mantine/notifications'
 import { Header } from '@widgets/Header'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Outlet } from 'react-router-dom'
-import './App.css'
 
 export function App(): React.ReactNode {
   const { status, lastOnlineAt } = useHealthCheck()
-  const [toast, setToast] = useState<ToastMessage | null>(null)
-  const toastIdRef = useRef(0)
   const prevStatusRef = useRef(status)
 
   useEffect(() => {
@@ -19,24 +15,27 @@ export function App(): React.ReactNode {
     if (prev === 'checking') return
 
     if (status === 'offline' && prev === 'online') {
-      setToast({ id: ++toastIdRef.current, text: 'Соединение с сервером потеряно', variant: 'error' })
+      notifications.show({
+        message: 'Соединение с сервером потеряно',
+        color: 'red',
+        autoClose: 4000,
+      })
     }
 
     if (status === 'online' && prev === 'offline') {
-      setToast({ id: ++toastIdRef.current, text: 'Соединение восстановлено', variant: 'success' })
+      notifications.show({
+        message: 'Соединение восстановлено',
+        color: 'green',
+        autoClose: 4000,
+      })
     }
   }, [status])
 
   return (
     <>
       <Header status={status} />
-      {status === 'offline' && (
-        <div style={{ padding: '12px 20px 0' }}>
-          <OfflineBanner lastOnlineAt={lastOnlineAt} />
-        </div>
-      )}
+      {status === 'offline' && <OfflineBanner lastOnlineAt={lastOnlineAt} />}
       <Outlet />
-      <Toast message={toast} onDismiss={() => setToast(null)} />
     </>
   )
 }

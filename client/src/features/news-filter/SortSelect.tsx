@@ -1,4 +1,4 @@
-import styles from './styles.module.css'
+import { SegmentedControl } from '@mantine/core'
 
 export type SortOption = 'date' | 'source'
 
@@ -7,15 +7,20 @@ interface SortSelectProps {
   onChange: (value: SortOption) => void
 }
 
+const SORT_DATA = [
+  { label: 'По дате', value: 'date' },
+  { label: 'По источнику', value: 'source' },
+]
+
 export const SortSelect = ({ value, onChange }: SortSelectProps): React.ReactNode => {
   return (
-    <select
+    <SegmentedControl
       value={value}
-      onChange={(e) => onChange(e.target.value as SortOption)}
-      className={styles.sortSelect}
-    >
-      <option value="date">По дате</option>
-      <option value="source">По источнику</option>
-    </select>
+      onChange={(v) => onChange(v as SortOption)}
+      data={SORT_DATA}
+      size="sm"
+      radius="xl"
+      color="indigo"
+    />
   )
 }

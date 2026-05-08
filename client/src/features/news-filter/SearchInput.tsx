@@ -1,6 +1,6 @@
+import { TextInput } from '@mantine/core'
 import { useDebounce } from '@shared/useDebounce'
 import { useEffect, useState } from 'react'
-import styles from './styles.module.css'
 
 interface SearchInputProps {
   value: string
@@ -21,12 +21,12 @@ export const SearchInput = ({
   }, [debouncedValue])
 
   return (
-    <input
-      type="search"
+    <TextInput
       value={rawValue}
       onChange={(e) => setRawValue(e.target.value)}
       placeholder={placeholder}
-      className={styles.searchInput}
+      radius="xl"
+      style={{ minWidth: 220 }}
     />
   )
 }

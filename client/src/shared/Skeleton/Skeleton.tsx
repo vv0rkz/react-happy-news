@@ -1,24 +1,24 @@
-import cls from 'classnames'
-import styles from './styles.module.css'
+import { Skeleton as MantineSkeleton, Stack } from '@mantine/core'
 
 interface SkeletonProps {
   count?: number
   type?: 'banner' | 'item'
   height?: string
-  width?: string
-  className?: string
 }
 
-export const Skeleton = ({ count = 1, type = 'banner', height, width, className }: SkeletonProps): React.ReactNode => {
-  const style: Record<string, string> = {}
-  if (height) style.height = height
-  if (width) style.width = width
+const DEFAULT_HEIGHTS: Record<'banner' | 'item', string> = {
+  banner: '520px',
+  item: '100px',
+}
+
+export const Skeleton = ({ count = 1, type = 'banner', height }: SkeletonProps): React.ReactNode => {
+  const h = height ?? DEFAULT_HEIGHTS[type]
 
   return (
-    <ul className={styles.root}>
-      {[...Array(count)].map((_, index: number) => (
-        <li key={index} className={cls(styles.skeleton, styles[type], className)} style={style} />
+    <Stack gap="sm">
+      {[...Array(count)].map((_, index) => (
+        <MantineSkeleton key={index} height={h} radius="md" />
       ))}
-    </ul>
+    </Stack>
   )
 }

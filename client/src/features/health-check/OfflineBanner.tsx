@@ -1,4 +1,4 @@
-import styles from './OfflineBanner.module.css'
+import { Alert, Container } from '@mantine/core'
 
 interface OfflineBannerProps {
   lastOnlineAt: Date | null
@@ -15,9 +15,10 @@ export const OfflineBanner = ({ lastOnlineAt }: OfflineBannerProps): React.React
       : 'Нет связи с сервером. Показываем последние доступные данные'
 
   return (
-    <div className={styles.banner} role="alert">
-      <span className={styles.icon}>⚠️</span>
-      <span className={styles.message}>{message}</span>
-    </div>
+    <Container size="lg" pt="sm">
+      <Alert color="red" variant="light" title="Нет соединения" icon="⚠️">
+        {message}
+      </Alert>
+    </Container>
   )
 }

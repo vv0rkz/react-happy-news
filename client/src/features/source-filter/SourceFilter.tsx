@@ -1,5 +1,5 @@
 import { SourceName, allSourceNames } from '@entities/news/api/apiNews/utils/transforms.types'
-import styles from './styles.module.css'
+import { Chip, Group } from '@mantine/core'
 
 const SOURCE_LABELS: Record<SourceName, string> = {
   [SourceName.Guardian]: 'Guardian',
@@ -14,18 +14,18 @@ interface SourceFilterProps {
 
 export const SourceFilter = ({ selectedSources, onToggle }: SourceFilterProps): React.ReactNode => {
   return (
-    <div className={styles.filter}>
+    <Group gap="xs">
       {allSourceNames.map((source) => (
-        <label key={source} className={styles.label}>
-          <input
-            type="checkbox"
-            checked={selectedSources.includes(source)}
-            onChange={() => onToggle(source)}
-            className={styles.checkbox}
-          />
+        <Chip
+          key={source}
+          checked={selectedSources.includes(source)}
+          onChange={() => onToggle(source)}
+          color="indigo"
+          size="sm"
+        >
           {SOURCE_LABELS[source]}
-        </label>
+        </Chip>
       ))}
-    </div>
+    </Group>
   )
 }
