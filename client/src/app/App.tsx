@@ -1,4 +1,5 @@
 import { OfflineBanner, useHealthCheck } from '@features/health-check'
+import { NewsFilterProvider } from '@features/news-filter'
 import { notifications } from '@mantine/notifications'
 import { Header } from '@widgets/Header'
 import { useEffect, useRef } from 'react'
@@ -32,10 +33,10 @@ export function App(): React.ReactNode {
   }, [status])
 
   return (
-    <>
+    <NewsFilterProvider>
       <Header status={status} />
       {status === 'offline' && <OfflineBanner lastOnlineAt={lastOnlineAt} />}
       <Outlet />
-    </>
+    </NewsFilterProvider>
   )
 }

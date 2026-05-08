@@ -1,5 +1,8 @@
+import { NewsFilterProvider } from '@features/news-filter'
+import { MantineProvider } from '@mantine/core'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Header } from './Header'
 
@@ -14,6 +17,18 @@ vi.mock('react-router-dom', async () => {
 
 const MOCK_STORAGE_KEY = 'happyNews_mockMode'
 
+function Providers({ children }: { children: ReactNode }) {
+  return (
+    <MantineProvider>
+      <NewsFilterProvider>{children}</NewsFilterProvider>
+    </MantineProvider>
+  )
+}
+
+function renderHeader() {
+  return render(<Header status="online" />, { wrapper: Providers })
+}
+
 describe('Header', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -26,19 +41,19 @@ describe('Header', () => {
   })
 
   it('отображает заголовок "Happy News 🌞"', () => {
-    render(<Header />)
+    renderHeader()
     expect(screen.getByRole('heading', { name: /happy news/i })).toBeInTheDocument()
   })
 
   it('показывает статус "OFF" и иконку "🌐" когда mock выключен', () => {
-    render(<Header />)
+    renderHeader()
     expect(screen.getByText('OFF')).toBeInTheDocument()
     expect(screen.getByText('🌐')).toBeInTheDocument()
   })
 
   it('показывает статус "ON" и иконку "🔧" когда mock включён', () => {
     localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(true))
-    render(<Header />)
+    renderHeader()
     expect(screen.getByText('ON')).toBeInTheDocument()
     expect(screen.getByText('🔧')).toBeInTheDocument()
   })
@@ -46,7 +61,7 @@ describe('Header', () => {
   it('по клику сохраняет новое значение в localStorage и вызывает reload', async () => {
     const user = userEvent.setup()
     const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
-    render(<Header />)
+    renderHeader()
 
     await user.click(screen.getByRole('button', { name: /mock/i }))
 
@@ -58,7 +73,7 @@ describe('Header', () => {
     const user = userEvent.setup()
     localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(true))
     const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
-    render(<Header />)
+    renderHeader()
 
     await user.click(screen.getByRole('button', { name: /mock/i }))
 
@@ -68,21 +83,20 @@ describe('Header', () => {
 
   it('вызывает navigate("/") при клике на заголовок', async () => {
     const user = userEvent.setup()
-    render(<Header />)
+    renderHeader()
 
     await user.click(screen.getByRole('heading', { name: /happy news/i }))
 
     expect(mockNavigate).toHaveBeenCalledWith('/')
   })
 
-  it('применяет класс statusOn когда mock включён', () => {
-    localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(true))
-    render(<Header />)
-    expect(screen.getByText('ON')).toHaveClass('statusOn')
+  it('кнопка поиска присутствует в хедере', () => {
+    renderHeader()
+    expect(screen.getByRole('button', { name: /поиск/i })).toBeInTheDocument()
   })
 
-  it('применяет класс statusOff когда mock выключен', () => {
-    render(<Header />)
-    expect(screen.getByText('OFF')).toHaveClass('statusOff')
+  it('кнопка настройки источников присутствует в хедере', () => {
+    renderHeader()
+    expect(screen.getByRole('button', { name: /источники/i })).toBeInTheDocument()
   })
 })

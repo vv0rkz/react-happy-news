@@ -1,10 +1,10 @@
 import { useGetNewsQuery } from '@entities/news/api'
-import { useNewsFilter } from '@features/news-filter'
+import { useNewsFilterContext } from '@features/news-filter'
 import { ErrorComponent } from '@shared/ErrorComponent'
 import { NewsFeedView } from './NewsFeedView'
 
 export const NewsFeed = (): React.ReactNode => {
-  const { selectedSources, toggleSource, searchQuery, setSearchQuery, sort, setSort, queryParams } = useNewsFilter()
+  const { queryParams } = useNewsFilterContext()
 
   const {
     data: news,
@@ -21,16 +21,5 @@ export const NewsFeed = (): React.ReactNode => {
     return <ErrorComponent error={normalizedError} onRetry={refetch} />
   }
 
-  return (
-    <NewsFeedView
-      news={news}
-      isLoading={isLoading}
-      selectedSources={selectedSources}
-      onToggle={toggleSource}
-      searchQuery={searchQuery}
-      onSearchChange={setSearchQuery}
-      sort={sort}
-      onSortChange={setSort}
-    />
-  )
+  return <NewsFeedView news={news} isLoading={isLoading} />
 }

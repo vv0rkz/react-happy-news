@@ -1,27 +1,27 @@
-import type { SourceName } from '@entities/news/api/apiNews/utils/transforms.types'
 import { useSourceFilter } from '@features/source-filter'
-import { useLocalStorage } from '@shared/useLocalStorage'
 import { useState } from 'react'
-import type { SortOption } from './SortSelect'
 
 interface UseNewsFilterReturn {
   searchQuery: string
   setSearchQuery: (q: string) => void
-  sort: SortOption
-  setSort: (s: SortOption) => void
-  selectedSources: SourceName[]
-  toggleSource: (s: SourceName) => void
+  category: string
+  setCategory: (c: string) => void
+  selectedSources: ReturnType<typeof useSourceFilter>['selectedSources']
+  toggleSource: ReturnType<typeof useSourceFilter>['toggle']
   queryParams: string
 }
 
 export function useNewsFilter(): UseNewsFilterReturn {
   const { selectedSources, sourcesParam, toggle } = useSourceFilter()
   const [searchQuery, setSearchQuery] = useState('')
-  const [sort, setSort] = useLocalStorage<SortOption>({ key: 'news-sort', initialValue: 'date' })
+  const [category, setCategory] = useState('all')
 
-  const parts: string[] = [`sources=${sourcesParam}`, `sort=${sort}`]
+  const parts: string[] = [`sources=${sourcesParam}`]
   if (searchQuery.trim()) {
     parts.push(`q=${encodeURIComponent(searchQuery.trim())}`)
+  }
+  if (category !== 'all') {
+    parts.push(`category=${encodeURIComponent(category)}`)
   }
 
   const queryParams = parts.join('&')
@@ -29,8 +29,8 @@ export function useNewsFilter(): UseNewsFilterReturn {
   return {
     searchQuery,
     setSearchQuery,
-    sort,
-    setSort,
+    category,
+    setCategory,
     selectedSources,
     toggleSource: toggle,
     queryParams,

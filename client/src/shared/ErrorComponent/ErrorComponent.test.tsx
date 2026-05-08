@@ -1,3 +1,4 @@
+import { MantineProvider } from '@mantine/core'
 import { render } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
@@ -9,7 +10,11 @@ describe('ErrorComponent', () => {
 
   it('вызывает onRetry при клике на кнопку', async () => {
     const user = userEvent.setup()
-    const { getByRole } = render(<ErrorComponent error={mockError} onRetry={mockOnRetry} />)
+    const { getByRole } = render(
+      <MantineProvider>
+        <ErrorComponent error={mockError} onRetry={mockOnRetry} />
+      </MantineProvider>,
+    )
     await user.click(getByRole('button', { name: /Попробовать снова/ }))
     expect(mockOnRetry).toHaveBeenCalledTimes(1)
   })

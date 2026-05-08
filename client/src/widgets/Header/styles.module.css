@@ -22,3 +22,11 @@
 .title:hover {
   color: var(--mantine-color-indigo-8);
 }
+
+.searchRow {
+  padding: 8px 0 4px;
+}
+
+.searchRow input {
+  width: 100%;
+}
