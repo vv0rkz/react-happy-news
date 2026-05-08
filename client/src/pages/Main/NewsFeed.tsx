@@ -1,10 +1,10 @@
 import { useGetNewsQuery } from '@entities/news/api'
-import { useSourceFilter } from '@features/source-filter'
+import { useNewsFilter } from '@features/news-filter'
 import { ErrorComponent } from '@shared/ErrorComponent'
 import { NewsFeedView } from './NewsFeedView'
 
 export const NewsFeed = (): React.ReactNode => {
-  const { selectedSources, sourcesParam, toggle } = useSourceFilter()
+  const { selectedSources, toggleSource, searchQuery, setSearchQuery, sort, setSort, queryParams } = useNewsFilter()
 
   const {
     data: news,
@@ -12,7 +12,7 @@ export const NewsFeed = (): React.ReactNode => {
     isFetching,
     error: queryError,
     refetch,
-  } = useGetNewsQuery(sourcesParam)
+  } = useGetNewsQuery(queryParams)
 
   const isLoading = isInitialLoading || isFetching
   const normalizedError = queryError ? new Error('Ошибка загрузки новостей') : null
@@ -21,5 +21,16 @@ export const NewsFeed = (): React.ReactNode => {
     return <ErrorComponent error={normalizedError} onRetry={refetch} />
   }
 
-  return <NewsFeedView news={news} isLoading={isLoading} selectedSources={selectedSources} onToggle={toggle} />
+  return (
+    <NewsFeedView
+      news={news}
+      isLoading={isLoading}
+      selectedSources={selectedSources}
+      onToggle={toggleSource}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      sort={sort}
+      onSortChange={setSort}
+    />
+  )
 }

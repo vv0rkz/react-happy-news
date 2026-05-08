@@ -13,7 +13,7 @@ export const newsApi = createApi({
   tagTypes: ['News'],
   endpoints: (builder) => ({
     getNews: builder.query<NewsDetailsData[], string>({
-      query: (sources) => `/api/news?sources=${sources}`,
+      query: (queryParams) => `/api/news?${queryParams}`,
       transformResponse: (response: components['schemas']['NewsListResponse']) => response.news,
       providesTags: ['News'],
     }),
