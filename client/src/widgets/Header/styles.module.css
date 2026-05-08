@@ -26,6 +26,12 @@
   align-items: center;
 }
 
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .title {
   color: white;
   margin: 0;

@@ -1,10 +1,16 @@
+import type { HealthStatus } from '@features/health-check'
+import { StatusBadge } from '@features/health-check'
 import { useLocalStorage } from '@shared/useLocalStorage'
 import { useNavigate } from 'react-router-dom'
 import styles from './styles.module.css'
 
 const MOCK_STORAGE_KEY = 'happyNews_mockMode'
 
-export const Header = (): React.ReactNode => {
+interface HeaderProps {
+  status: HealthStatus
+}
+
+export const Header = ({ status }: HeaderProps): React.ReactNode => {
   const [isMockEnabled, setIsMockEnabled] = useLocalStorage<boolean>({ key: MOCK_STORAGE_KEY, initialValue: false })
   const navigate = useNavigate()
 
@@ -24,11 +30,14 @@ export const Header = (): React.ReactNode => {
         <h1 className={styles.title} onClick={() => navigate('/')}>
           Happy News 🌞
         </h1>
-        <button onClick={toggleMock} className={styles.toggleButton}>
-          <span className={styles.icon}>{isMockEnabled ? '🔧' : '🌐'}</span>
-          <span className={styles.label}>Mock</span>
-          <span className={isMockEnabled ? styles.statusOn : styles.statusOff}>{isMockEnabled ? 'ON' : 'OFF'}</span>
-        </button>
+        <div className={styles.controls}>
+          <StatusBadge status={status} />
+          <button onClick={toggleMock} className={styles.toggleButton}>
+            <span className={styles.icon}>{isMockEnabled ? '🔧' : '🌐'}</span>
+            <span className={styles.label}>Mock</span>
+            <span className={isMockEnabled ? styles.statusOn : styles.statusOff}>{isMockEnabled ? 'ON' : 'OFF'}</span>
+          </button>
+        </div>
       </div>
     </header>
   )

@@ -1,49 +1,44 @@
-# US 2.1.1 — Live-счётчик читателей через SSE
+# US 2.1.3 — Расширенный поиск + сортировка
 
 **Статус:** `active`
 **Релиз:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md)
-**Issue:** `#36`
-**Покрывает вопросы:** Q10 (real-time данные), Q59 (без перезагрузки), Q82 (кроме REST), Q90 (WS vs SSE vs long poll)
+**Issue:** `#37`
+**Покрывает вопросы:** FQ45 (debounce/throttle), FQ42 (useMemo/useCallback), FQ15 (триггеры рендера)
 
 **Acceptance Criteria:**
 
-- [x] Backend: `sseManager` управляет подключениями (Map клиентов) и heartbeat
-- [x] Backend: `readersTracker` — per-article комнаты (`Map<articleId, Set<clientId>>`)
-- [x] Backend: `GET /api/news/readers?articleId=` — SSE endpoint
-- [ ] Frontend: `features/live-readers/useLiveReaders.ts` — EventSource + cleanup
-- [x] Frontend: `features/live-readers/ReadersCount.tsx` — бейдж "● N читают сейчас"
-- [x] Бейдж появляется на детальной странице новости
-- [ ] EventSource закрывается при unmount (cleanup в useEffect)
-- [ ] При закрытии вкладки счётчик у оставшихся читателей уменьшается
+- [ ] Debounced поле поиска (300мс)
+- [ ] Фильтр по категории (Science, Technology, Culture...)
+- [ ] Сортировка: по дате / по источнику
+- [ ] Query-параметры на бэкенде: `?q=...&sort=...&category=...`
 
 ---
 
 ## Концепция
 
 ```
-Клиент открыл статью
-  → GET /api/news/readers?articleId=<id>  (SSE-соединение)
-  → readersTracker.join(articleId, clientId, res)
-  → broadcast в room: { articleId, count: N }
-  → бейдж показывает "● N читают сейчас"
+Пользователь вводит "climate"
+  → debounce 300мс (не слать на каждый символ)
+  → GET /api/news?q=climate&sources=guardian,newsapi&sort=date&category=science
+  → RTK Query кэширует результат
+  → список обновляется без перезагрузки
 
-Клиент закрыл вкладку
-  → req.on('close') → readersTracker.leave(articleId, clientId)
-  → broadcast в room: { articleId, count: N-1 }
+Пользователь меняет сортировку
+  → новый запрос с новым sort= параметром
+  → RTK Query смотрит кэш: такой ключ уже есть? → отдаёт кэш
+  → нет → новый запрос
 ```
 
-**Почему SSE, а не WebSocket:**
-Поток односторонний — сервер → клиент. Клиент не отправляет данные; сам факт SSE-подключения = "join", разрыв = "leave". WebSocket здесь избыточен.
-
-**Почему `?articleId=` query param, а не `/:id/readers`:**
-Guardian article ID содержит слеши (`technology/2026/may/01/title`). Wildcard-роут `/*` в newsRouter перехватил бы вложенный путь. Query param решает проблему без дополнительных роутеров.
+**Почему debounce, а не throttle:**
+Поиск — это реакция на окончание ввода. Нам не нужно "слать каждые N мс", нам нужно "подождать паузу". Это debounce.
+Throttle уместен для событий с высокой частотой которые нельзя пропускать (scroll, mousemove).
 
 ---
 
 ## Git
 
-**Ветка:** `v2.1.0-live-sse-feed` (уже создана)
-**Issue:** `#36`
+**Ветка:** `v2.1.0-live-sse-feed` (продолжаем в той же ветке)
+**Issue:** `#37`
 
 ---
 
@@ -51,156 +46,133 @@ Guardian article ID содержит слеши (`technology/2026/may/01/title`)
 
 ```
 server/src/
-├── utils/
-│   ├── sseManager.ts          ← Map клиентов, addClient(), removeClient(),
-│   │                             send(), broadcast(), startHeartbeat()
-│   └── readersTracker.ts      ← rooms: Map<articleId, Set<clientId>>
-│                                  join(), leave(), broadcastCount()
 └── routes/
-    └── news.routes.ts         ← GET /readers (перед wildcard /*)
+    └── news.routes.ts      ← добавить валидацию ?q= ?sort= ?category=
 
 client/src/
-└── features/
-    └── live-readers/
-        ├── useLiveReaders.ts  ← EventSource, onmessage, cleanup, статус
-        ├── ReadersCount.tsx   ← бейдж "● N читают сейчас"
-        └── index.ts           ← barrel
+├── features/
+│   └── news-filter/        ← НОВАЯ ФИЧА (расширяет source-filter)
+│       ├── SearchInput.tsx       ← debounced input
+│       ├── SortSelect.tsx        ← select: date | source
+│       ├── useNewsFilter.ts      ← объединяет search + sort + sources
+│       └── index.ts
+└── shared/
+    └── useDebounce.ts      ← generic debounce hook
+```
+
+**FSD:** `features/news-filter` → используется в `pages/Main/NewsFeedView`
+
+---
+
+## Шаг 1: useDebounce (shared)
+
+**Файл:** `client/src/shared/useDebounce.ts`
+
+```typescript
+// Generic hook: принимает value и delay
+// Возвращает debouncedValue — обновляется только после паузы в delay мс
+//
+// Внутри:
+// 1. useState для debouncedValue (начальное = value)
+// 2. useEffect: при изменении value → setTimeout(delay) → setDebouncedValue(value)
+// 3. cleanup: clearTimeout — важно! иначе после unmount setState на мёртвый компонент
+```
+
+**Подводный камень:** TypeScript — хук generic `<T>`, чтобы работал и со строкой, и с числом, и с объектом.
+
+---
+
+## Шаг 2: SearchInput
+
+**Файл:** `client/src/features/news-filter/SearchInput.tsx`
+
+```typescript
+// Props: { value: string; onChange: (value: string) => void }
+// Рендер: <input type="search" />
+// Внутри: локальный state для raw value (что пишет пользователь)
+// useDebounce(rawValue, 300) → при изменении debouncedValue → вызывать onChange
+//
+// Важно: onChange вызывается только с debouncedValue, не с каждым нажатием клавиши
 ```
 
 ---
 
-## Шаг 1: sseManager (✅ готово)
+## Шаг 3: SortSelect
 
-**Файл:** `server/src/utils/sseManager.ts`
+**Файл:** `client/src/features/news-filter/SortSelect.tsx`
 
 ```typescript
-type SseClient = {
-  id: string
-  response: express.Response
-}
+type SortOption = 'date' | 'source'
 
-// - clients: Map<string, SseClient>
-// - addClient(id, res): SSE-заголовки + добавить в Map
-// - removeClient(id): удалить из Map
-// - send(id, data): отправить одному клиенту
-// - broadcast(data): отправить всем клиентам
-// - startHeartbeat(): каждые 30с → ":\n\n" (keep-alive)
+// Props: { value: SortOption; onChange: (value: SortOption) => void }
+// Рендер: <select> с двумя опциями
+//   date   → "По дате"
+//   source → "По источнику"
 ```
 
 ---
 
-## Шаг 2: readersTracker (✅ готово)
+## Шаг 4: useNewsFilter
 
-**Файл:** `server/src/utils/readersTracker.ts`
+**Файл:** `client/src/features/news-filter/useNewsFilter.ts`
 
 ```typescript
-// rooms: Map<articleId, Set<clientId>>
-
-// join(articleId, clientId, res):
-//   → sseManager.addClient(clientId, res)
-//   → добавить clientId в room articleId
-//   → broadcastCount(articleId)
-
-// leave(articleId, clientId):
-//   → sseManager.removeClient(clientId)
-//   → удалить clientId из room
-//   → если room пуста — удалить из Map
-//   → broadcastCount(articleId)
-
-// broadcastCount(articleId):
-//   → count = room.size
-//   → для каждого clientId в room: sseManager.send(clientId, JSON.stringify({ articleId, count }))
+// Объединяет: search + sort + selectedSources (из useSourceFilter)
+// Возвращает:
+//   searchQuery: string
+//   setSearchQuery: (q: string) => void
+//   sort: SortOption
+//   setSort: (s: SortOption) => void
+//   selectedSources: SourceName[]
+//   toggleSource: (s: SourceName) => void
+//   queryParams: string  ← итоговый параметр для RTK Query
+//
+// queryParams строится из: sources + q + sort
+// Персистить: search — нет (сессионный), sort — localStorage ('news-sort')
 ```
 
-**Подводный камень:** `broadcastCount` вызывается до удаления room при leave — иначе broadcast уйдёт в пустоту. В текущей реализации: сначала удаляем clientId из room, потом broadcast (если room не пуста), потом удаляем room (если пуста).
+**Подводный камень:** `queryParams` должен быть стабильным при одинаковых значениях — иначе RTK Query не попадает в кэш. Сортировать sources перед join (уже делается в useSourceFilter).
 
 ---
 
-## Шаг 3: SSE endpoint (✅ готово)
+## Шаг 5: Бэкенд — query-параметры
 
-**Файл:** `server/src/routes/news/handlers.ts` → `getReadersSSE`, зарегистрирован в `routes.ts`
+**Файл:** `server/src/routes/news.routes.ts`
 
+Добавить к существующей Zod-валидации:
 ```typescript
-// GET /readers — зарегистрирован ДО wildcard /*
-// 1. Проверить req.query.articleId — если нет → 400
-// 2. clientId = crypto.randomUUID()
-// 3. readersTracker.join(articleId, clientId, res)
-// 4. req.on('close') → readersTracker.leave(articleId, clientId)
-// 5. Не закрывать res — соединение держится открытым
+// q: строка, опциональная, trim
+// sort: enum('date', 'source'), опциональный, default 'date'
+// category: строка, опциональная
 ```
 
-**Подводный камень:** `/readers` должен быть до `/*`, иначе Express примет `readers` как articleId.
+В `newsAggregator.ts` — применить фильтрацию и сортировку после агрегации:
+```
+// q → фильтровать по title + description (toLowerCase includes)
+// sort=date → сортировать по published desc
+// sort=source → сортировать по sourceName asc
+// category → фильтровать по тегу/категории если поле есть в новости
+```
 
 ---
 
-## Шаг 4: useLiveReaders
+## Шаг 6: Подключение в NewsFeed
 
-**Файл:** `client/src/features/live-readers/useLiveReaders.ts`
+**Файл:** `client/src/pages/Main/NewsFeed.tsx`
 
 ```typescript
-type LiveStatus = 'connecting' | 'connected' | 'error' | 'closed'
-
-interface UseLiveReadersReturn {
-  count: number
-  status: LiveStatus
-}
-
-// Внутри хука:
-// 1. useState для count и status
-// 2. useEffect(() => {
-//      const url = `${BASE_URL}/api/news/readers?articleId=${encodeURIComponent(articleId)}`
-//      const es = new EventSource(url)
-//      es.onopen = () => setStatus('connected')
-//      es.onmessage = (e) => setCount(JSON.parse(e.data).count)
-//      es.onerror = () => { if (es.readyState === CLOSED) setStatus('error') }
-//      return () => { es.close(); setStatus('closed') }
-//    }, [articleId])
+// Заменить useSourceFilter → useNewsFilter
+// Передать queryParams в useGetNewsQuery вместо sourcesParam
+// Передать search/sort props в NewsFeedView
 ```
 
-**Подводный камень:** `encodeURIComponent(articleId)` — обязательно, иначе слеши в Guardian ID сломают URL.
-
-**Подводный камень:** `es.onerror` срабатывает при каждом авто-реконнекте. Проверять `es.readyState === EventSource.CLOSED` перед установкой статуса `error`.
+**NewsFeedView** — добавить `<SearchInput />` и `<SortSelect />` над лентой.
 
 ---
 
-## Шаг 5: ReadersCount
+## Подводные камни
 
-**Файл:** `client/src/features/live-readers/ReadersCount.tsx`
-
-```typescript
-// Props: { articleId: string }
-// Рендер:
-//   count > 0 && connected → <span>● N читают сейчас</span>
-//   иначе → null (не показывать ничего)
-```
-
-**Где размещён:** в `NewsDetailView` над `<NewsBanner />`.
-
-**FSD:** `pages` → импортирует из `features` (ReadersCount) и `entities` (NewsBanner) — слои соблюдены.
-
----
-
-## Шаг 6: Миграция на named exports (после завершения readers count)
-
-**Статус шага:** в процессе
-
-**Цель:** закрепить единый стиль `named exports` в клиенте и включить lint-правило, чтобы новые `default export` не появлялись.
-
-```typescript
-// План:
-// 1. ✅ Обновить ESLint-конфиг клиента так, чтобы он покрывал TS/TSX.
-// 2. ✅ Подключить eslint-plugin-import.
-// 3. ✅ Включить правило import/no-default-export сначала как "warn".
-// 4. 🔄 Мигрировать экспорт/импорт по слоям FSD:
-//    shared -> entities -> features -> widgets -> pages -> app.
-// 5. 🔄 Обновить barrel-экспорты после миграции.
-// 6. ✅ Прогнать lint + type-check.
-// 7. После стабилизации переключить правило на "error".
-```
-
-**Подводные камни:**
-
-- Если используется `React.lazy`, динамически импортируемый модуль обычно ожидает `default`.
-- Массовую миграцию делать частями, чтобы проще локализовать регрессии.
-- После изменений в экспорт/импорт обязательно перепроверять автогенерацию barrel-файлов.
-
+- **RTK Query и кэш:** каждая уникальная строка `queryParams` — отдельная запись в кэше. Это ожидаемое поведение.
+- **debounce и React StrictMode:** в StrictMode эффекты запускаются дважды — cleanup (clearTimeout) критически важен, иначе дебаунс не работает.
+- **Пустой поиск:** когда `q=""` — не передавать параметр вообще, чтобы не ломать кэш-ключ.
+- **category на бэкенде:** Guardian возвращает `sectionName`, NewsAPI — `category`, HN — нет. Нормализовать поле при агрегации.

@@ -1,6 +1,6 @@
 # React Happy News — Релиз v2.1 — Positivity Stream
 
-**Статус:** `in progress` (US 2.1.1 active)
+**Статус:** `in progress` (US 2.1.2 active)
 **Ветка релиза:** `v2.1.0-*`
 **Полный roadmap:** [ROADMAP.md](./ROADMAP.md)
 **Покрытие:** 27 вопросов (45.3% нарастающим после v2.0)
@@ -16,27 +16,28 @@
 
 ## User Stories
 
-### US 2.1.1: Live-счётчик читателей через SSE — 🔄 ACTIVE
+### US 2.1.1: Live-счётчик читателей через SSE — ✅ DONE
 
 - [x] Backend: sseManager — управление подключениями, heartbeat
-- [ ] Backend: readersTracker — per-article комнаты `Map<articleId, Set<clientId>>`
-- [ ] Backend: SSE endpoint `GET /api/news/readers?articleId=`
-- [ ] Frontend: `features/live-readers/useLiveReaders.ts` — EventSource подписка
-- [ ] Frontend: `features/live-readers/ReadersCount.tsx` — бейдж "● N читают сейчас"
-- [ ] Бейдж на детальной странице новости
-- [ ] При закрытии вкладки EventSource закрывается (cleanup + счётчик уменьшается)
+- [x] Backend: readersTracker — per-article комнаты `Map<articleId, Set<clientId>>`
+- [x] Backend: SSE endpoint `GET /api/news/readers?articleId=`
+- [x] Frontend: `features/live-readers/useLiveReaders.ts` — EventSource подписка
+- [x] Frontend: `features/live-readers/ReadersCount.tsx` — бейдж "● N читают сейчас"
+- [x] Бейдж на детальной странице новости
+- [x] При закрытии вкладки EventSource закрывается (cleanup + счётчик уменьшается)
 
-### US 2.1.2: Polling health-check + retry — ⏳ pending
+### US 2.1.2: Health-check + Offline Mode — ✅ DONE
 
-- [ ] Polling `GET /api/health` каждые 30 сек
-- [ ] Зелёный/красный индикатор в header
-- [ ] Retry с exponential backoff (1с → 2с → 4с → 8с → max 30с)
-- [ ] При N ошибках → "offline mode" (кэшированные данные)
-- [ ] При восстановлении → автоматический refetch
-- [ ] AbortController: отмена при навигации
-- [ ] Не отправлять следующий запрос пока текущий не завершился
+- [x] Polling `GET /api/health` каждые 30 сек
+- [x] `StatusBadge` в Header — зелёный/красный автоматически (без ручного тогла)
+- [x] Retry с exponential backoff (1с → 2с → 4с → 8с → max 30с)
+- [x] При N ошибках подряд → offline mode (RTK-кэш + `OfflineBanner`)
+- [x] `OfflineBanner` — "Нет связи с сервером. Показываем данные от HH:MM"
+- [x] AbortController: отмена при навигации / unmount
+- [x] Не отправлять следующий запрос пока текущий не завершился
+- [x] Toast-уведомления при смене статуса online/offline
 
-### US 2.1.3: Расширенный поиск + сортировка — ⏳ pending
+### US 2.1.3: Расширенный поиск + сортировка — 🔄 ACTIVE
 
 - [ ] Debounced поле поиска (300мс)
 - [ ] Фильтр по категории (Science, Technology, Culture...)
@@ -64,4 +65,4 @@
 
 ## Следующий релиз
 
-**v2.2 — Social & Engagement** (WebSocket, Live Readers, Share)
+**v2.2 — Social & Engagement** (WebSocket, Live Reactions, Share)
