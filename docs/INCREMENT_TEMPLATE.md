@@ -45,20 +45,6 @@
 **Ветка:** `vX.X.X-branch-name`
 **Issue:** `#N`
 
-```bash
-# Шаг 1
-git add <файлы>
-git commit -m "feat: #N <что сделано>"
-
-# Шаг 2
-git add <файлы>
-git commit -m "feat: #N <что сделано>"
-
-# Последний шаг — закрыть issue
-git add <файлы>
-git commit -m "feat: close #N <что сделано>"
-```
-
 ---
 
 ## Архитектура
@@ -95,6 +81,13 @@ client/src/
 ```
 
 **Подводный камень:** ...
+
+```bash
+git add <файлы шага>
+git commit -m "feat: #N <что сделано>"
+```
+
+> Последний шаг закрывает issue: `feat: close #N <что сделано>`
 
 > Повтори блок "## Шаг N" для каждого шага
 

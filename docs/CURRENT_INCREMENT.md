@@ -40,36 +40,6 @@ Throttle уместен для событий с высокой частотой
 **Ветка:** `v2.1.0-live-sse-feed` (продолжаем в той же ветке)
 **Issue:** `#39`
 
-```bash
-# После каждого шага:
-git add <файлы>
-git commit -m "feat: #39 <описание>"
-
-# Шаг 1
-git add client/src/shared/useDebounce.ts
-git commit -m "feat: #39 useDebounce — generic debounced value hook"
-
-# Шаг 2
-git add client/src/features/news-filter/SearchInput.tsx
-git commit -m "feat: #39 SearchInput — debounced search input"
-
-# Шаг 3
-git add client/src/features/news-filter/SortSelect.tsx
-git commit -m "feat: #39 SortSelect — sort by date or source"
-
-# Шаг 4
-git add client/src/features/news-filter/useNewsFilter.ts client/src/features/news-filter/index.ts
-git commit -m "feat: #39 useNewsFilter — объединяет search + sort + sources"
-
-# Шаг 5
-git add server/src/routes/news.routes.ts server/src/services/newsAggregator.ts
-git commit -m "feat: #39 бэкенд — query-параметры q, sort, category"
-
-# Шаг 6 (закрытие issue через close)
-git add client/src/pages/Main/NewsFeed.tsx client/src/pages/Main/NewsFeedView.tsx
-git commit -m "feat: close #39 подключение news-filter в NewsFeed"
-```
-
 ---
 
 ## Архитектура
@@ -110,6 +80,11 @@ client/src/
 
 **Подводный камень:** TypeScript — хук generic `<T>`, чтобы работал и со строкой, и с числом, и с объектом.
 
+```bash
+git add client/src/shared/useDebounce.ts
+git commit -m "feat: #39 useDebounce — generic debounced value hook"
+```
+
 ---
 
 ## Шаг 2: SearchInput
@@ -125,6 +100,11 @@ client/src/
 // Важно: onChange вызывается только с debouncedValue, не с каждым нажатием клавиши
 ```
 
+```bash
+git add client/src/features/news-filter/SearchInput.tsx
+git commit -m "feat: #39 SearchInput — debounced search input"
+```
+
 ---
 
 ## Шаг 3: SortSelect
@@ -138,6 +118,11 @@ type SortOption = 'date' | 'source'
 // Рендер: <select> с двумя опциями
 //   date   → "По дате"
 //   source → "По источнику"
+```
+
+```bash
+git add client/src/features/news-filter/SortSelect.tsx
+git commit -m "feat: #39 SortSelect — sort by date or source"
 ```
 
 ---
@@ -163,6 +148,11 @@ type SortOption = 'date' | 'source'
 
 **Подводный камень:** `queryParams` должен быть стабильным при одинаковых значениях — иначе RTK Query не попадает в кэш. Сортировать sources перед join (уже делается в useSourceFilter).
 
+```bash
+git add client/src/features/news-filter/useNewsFilter.ts client/src/features/news-filter/index.ts
+git commit -m "feat: #39 useNewsFilter — объединяет search + sort + sources"
+```
+
 ---
 
 ## Шаг 5: Бэкенд — query-параметры
@@ -184,6 +174,11 @@ type SortOption = 'date' | 'source'
 // category → фильтровать по тегу/категории если поле есть в новости
 ```
 
+```bash
+git add server/src/routes/news.routes.ts server/src/services/newsAggregator.ts
+git commit -m "feat: #39 бэкенд — query-параметры q, sort, category"
+```
+
 ---
 
 ## Шаг 6: Подключение в NewsFeed
@@ -197,6 +192,11 @@ type SortOption = 'date' | 'source'
 ```
 
 **NewsFeedView** — добавить `<SearchInput />` и `<SortSelect />` над лентой.
+
+```bash
+git add client/src/pages/Main/NewsFeed.tsx client/src/pages/Main/NewsFeedView.tsx
+git commit -m "feat: close #39 подключение news-filter в NewsFeed"
+```
 
 ---
 
