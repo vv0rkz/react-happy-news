@@ -2,7 +2,7 @@
 
 **Статус:** `active`
 **Релиз:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md)
-**Issue:** `#37`
+**Issue:** `#39`
 **Покрывает вопросы:** FQ45 (debounce/throttle), FQ42 (useMemo/useCallback), FQ15 (триггеры рендера)
 
 **Acceptance Criteria:**
@@ -38,7 +38,37 @@ Throttle уместен для событий с высокой частотой
 ## Git
 
 **Ветка:** `v2.1.0-live-sse-feed` (продолжаем в той же ветке)
-**Issue:** `#37`
+**Issue:** `#39`
+
+```bash
+# После каждого шага:
+git add <файлы>
+git commit -m "feat: #39 <описание>"
+
+# Шаг 1
+git add client/src/shared/useDebounce.ts
+git commit -m "feat: #39 useDebounce — generic debounced value hook"
+
+# Шаг 2
+git add client/src/features/news-filter/SearchInput.tsx
+git commit -m "feat: #39 SearchInput — debounced search input"
+
+# Шаг 3
+git add client/src/features/news-filter/SortSelect.tsx
+git commit -m "feat: #39 SortSelect — sort by date or source"
+
+# Шаг 4
+git add client/src/features/news-filter/useNewsFilter.ts client/src/features/news-filter/index.ts
+git commit -m "feat: #39 useNewsFilter — объединяет search + sort + sources"
+
+# Шаг 5
+git add server/src/routes/news.routes.ts server/src/services/newsAggregator.ts
+git commit -m "feat: #39 бэкенд — query-параметры q, sort, category"
+
+# Шаг 6 (закрытие issue через close)
+git add client/src/pages/Main/NewsFeed.tsx client/src/pages/Main/NewsFeedView.tsx
+git commit -m "feat: close #39 подключение news-filter в NewsFeed"
+```
 
 ---
 
