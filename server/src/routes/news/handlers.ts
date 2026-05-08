@@ -13,6 +13,9 @@ const newsQuerySchema = z.object({
     .optional()
     .transform((val) => (val ? val.split(',') : allSourceNames))
     .pipe(z.array(z.nativeEnum(SourceName)).min(1)),
+  q: z.string().trim().optional(),
+  sort: z.enum(['date', 'source']).optional().default('date'),
+  category: z.string().trim().optional(),
 })
 
 export const newsListQueryOpenApiSchema = z.object({
@@ -20,6 +23,9 @@ export const newsListQueryOpenApiSchema = z.object({
     example: 'guardian,newsapi',
     description: 'Источники через запятую. Доступные: guardian, newsapi, hackernews',
   }),
+  q: z.string().optional().openapi({ example: 'climate', description: 'Поисковый запрос' }),
+  sort: z.enum(['date', 'source']).optional().openapi({ example: 'date', description: 'Сортировка: date | source' }),
+  category: z.string().optional().openapi({ example: 'science', description: 'Фильтр по категории/тегу' }),
 })
 
 export const getNewsList: RequestHandler = async (req, res) => {
@@ -29,24 +35,46 @@ export const getNewsList: RequestHandler = async (req, res) => {
     return
   }
 
-  const { sources } = parsed.data
+  const { sources, q, sort, category } = parsed.data
   const cacheKey = `news:${sources.sort().join(',')}`
 
   try {
+    let result: AggregatorResult
+
     const cached = getCached<AggregatorResult>(cacheKey)
     if (cached) {
       console.log('[Cache] HIT — returning cached news')
-      res.json({ ...cached, cached: true })
-      return
+      result = cached
+    } else {
+      console.log('[Cache] MISS — fetching from APIs')
+      result = await aggregateNews(sources)
+      setCached(cacheKey, result)
+      result.news.forEach((item) => setCached(`newsItem:${item.id}`, item))
     }
 
-    console.log('[Cache] MISS — fetching from APIs')
-    const result = await aggregateNews(sources)
+    let news = result.news
 
-    setCached(cacheKey, result)
-    result.news.forEach((item) => setCached(`newsItem:${item.id}`, item))
+    if (q) {
+      const qLower = q.toLowerCase()
+      news = news.filter(
+        (item) =>
+          item.title.toLowerCase().includes(qLower) ||
+          item.description.toLowerCase().includes(qLower),
+      )
+    }
 
-    res.json({ ...result, cached: false })
+    if (category) {
+      const catLower = category.toLowerCase()
+      news = news.filter((item) => item.tag.toLowerCase().includes(catLower))
+    }
+
+    if (sort === 'source') {
+      news = [...news].sort((a, b) => a.source.localeCompare(b.source))
+    } else {
+      news = [...news].sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime())
+    }
+
+    res.json({ ...result, news, cached: Boolean(cached) })
   } catch (error) {
     console.error('[GET /api/news] Error:', error)
     res.status(500).json({ error: 'Failed to fetch news' })
