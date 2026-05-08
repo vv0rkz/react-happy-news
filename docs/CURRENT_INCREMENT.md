@@ -1,208 +1,240 @@
-# US 2.1.3 — Расширенный поиск + сортировка
+# US 2.1.4 — Оптимизация рендеринга
 
 **Статус:** `active`
 **Релиз:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md)
-**Issue:** `#39`
-**Покрывает вопросы:** FQ45 (debounce/throttle), FQ42 (useMemo/useCallback), FQ15 (триггеры рендера)
+**Issue:** `#40`
+**Покрывает вопросы:** FQ16 (shallow comparison), FQ20 (batching), FQ41 (React.memo), FQ42 (useMemo/useCallback), FQ43 (Profiler API), FQ44 (виртуализация), FQ46 (code splitting), FQ47 (bundle analysis), FQ48 (tree shaking)
 
 **Acceptance Criteria:**
 
-- [ ] Debounced поле поиска (300мс)
-- [ ] Фильтр по категории (Science, Technology, Culture...)
-- [ ] Сортировка: по дате / по источнику
-- [ ] Query-параметры на бэкенде: `?q=...&sort=...&category=...`
+- [ ] `NewsItem` обёрнут в `React.memo` — не ререндерится при смене несвязанных пропов
+- [ ] `useCallback` для колбэков, передаваемых в `NewsItem` (чтобы `React.memo` работал)
+- [ ] `useMemo` для отфильтрованного/подготовленного списка новостей
+- [ ] `React.lazy` + `Suspense` для страниц — code splitting (Main, NewsDetail)
+- [ ] `vite-bundle-visualizer` — анализ бандла до/после
+- [ ] React Profiler: сравнение render count до и после мемоизации
 
 ---
 
 ## Концепция
 
 ```
-Пользователь вводит "climate"
-  → debounce 300мс (не слать на каждый символ)
-  → GET /api/news?q=climate&sources=guardian,newsapi&sort=date&category=science
-  → RTK Query кэширует результат
-  → список обновляется без перезагрузки
+Без оптимизации:
+  Пользователь открывает попап ⚙️ (Источники)
+  → SourceFilter перерендеривается
+  → NewsFilterContext обновляется
+  → NewsFeedView ререндерится
+  → каждый из 20+ NewsItem ререндерится
+  → Profiler: 20+ wasted renders
 
-Пользователь меняет сортировку
-  → новый запрос с новым sort= параметром
-  → RTK Query смотрит кэш: такой ключ уже есть? → отдаёт кэш
-  → нет → новый запрос
+После React.memo + useCallback:
+  → только изменившийся NewsItem ререндерится
+  → остальные 19 — мемоизированы, пропущены
+
+Code splitting:
+  Сейчас: один бандл ~300KB
+  После React.lazy: Main грузится сразу, NewsDetail — по требованию
+  → Первая загрузка быстрее
 ```
 
-**Почему debounce, а не throttle:**
-Поиск — это реакция на окончание ввода. Нам не нужно "слать каждые N мс", нам нужно "подождать паузу". Это debounce.
-Throttle уместен для событий с высокой частотой которые нельзя пропускать (scroll, mousemove).
+**Почему React.memo, а не useMemo для компонентов:**
+`React.memo` — HOC для компонентов, делает shallow comparison пропов.
+`useMemo` — для вычисляемых значений внутри компонента.
+Оба про кэш, но на разных уровнях.
+
+**Почему code splitting через React.lazy, а не отдельные entrypoints:**
+Vite умеет делать dynamic import автоматически. `React.lazy` — декларативный способ сказать React «грузи это по требованию». Работает в связке с `Suspense`, который показывает fallback пока чанк загружается.
 
 ---
 
 ## Git
 
 **Ветка:** `v2.1.0-live-sse-feed` (продолжаем в той же ветке)
-**Issue:** `#39`
+**Issue:** `#40`
 
 ---
 
 ## Архитектура
 
 ```
-server/src/
-└── routes/
-    └── news.routes.ts      ← добавить валидацию ?q= ?sort= ?category=
-
 client/src/
-├── features/
-│   └── news-filter/        ← НОВАЯ ФИЧА (расширяет source-filter)
-│       ├── SearchInput.tsx       ← debounced input
-│       ├── SortSelect.tsx        ← select: date | source
-│       ├── useNewsFilter.ts      ← объединяет search + sort + sources
-│       └── index.ts
+├── app/
+│   ├── router.tsx              ← ИЗМЕНИТЬ: React.lazy для страниц
+│   └── main.tsx                ← без изменений
+├── entities/news/
+│   └── NewsItem/
+│       └── NewsItem.tsx        ← ИЗМЕНИТЬ: React.memo
+├── entities/news/
+│   └── NewsList/
+│       └── NewsList.tsx        ← ИЗМЕНИТЬ: useCallback для колбэков
+├── pages/Main/
+│   └── NewsFeed.tsx            ← ИЗМЕНИТЬ: useMemo для списка
 └── shared/
-    └── useDebounce.ts      ← generic debounce hook
+    └── Skeleton/
+        └── Skeleton.tsx        ← без изменений (Suspense fallback)
 ```
 
-**FSD:** `features/news-filter` → используется в `pages/Main/NewsFeedView`
+**FSD:** изменения только внутри слоёв, не нарушают границы.
 
 ---
 
-## Шаг 1: useDebounce (shared)
+## Шаг 1: React.memo для NewsItem
 
-**Файл:** `client/src/shared/useDebounce.ts`
+**Файл:** `client/src/entities/news/NewsItem/NewsItem.tsx`
 
 ```typescript
-// Generic hook: принимает value и delay
-// Возвращает debouncedValue — обновляется только после паузы в delay мс
+// Обернуть дефолтный экспорт в React.memo:
+// export const NewsItem = memo(function NewsItem({ item }: NewsItemProps) { ... })
 //
-// Внутри:
-// 1. useState для debouncedValue (начальное = value)
-// 2. useEffect: при изменении value → setTimeout(delay) → setDebouncedValue(value)
-// 3. cleanup: clearTimeout — важно! иначе после unmount setState на мёртвый компонент
-```
-
-**Подводный камень:** TypeScript — хук generic `<T>`, чтобы работал и со строкой, и с числом, и с объектом.
-
-```bash
-git add client/src/shared/useDebounce.ts
-git commit -m "feat: #39 useDebounce — generic debounced value hook"
-```
-
----
-
-## Шаг 2: SearchInput
-
-**Файл:** `client/src/features/news-filter/SearchInput.tsx`
-
-```typescript
-// Props: { value: string; onChange: (value: string) => void }
-// Рендер: <input type="search" />
-// Внутри: локальный state для raw value (что пишет пользователь)
-// useDebounce(rawValue, 300) → при изменении debouncedValue → вызывать onChange
+// React.memo делает shallow comparison всех пропов перед ререндером.
+// Если пропы не изменились (по ссылке) — компонент пропускается.
 //
-// Важно: onChange вызывается только с debouncedValue, не с каждым нажатием клавиши
+// ВАЖНО: работает только если пропы стабильны.
+// Если родитель передаёт inline-колбэк `() => onClick(id)` — он новый при каждом рендере.
+// Поэтому шаг 1 неполный без шага 2 (useCallback).
 ```
 
+**Подводный камень:** после `memo` проверь в React Profiler — если `NewsItem` всё ещё мигает,
+значит какой-то проп нестабилен (обычно колбэк).
+
 ```bash
-git add client/src/features/news-filter/SearchInput.tsx
-git commit -m "feat: #39 SearchInput — debounced search input"
+git add client/src/entities/news/NewsItem/NewsItem.tsx
+git commit -m "perf: #40 NewsItem — React.memo для предотвращения wasted renders"
 ```
 
 ---
 
-## Шаг 3: SortSelect
+## Шаг 2: useCallback в NewsList / NewsFeed
 
-**Файл:** `client/src/features/news-filter/SortSelect.tsx`
-
-```typescript
-type SortOption = 'date' | 'source'
-
-// Props: { value: SortOption; onChange: (value: SortOption) => void }
-// Рендер: <select> с двумя опциями
-//   date   → "По дате"
-//   source → "По источнику"
-```
-
-```bash
-git add client/src/features/news-filter/SortSelect.tsx
-git commit -m "feat: #39 SortSelect — sort by date or source"
-```
-
----
-
-## Шаг 4: useNewsFilter
-
-**Файл:** `client/src/features/news-filter/useNewsFilter.ts`
+**Файл:** `client/src/entities/news/NewsList/NewsList.tsx` и/или `client/src/pages/Main/NewsFeed.tsx`
 
 ```typescript
-// Объединяет: search + sort + selectedSources (из useSourceFilter)
-// Возвращает:
-//   searchQuery: string
-//   setSearchQuery: (q: string) => void
-//   sort: SortOption
-//   setSort: (s: SortOption) => void
-//   selectedSources: SourceName[]
-//   toggleSource: (s: SourceName) => void
-//   queryParams: string  ← итоговый параметр для RTK Query
+// Если NewsItem принимает колбэки (onClick, onBookmark и т.п.) —
+// стабилизировать их через useCallback в компоненте-родителе:
 //
-// queryParams строится из: sources + q + sort
-// Персистить: search — нет (сессионный), sort — localStorage ('news-sort')
+// const handleClick = useCallback((id: string) => {
+//   navigate(`/news/${id}`)
+// }, [navigate])
+//
+// Deps: включаем только то, что реально используется внутри.
+// navigate из react-router стабилен — можно включить без опасений.
+//
+// Если колбэков нет — шаг можно пропустить.
 ```
 
-**Подводный камень:** `queryParams` должен быть стабильным при одинаковых значениях — иначе RTK Query не попадает в кэш. Сортировать sources перед join (уже делается в useSourceFilter).
+**Подводный камень:** не оборачивай useCallback всё подряд — это преждевременная оптимизация.
+Только то, что передаётся в мемоизированные дочерние компоненты.
 
 ```bash
-git add client/src/features/news-filter/useNewsFilter.ts client/src/features/news-filter/index.ts
-git commit -m "feat: #39 useNewsFilter — объединяет search + sort + sources"
+git add client/src/entities/news/NewsList/NewsList.tsx client/src/pages/Main/NewsFeed.tsx
+git commit -m "perf: #40 useCallback — стабилизация колбэков для React.memo"
 ```
 
 ---
 
-## Шаг 5: Бэкенд — query-параметры
-
-**Файл:** `server/src/routes/news.routes.ts`
-
-Добавить к существующей Zod-валидации:
-```typescript
-// q: строка, опциональная, trim
-// sort: enum('date', 'source'), опциональный, default 'date'
-// category: строка, опциональная
-```
-
-В `newsAggregator.ts` — применить фильтрацию и сортировку после агрегации:
-```
-// q → фильтровать по title + description (toLowerCase includes)
-// sort=date → сортировать по published desc
-// sort=source → сортировать по sourceName asc
-// category → фильтровать по тегу/категории если поле есть в новости
-```
-
-```bash
-git add server/src/routes/news.routes.ts server/src/services/newsAggregator.ts
-git commit -m "feat: #39 бэкенд — query-параметры q, sort, category"
-```
-
----
-
-## Шаг 6: Подключение в NewsFeed
+## Шаг 3: useMemo для подготовки данных
 
 **Файл:** `client/src/pages/Main/NewsFeed.tsx`
 
 ```typescript
-// Заменить useSourceFilter → useNewsFilter
-// Передать queryParams в useGetNewsQuery вместо sourcesParam
-// Передать search/sort props в NewsFeedView
+// RTK Query уже возвращает мемоизированный массив (не пересоздаёт при том же кэш-ключе).
+// useMemo нужен если есть тяжёлая трансформация данных перед рендером:
+//
+// const processedNews = useMemo(() => {
+//   if (!news) return []
+//   // ... slice, map, sort — O(n) операции
+//   return news.slice(0, LIMIT)
+// }, [news])
+//
+// Если обработки нет — useMemo не нужен (не стоит добавлять ради галочки).
+// Документируй вывод: "RTK Query кэширует, useMemo не требуется" — тоже валидный ответ.
 ```
 
-**NewsFeedView** — добавить `<SearchInput />` и `<SortSelect />` над лентой.
+**Подводный камень:** `useMemo` не бесплатен — добавляет работу по сравнению deps.
+Оправдан только если вычисление действительно дорогое (> 1ms) или результат передаётся в `memo`-компонент.
 
 ```bash
-git add client/src/pages/Main/NewsFeed.tsx client/src/pages/Main/NewsFeedView.tsx
-git commit -m "feat: close #39 подключение news-filter в NewsFeed"
+git add client/src/pages/Main/NewsFeed.tsx
+git commit -m "perf: #40 useMemo — мемоизация подготовленного списка новостей"
+```
+
+---
+
+## Шаг 4: React.lazy + Suspense (code splitting)
+
+**Файл:** `client/src/app/router.tsx` (или где объявлен роутер)
+
+```typescript
+// Заменить статические импорты страниц на lazy:
+//
+// Было:
+// import { NewsDetail } from '@pages/NewsDetail'
+//
+// Стало:
+// const NewsDetail = lazy(() =>
+//   import('@pages/NewsDetail').then(m => ({ default: m.NewsDetail }))
+// )
+//
+// В роуте обернуть в Suspense с fallback:
+// element: (
+//   <Suspense fallback={<Skeleton type="item" count={5} height="100px" />}>
+//     <NewsDetail />
+//   </Suspense>
+// )
+//
+// Main можно оставить статическим — это критический путь.
+// NewsDetail грузить лениво — пользователь не переходит туда сразу.
+```
+
+**Подводный камень:** `named export` + `lazy` требует `.then(m => ({ default: m.Component }))`.
+Либо сделать `export default` в файле страницы.
+
+```bash
+git add client/src/app/router.tsx
+git commit -m "perf: #40 React.lazy — code splitting для NewsDetail"
+```
+
+---
+
+## Шаг 5: Bundle visualizer + анализ
+
+**Установка:**
+
+```bash
+pnpm --filter react-happy-news-client add -D rollup-plugin-visualizer
+```
+
+**Файл:** `client/vite.config.js`
+
+```javascript
+// Добавить плагин:
+// import { visualizer } from 'rollup-plugin-visualizer'
+//
+// plugins: [
+//   react(),
+//   tsconfigPaths(),
+//   visualizer({ open: true, filename: 'dist/stats.html' }),
+// ]
+//
+// Запустить: pnpm build:client
+// Откроется stats.html — интерактивная карта бандла.
+// Смотреть: что занимает больше всего места, разделились ли чанки.
+```
+
+**Подводный камень:** `visualizer` работает только при сборке (`build`), не при dev.
+В dev-режиме плагин ничего не делает.
+
+```bash
+git add client/vite.config.js client/package.json
+git commit -m "perf: close #40 bundle visualizer — анализ и code splitting"
 ```
 
 ---
 
 ## Подводные камни
 
-- **RTK Query и кэш:** каждая уникальная строка `queryParams` — отдельная запись в кэше. Это ожидаемое поведение.
-- **debounce и React StrictMode:** в StrictMode эффекты запускаются дважды — cleanup (clearTimeout) критически важен, иначе дебаунс не работает.
-- **Пустой поиск:** когда `q=""` — не передавать параметр вообще, чтобы не ломать кэш-ключ.
-- **category на бэкенде:** Guardian возвращает `sectionName`, NewsAPI — `category`, HN — нет. Нормализовать поле при агрегации.
+- **React.memo и контекст:** если `NewsItem` читает контекст напрямую через `useContext` — `memo` не поможет. `memo` проверяет только пропы, не значения контекста.
+- **Стабильность ключей:** `key` в списке должен быть стабильным ID, не индексом. Нестабильный `key` сбрасывает стейт и провоцирует полный ремаунт.
+- **useMemo и deps:** если deps некорректны — баг сложнее отладить, чем без мемоизации. Будь аккуратен.
+- **Suspense и SSR:** нас это не касается (SPA), но знать стоит: React.lazy + Suspense не работают на сервере без React Server Components.
+- **code splitting и prefetch:** Vite автоматически добавляет `<link rel="modulepreload">` для lazy-чанков. Смотреть в DevTools → Network → Filter: JS.
