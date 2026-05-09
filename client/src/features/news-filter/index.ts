@@ -1,4 +1,3 @@
 export { CategoryFilter, CATEGORIES } from './CategoryFilter'
-export { NewsFilterProvider, useNewsFilterContext } from './NewsFilterContext'
-export { useNewsFilter } from './useNewsFilter'
+export { useNewsFilterParams } from './useNewsFilterParams'
 export { SearchInput } from './SearchInput'

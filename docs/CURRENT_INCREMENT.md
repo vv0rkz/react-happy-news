@@ -3,16 +3,21 @@
 **Статус:** `active`
 **Релиз:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md)
 **Issue:** `#40`
-**Покрывает вопросы:** FQ16 (shallow comparison), FQ20 (batching), FQ41 (React.memo), FQ42 (useMemo/useCallback), FQ43 (Profiler API), FQ44 (виртуализация), FQ46 (code splitting), FQ47 (bundle analysis), FQ48 (tree shaking)
+**Покрывает вопросы:** FQ16 (shallow comparison), FQ20 (batching), FQ41 (React.memo), FQ42 (useMemo/useCallback), FQ43 (Profiler API), FQ46 (code splitting), FQ47 (bundle analysis), FQ48 (tree shaking)
+
+> **FQ44 (виртуализация) перенесён в US 2.1.8** — виртуализация обоснована только при 200+ элементах. Реализуется после накопления данных в SQLite (US 2.1.6).
 
 **Acceptance Criteria:**
 
+- [x] Фильтры (sources, q, category) читаются из URL search params (`useNewsFilterParams`)
+- [x] `NewsFilterContext` и `localStorage` для sources удалены
+- [x] URL `/?q=climate&category=science&sources=guardian` работает при прямом переходе
 - [ ] `NewsItem` обёрнут в `React.memo` — не ререндерится при смене несвязанных пропов
 - [ ] `useCallback` для колбэков, передаваемых в `NewsItem` (чтобы `React.memo` работал)
-- [ ] `useMemo` для отфильтрованного/подготовленного списка новостей
-- [ ] `React.lazy` + `Suspense` для страниц — code splitting (Main, NewsDetail)
-- [ ] `vite-bundle-visualizer` — анализ бандла до/после
-- [ ] React Profiler: сравнение render count до и после мемоизации
+- [ ] `useMemo` для отфильтрованного/подготовленного списка (или задокументировано почему не нужен)
+- [ ] `React.lazy` + `Suspense` для страниц — code splitting (NewsDetail)
+- [ ] `vite-bundle-visualizer` — зафиксировать размер main chunk до и после splitting
+- [ ] React Profiler: зафиксировать количество renders при открытии попапа ⚙️ до и после `React.memo`
 
 ---
 
@@ -94,6 +99,12 @@ client/src/
 // Поэтому шаг 1 неполный без шага 2 (useCallback).
 ```
 
+**Как замерить:**
+1. DevTools → Profiler → Settings → включить "Highlight updates when components render"
+2. Открыть попап ⚙️ (Источники) — без memo все NewsItem подсвечиваются синим
+3. После обёртки в `memo` — попап перерендерится, NewsItem — нет
+4. Записать в коммит-сообщении: "было N renders → стало M renders при открытии попапа"
+
 **Подводный камень:** после `memo` проверь в React Profiler — если `NewsItem` всё ещё мигает,
 значит какой-то проп нестабилен (обычно колбэк).
 
@@ -137,7 +148,8 @@ git commit -m "perf: #40 useCallback — стабилизация колбэко
 **Файл:** `client/src/pages/Main/NewsFeed.tsx`
 
 ```typescript
-// RTK Query уже возвращает мемоизированный массив (не пересоздаёт при том же кэш-ключе).
+// Query-библиотека (RTK Query сейчас, TanStack Query после US 2.1.5)
+// возвращает мемоизированный массив — не пересоздаёт при том же кэш-ключе.
 // useMemo нужен если есть тяжёлая трансформация данных перед рендером:
 //
 // const processedNews = useMemo(() => {
@@ -146,8 +158,8 @@ git commit -m "perf: #40 useCallback — стабилизация колбэко
 //   return news.slice(0, LIMIT)
 // }, [news])
 //
-// Если обработки нет — useMemo не нужен (не стоит добавлять ради галочки).
-// Документируй вывод: "RTK Query кэширует, useMemo не требуется" — тоже валидный ответ.
+// Если обработки нет — useMemo не нужен. Задокументируй вывод явно:
+// "Query-библиотека кэширует, дополнительный useMemo не требуется" — тоже валидный результат.
 ```
 
 **Подводный камень:** `useMemo` не бесплатен — добавляет работу по сравнению deps.
@@ -182,9 +194,15 @@ git commit -m "perf: #40 useMemo — мемоизация подготовлен
 //   </Suspense>
 // )
 //
-// Main можно оставить статическим — это критический путь.
-// NewsDetail грузить лениво — пользователь не переходит туда сразу.
+// Main оставить статическим — это критический путь первой загрузки.
+// NewsDetail грузить лениво — пользователь переходит туда после просмотра ленты.
 ```
+
+**Как замерить:**
+1. DevTools → Network → фильтр: `JS` → Hard Reload (Ctrl+Shift+R)
+2. **До splitting:** один файл `main.js` ~300KB загружается при старте
+3. **После splitting:** `main.js` меньше + отдельный `newsDetail.[hash].js` появляется только при первом клике на новость
+4. Также в DevTools → Network → вкладка `newsDetail.[hash].js` — Vite автоматически добавляет `<link rel="modulepreload">` для предзагрузки
 
 **Подводный камень:** `named export` + `lazy` требует `.then(m => ({ default: m.Component }))`.
 Либо сделать `export default` в файле страницы.
@@ -218,8 +236,13 @@ pnpm --filter react-happy-news-client add -D rollup-plugin-visualizer
 //
 // Запустить: pnpm build:client
 // Откроется stats.html — интерактивная карта бандла.
-// Смотреть: что занимает больше всего места, разделились ли чанки.
 ```
+
+**Что смотреть в stats.html:**
+- Самые большие прямоугольники — кандидаты на lazy load или замену
+- Убедиться что `NewsDetail` выделился в отдельный чанк (виден как отдельный блок)
+- Зафиксировать: размер main chunk **до** (записать число) и **после** splitting
+- Если `@reduxjs/toolkit` или `react-redux` видны как большие блоки — это подтверждение что миграция на TanStack Query (US 2.1.5) уменьшит бандл
 
 **Подводный камень:** `visualizer` работает только при сборке (`build`), не при dev.
 В dev-режиме плагин ничего не делает.
@@ -228,6 +251,18 @@ pnpm --filter react-happy-news-client add -D rollup-plugin-visualizer
 git add client/vite.config.js client/package.json
 git commit -m "perf: close #40 bundle visualizer — анализ и code splitting"
 ```
+
+---
+
+## Почему react-window отложен (перенесён в US 2.1.8)
+
+`react-window` оправдан только при 100+ элементах — именно тогда в React Profiler видны реальные frame drops (FPS < 60). С текущими 10–20 новостями эффект невидим, а код усложняется.
+
+**Когда откроется US 2.1.8:**
+- SQLite (US 2.1.6) накопил 200+ записей, или
+- MSW seed генерирует 500+ элементов для демо
+
+Тогда последовательность будет наглядной: запустить Profiler без виртуализации → видеть тормоза → включить `react-window` → 60fps. Это и есть настоящее обоснование.
 
 ---
 

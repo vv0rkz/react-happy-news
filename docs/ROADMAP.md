@@ -457,17 +457,83 @@ client/src/
 - Frontend: расширить `features/source-filter/` → `features/news-filter/`
 - Debounce для поля поиска (custom hook или lodash.debounce)
 
-### F2.1.4: Виртуализированная лента
+### F2.1.4: Оптимизация рендеринга
 
 **Что видит пользователь:**
 
-- Лента из 100+ новостей скроллится плавно, без тормозов
-- 60fps при 500+ элементах
+- Лента не тормозит при переключении источников
+- Детальная страница грузится только при первом переходе (code splitting)
 
 **Что нужно сделать:**
 
-- react-window: рендерить только видимые карточки
-- Fallback для отключённого JS
+- `React.memo` для NewsItem + React Profiler: зафиксировать renders до/после
+- `React.lazy` + Suspense для NewsDetail
+- `vite-bundle-visualizer`: замер размера main chunk
+
+### F2.1.5: Миграция на TanStack Query
+
+**Что видит пользователь/разработчик:**
+
+- Меньший бандл (убраны `@reduxjs/toolkit` и `react-redux`)
+- Health-check polling: вместо 80+ строк кастомного кода — встроенный `refetchInterval`
+
+**Что нужно сделать:**
+
+| Сторона  | Задача |
+| -------- | ------ |
+| Frontend | Установить `@tanstack/react-query`, удалить RTK Query и Redux |
+| Frontend | `queryClient.ts` + `QueryClientProvider` в `main.tsx` |
+| Frontend | `newsQueries.ts` — `useQuery` вместо RTK Query endpoints |
+| Frontend | Упростить `useHealthCheck.ts`: убрать кастомный polling/backoff |
+| Frontend | `ReactQueryDevtools` в dev-режиме |
+
+### F2.1.6: Персистентность новостей (SQLite)
+
+**Что видит пользователь:**
+
+- Прямая ссылка `/news/:id` работает даже после рестарта сервера
+- Новости доступны исторически (накапливаются в БД)
+
+**Что нужно сделать:**
+
+| Сторона | Задача |
+| ------- | ------ |
+| Backend | `server/src/db/schema.ts` — SQLite, таблица `news_items` |
+| Backend | `server/src/db/newsRepository.ts` — `findById`, `upsertMany` + TTL 7 дней |
+| Backend | `getNewsList`: upsert в SQLite после агрегации |
+| Backend | `getNewsDetail`: L1 node-cache → L2 SQLite → 404 |
+
+### F2.1.7: Богатая детальная страница
+
+**Что видит пользователь:**
+
+- Guardian: полный текст статьи прямо на странице
+- NewsAPI / HN: кнопка "Читать оригинал"
+- Новые источники: Positive News UK, Good News Network (RSS)
+
+**Что нужно сделать:**
+
+| Сторона  | Задача |
+| -------- | ------ |
+| Backend  | `guardianApi.ts`: добавить `body` в `show-fields` |
+| Backend  | `rssApi.ts` — `rss-parser`, два RSS-источника |
+| Backend  | Расширить `NewsItem`: `body?`, `url`, `hasFullContent` |
+| Frontend | `NewsDetail`: рендер HTML через DOMPurify если `hasFullContent` |
+| Frontend | Кнопка "Читать оригинал" для источников без тела |
+
+### F2.1.8: Виртуализированная лента (заблокирована)
+
+> Открывается после US 2.1.6, когда SQLite содержит 200+ записей или MSW seed генерирует 500+.
+
+**Что видит пользователь:**
+
+- Лента из 500+ новостей скроллится плавно, 60fps
+
+**Что нужно сделать:**
+
+- MSW seed: генератор 500+ элементов
+- `react-window` для `NewsList`
+- React Profiler: frame drops до → 60fps после
 
 ## User Stories v2.1
 
@@ -519,18 +585,77 @@ client/src/
 ### US 2.1.4: Оптимизация рендеринга
 
 **Как** пользователь
-**Я хочу** чтобы страница не тормозила при частых обновлениях счётчика
+**Я хочу** чтобы страница не тормозила при переключении источников
 **Чтобы** UX оставался плавным
 
 **Acceptance Criteria:**
 
-- [ ] NewsItem обёрнут в React.memo
-- [ ] useMemo для фильтрованного/отсортированного списка
-- [ ] useCallback для стабилизации колбэков
-- [ ] react-window для виртуализации при 100+ новостей
-- [ ] Profiler API: замер рендеров до/после оптимизации
-- [ ] React.lazy + Suspense для страниц (code splitting)
-- [ ] vite-bundle-visualizer: анализ бандла
+- [ ] NewsItem обёрнут в `React.memo` — Profiler: renders до/после
+- [ ] `useMemo` для подготовки списка (или задокументировано почему не нужен)
+- [ ] `useCallback` для стабилизации колбэков
+- [ ] `React.lazy` + `Suspense` для NewsDetail (code splitting)
+- [ ] `vite-bundle-visualizer`: размер main chunk до/после
+
+> `react-window` (FQ44) перенесён в **US 2.1.8** — обоснован только при 200+ элементах.
+
+### US 2.1.5: Миграция RTK Query → TanStack Query
+
+**Как** разработчик
+**Я хочу** заменить RTK Query на TanStack Query и удалить Redux
+**Чтобы** убрать boilerplate и использовать встроенные возможности (polling, retry, devtools)
+
+**Acceptance Criteria:**
+
+- [ ] `@tanstack/react-query` установлен, `@reduxjs/toolkit` и `react-redux` удалены
+- [ ] `QueryClientProvider` в `main.tsx`, `store.ts` удалён
+- [ ] `newsQueries.ts` заменяет `rtk/newsApi.ts`
+- [ ] `useHealthCheck.ts`: кастомный polling/backoff заменён на `refetchInterval` + `retryDelay`
+- [ ] `ReactQueryDevtools` в dev-режиме
+- [ ] Все компоненты работают: лента, детальная, offline mode
+
+### US 2.1.6: Персистентность новостей (SQLite)
+
+**Как** пользователь
+**Я хочу** открывать новость по прямой ссылке
+**Чтобы** ссылка работала даже после рестарта сервера
+
+**Acceptance Criteria:**
+
+- [ ] `better-sqlite3` установлен
+- [ ] Таблица `news_items (id, source, data TEXT, fetched_at INTEGER)`
+- [ ] `upsertMany` вызывается после каждой агрегации
+- [ ] `getNewsDetail`: L1 node-cache → L2 SQLite → 404
+- [ ] Прямая ссылка `/news/:id` работает после `pnpm dev:server` (рестарт)
+- [ ] Lazy TTL-cleanup: записи старше 7 дней удаляются при `upsertMany`
+
+### US 2.1.7: Богатая детальная страница
+
+**Как** пользователь
+**Я хочу** читать полный текст позитивной новости прямо на сайте
+**Чтобы** не переходить по внешним ссылкам для Guardian-материалов
+
+**Acceptance Criteria:**
+
+- [ ] `NewsItem` расширен: `body?: string | null`, `url: string`, `hasFullContent: boolean`
+- [ ] Guardian: `show-fields` включает `body`
+- [ ] `rssApi.ts`: парсинг Positive News UK + Good News Network
+- [ ] `SourceName.Rss` добавлен, RSS зарегистрирован в `SOURCES`
+- [ ] `NewsDetail`: Guardian → рендер HTML через DOMPurify; остальные → "Читать оригинал"
+- [ ] Зеркальный тип обновлён на фронте
+
+### US 2.1.8: Виртуализация ленты (заблокирован до US 2.1.6)
+
+**Как** пользователь
+**Я хочу** чтобы лента из 500+ новостей скроллилась плавно
+**Чтобы** UX не деградировал при большом архиве
+
+**Acceptance Criteria:**
+
+- [ ] MSW seed генерирует 500+ элементов
+- [ ] React Profiler: зафиксировать frame drops без виртуализации
+- [ ] `react-window` — только видимые карточки
+- [ ] React Profiler: 60fps после включения
+- [ ] FQ44 (виртуализация) закрыт
 
 ## Архитектура v2.1
 
@@ -539,38 +664,42 @@ server/src/
 ├── utils/
 │   ├── sseManager.ts          ← Map клиентов, send(), broadcast(), heartbeat
 │   └── readersTracker.ts      ← Map<articleId, Set<clientId>>, join(), leave()
+├── db/                        ← НОВЫЙ (US 2.1.6)
+│   ├── schema.ts              ← CREATE TABLE news_items
+│   └── newsRepository.ts      ← findById, upsertMany
+├── services/
+│   └── rssApi.ts              ← НОВЫЙ (US 2.1.7): rss-parser
 └── routes/
     └── news.routes.ts         ← GET /readers?articleId= (перед wildcard /*)
 
 client/src/
+├── shared/
+│   └── api/
+│       └── queryClient.ts     ← НОВЫЙ (US 2.1.5): TanStack QueryClient
 ├── features/
-│   ├── live-readers/          ← НОВАЯ ФИЧА
-│   │   ├── useLiveReaders.ts
-│   │   ├── ReadersCount.tsx
-│   │   └── index.ts
-│   ├── health-check/          ← НОВАЯ ФИЧА
-│   │   ├── useHealthCheck.ts
-│   │   ├── StatusBadge.tsx
-│   │   └── index.ts
-│   └── news-filter/           ← РАСШИРЕНИЕ source-filter
-│       ├── SearchInput.tsx
-│       ├── CategoryFilter.tsx
-│       ├── SortSelect.tsx
-│       └── index.ts
-└── shared/
-    └── useAbortablePolling.ts ← generic polling с AbortController
+│   ├── live-readers/          ✅ DONE
+│   ├── health-check/          ✅ DONE (упрощается в US 2.1.5)
+│   └── news-filter/           ✅ DONE
+└── entities/news/
+    └── api/
+        └── tanstack/          ← НОВЫЙ (US 2.1.5): заменяет rtk/
+            └── newsQueries.ts
 ```
 
 ## Стек v2.1
 
-| Компонент       | Технология                      |
-| --------------- | ------------------------------- |
-| SSE (сервер)    | Нативный Node.js (res.write)    |
-| SSE (клиент)    | EventSource API                 |
-| Виртуализация   | react-window                    |
-| Bundle analysis | vite-bundle-visualizer          |
-| Debounce        | lodash.debounce или custom hook |
-| Profiling       | React DevTools Profiler         |
+| Компонент        | Технология                      |
+| ---------------- | ------------------------------- |
+| SSE (сервер)     | Нативный Node.js (res.write)    |
+| SSE (клиент)     | EventSource API                 |
+| Server state     | TanStack Query v5 (US 2.1.5)    |
+| БД               | SQLite + better-sqlite3 (US 2.1.6) |
+| RSS-парсер       | rss-parser (US 2.1.7)           |
+| HTML-санитизация | DOMPurify (US 2.1.7)            |
+| Виртуализация    | react-window (US 2.1.8)         |
+| Bundle analysis  | vite-bundle-visualizer          |
+| Debounce         | lodash.debounce или custom hook |
+| Profiling        | React DevTools Profiler         |
 
 ## Закрываемые темы v2.1
 
@@ -1130,8 +1259,25 @@ client/src/
 - [ ] **E2E (Playwright)**: лента → клик → детали → назад; auth flow
 - [ ] **MSW**: расширить моки (SSE, WS, GraphQL)
 - [ ] Dynamic Import: recharts lazy-loaded (bundle analysis)
+- [ ] `vitest --coverage` (провайдер `v8`): branches ≥ 70%, functions ≥ 80%
+- [ ] Coverage badge в README (Codecov или shields.io + CI-артефакт)
+- [ ] Отчёт `coverage/index.html` — визуальный просмотр непокрытых строк
 
-### US 2.4.4: Storybook
+### US 2.4.4: AI Summary (задел)
+
+**Как** пользователь
+**Я хочу** видеть краткое AI-резюме статьи
+**Чтобы** быстро понять суть без чтения полного текста
+
+**Acceptance Criteria:**
+
+- [ ] Поле `summary TEXT` в таблице `news_items` (SQLite, из US 2.1.6)
+- [ ] При первом открытии детальной страницы: если `body` есть → вызов OpenAI/Anthropic API → сохранить в `summary`
+- [ ] Lazy-генерация: следующие запросы читают из кэша
+- [ ] Fallback: если AI недоступен → показывать `description`
+- [ ] Индикатор "✨ AI-резюме" рядом с текстом
+
+### US 2.4.5: Storybook
 
 **Как** разработчик
 **Я хочу** живую документацию компонентов
@@ -1315,6 +1461,34 @@ client/src/
 - [ ] Bundle analysis: финальный отчёт
 - [ ] Core Web Vitals: LCP, FID, CLS — зелёная зона
 - [ ] Все списки используют стабильные id (не index)
+
+### US 2.5.6: Статический анализ + очистка мёртвого кода
+
+**Как** разработчик
+**Я хочу** автоматически находить неиспользуемый код
+**Чтобы** держать кодовую базу чистой
+
+**Acceptance Criteria:**
+
+- [ ] `knip` — обнаружение неиспользуемых файлов, экспортов, зависимостей
+- [ ] `pnpm knip` проходит без предупреждений
+- [ ] Интегрирован в CI (`ci.yml`): PR-проверка фейлится при мёртвом коде
+- [ ] После первого запуска: chore-коммит с удалением мёртвого кода (старые CSS от pre-Mantine, неиспользуемые компоненты)
+- [ ] SonarCloud (опционально): подключить для метрик дублирования и code smells
+
+### US 2.5.7: Application Monitoring (Sentry)
+
+**Как** разработчик
+**Я хочу** видеть ошибки пользователей в реальном времени
+**Чтобы** узнавать о проблемах до того, как пользователь напишет жалобу
+
+**Acceptance Criteria:**
+
+- [ ] `@sentry/react` — перехват JS-ошибок, Error Boundaries, пользовательские события
+- [ ] `@sentry/node` — Express middleware, трейсинг запросов к внешним API
+- [ ] `GET /api/health` расширен: `{ uptime, memoryMB, version, db: "ok"|"error", cache: "ok"|"error" }`
+- [ ] Morgan: JSON-формат логов в проде, pretty в dev (`morgan('combined')` / custom format)
+- [ ] Source maps загружены в Sentry (через Vite plugin) — ошибки с readable stack traces
 
 ## Архитектура v2.5
 

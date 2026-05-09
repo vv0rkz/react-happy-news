@@ -49,15 +49,14 @@ export const useHealthCheck = (): UseHealthCheckReturn => {
       isPollingRef.current = false
 
       const errors = errorCountRef.current
-      const delay =
-        errors === 0 ? 30_000 : Math.min(1000 * 2 ** (errors - 1), 30_000)
+      const delay = errors === 0 ? 30_000 : Math.min(1000 * 2 ** (errors - 1), 30_000)
 
       timerId.current = setTimeout(poll, delay)
     }
   }
 
   useEffect(() => {
-    void poll()
+    poll()
     return () => {
       abortControllerRef.current.abort()
       if (timerId.current !== null) clearTimeout(timerId.current)

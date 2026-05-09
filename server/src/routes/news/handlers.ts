@@ -1,6 +1,6 @@
-import { z } from 'zod'
-import { randomUUID } from 'node:crypto'
 import type { RequestHandler } from 'express'
+import { randomUUID } from 'node:crypto'
+import { z } from 'zod'
 import type { AggregatorResult } from '../../services/newsAggregator'
 import { aggregateNews } from '../../services/newsAggregator'
 import { allSourceNames, SourceName, type NewsItem } from '../../types/news.types'
@@ -57,9 +57,7 @@ export const getNewsList: RequestHandler = async (req, res) => {
     if (q) {
       const qLower = q.toLowerCase()
       news = news.filter(
-        (item) =>
-          item.title.toLowerCase().includes(qLower) ||
-          item.description.toLowerCase().includes(qLower),
+        (item) => item.title.toLowerCase().includes(qLower) || item.description.toLowerCase().includes(qLower),
       )
     }
 
@@ -90,13 +88,16 @@ export const getReadersSSE: RequestHandler = (req, res) => {
 
   const clientId = randomUUID()
   readersTracker.join(articleId, clientId, res)
-  req.on('close', () => { readersTracker.leave(articleId, clientId) })
+  req.on('close', () => {
+    readersTracker.leave(articleId, clientId)
+  })
 }
 
 export const getNewsDetail: RequestHandler = (req, res) => {
   const id = req.path.slice(1)
   const item = getCached<NewsItem>(`newsItem:${id}`)
   if (!item) {
+    // TODO: fallback новость долнжа подргружается из бд если её нет в кэше
     res.status(404).json({ error: 'News item not found' })
     return
   }

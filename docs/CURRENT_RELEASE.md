@@ -3,8 +3,8 @@
 **Статус:** `in progress` (US 2.1.4 active)
 **Ветка релиза:** `v2.1.0-*`
 **Полный roadmap:** [ROADMAP.md](./ROADMAP.md)
-**Покрытие:** 27 вопросов (45.3% нарастающим после v2.0)
-**Оценка времени:** 3–4 дня
+**Покрытие:** 27 вопросов (45.3% нарастающим после v2.0) + новые US 2.1.5–2.1.8
+**Оценка времени:** 7–10 дней (расширен)
 
 ---
 
@@ -48,12 +48,50 @@
 
 ### US 2.1.4: Оптимизация рендеринга — 🔄 ACTIVE
 
-- [ ] NewsItem обёрнут в `React.memo`
-- [ ] `useMemo` для фильтрованного/отсортированного списка
+- [ ] `NewsItem` обёрнут в `React.memo` + Profiler: зафиксировать renders до/после
+- [ ] `useMemo` для подготовки списка (или задокументировать почему не нужен)
 - [ ] `useCallback` для стабилизации колбэков
-- [ ] `react-window` для виртуализации при 100+ новостей
-- [ ] React Profiler: замер до/после
-- [ ] `React.lazy` + `Suspense` для страниц (code splitting)
+- [ ] `React.lazy` + `Suspense` для `NewsDetail` (code splitting)
+- [ ] `vite-bundle-visualizer`: зафиксировать размер main chunk до/после
+
+> `react-window` перенесён в **US 2.1.8** — обоснован только при 200+ элементах.
+
+### US 2.1.5: Миграция RTK Query → TanStack Query — ⏳ PENDING
+
+- [ ] Установить `@tanstack/react-query`, удалить `@reduxjs/toolkit` + `react-redux`
+- [ ] Создать `client/src/shared/api/queryClient.ts` + `QueryClientProvider` в `main.tsx`
+- [ ] Создать `client/src/entities/news/api/tanstack/newsQueries.ts`, удалить `rtk/newsApi.ts` и `store.ts`
+- [ ] Упростить `useHealthCheck.ts`: убрать кастомный polling/backoff → `refetchInterval` + `retryDelay`
+- [ ] Добавить `ReactQueryDevtools` в dev-режиме
+- [ ] Проверить что все компоненты работают: список, детальная страница, offline mode
+
+### US 2.1.6: SQLite-персистентность новостей — ⏳ PENDING
+
+- [ ] Установить `better-sqlite3` на сервере
+- [ ] Создать `server/src/db/schema.ts` — таблица `news_items (id, source, data, fetched_at)`
+- [ ] Создать `server/src/db/newsRepository.ts` — `findById`, `upsertMany` + lazy TTL-cleanup (7 дней)
+- [ ] `getNewsList`: после агрегации вызывать `newsRepository.upsertMany(result.news)`
+- [ ] `getNewsDetail`: при L1-miss смотреть в SQLite, восстанавливать в L1
+- [ ] Прямая ссылка `/news/:id` работает после рестарта сервера
+
+### US 2.1.7: Богатая детальная страница — ⏳ PENDING
+
+- [ ] Расширить `NewsItem`: добавить `body?: string | null`, `url: string`, `hasFullContent: boolean`
+- [ ] `guardianApi.ts`: добавить `body` в `show-fields`
+- [ ] Установить `rss-parser`, создать `server/src/services/rssApi.ts` (Positive News UK + GNN)
+- [ ] Добавить `SourceName.Rss` и зарегистрировать в `newsAggregator.ts`
+- [ ] `NewsDetail`: если `hasFullContent` → рендер HTML через DOMPurify, иначе → "Читать оригинал"
+- [ ] Обновить зеркальный тип на фронте (`transforms.types.ts`)
+
+### US 2.1.8: Виртуализация ленты — 🔒 ЗАБЛОКИРОВАН
+
+> Открывается когда SQLite накопил 200+ записей (после US 2.1.6) или MSW seed генерирует 500+ элементов.
+
+- [ ] MSW seed: генератор 500+ новостей для demo-режима
+- [ ] Profiler без виртуализации: зафиксировать frame drops при скролле
+- [ ] Установить `react-window`, обернуть `NewsList`
+- [ ] Profiler после: убедиться в 60fps
+- [ ] FQ44 (виртуализация) — закрывается этим US
 
 ---
 
@@ -67,4 +105,4 @@
 
 ## Следующий релиз
 
-**v2.2 — Social & Engagement** (WebSocket, Live Reactions, Share)
+**v2.2 — Social & Engagement** (WebSocket, Live Reactions, Share) — после закрытия US 2.1.4–2.1.8

@@ -1,6 +1,6 @@
 import type { HealthStatus } from '@features/health-check'
 import { StatusBadge } from '@features/health-check'
-import { SearchInput, useNewsFilterContext } from '@features/news-filter'
+import { SearchInput, useNewsFilterParams } from '@features/news-filter'
 import { SourceFilter } from '@features/source-filter'
 import {
   ActionIcon,
@@ -16,6 +16,7 @@ import {
   useMantineColorScheme,
 } from '@mantine/core'
 import { useLocalStorage } from '@shared/useLocalStorage'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import styles from './styles.module.css'
 
@@ -27,10 +28,17 @@ interface HeaderProps {
 
 export const Header = ({ status }: HeaderProps): React.ReactNode => {
   const [isMockEnabled, setIsMockEnabled] = useLocalStorage<boolean>({ key: MOCK_STORAGE_KEY, initialValue: false })
+  const [searchVisible, setSearchVisible] = useState(false)
   const navigate = useNavigate()
   const { colorScheme, toggleColorScheme } = useMantineColorScheme()
-  const { searchQuery, setSearchQuery, searchVisible, toggleSearch, selectedSources, toggleSource } =
-    useNewsFilterContext()
+  const { q, setQ, selectedSources, toggleSource } = useNewsFilterParams()
+
+  const toggleSearch = (): void => {
+    setSearchVisible((v) => {
+      if (v) setQ('')
+      return !v
+    })
+  }
 
   const toggleMock = (): void => {
     const next = !isMockEnabled
@@ -115,7 +123,7 @@ export const Header = ({ status }: HeaderProps): React.ReactNode => {
 
           <Collapse expanded={searchVisible}>
             <div className={styles.searchRow}>
-              <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder="Поиск новостей..." />
+              <SearchInput value={q} onChange={setQ} placeholder="Поиск новостей..." />
             </div>
           </Collapse>
         </Stack>

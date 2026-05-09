@@ -1,5 +1,5 @@
 import { Chip, ScrollArea } from '@mantine/core'
-import { useNewsFilterContext } from './NewsFilterContext'
+import { useNewsFilterParams } from './useNewsFilterParams'
 
 export const CATEGORIES = [
   { value: 'all', label: '📰 Все' },
@@ -11,7 +11,7 @@ export const CATEGORIES = [
 ]
 
 export const CategoryFilter = (): React.ReactNode => {
-  const { category, setCategory } = useNewsFilterContext()
+  const { category, setCategory } = useNewsFilterParams()
 
   return (
     <ScrollArea scrollbarSize={4} type="scroll">
