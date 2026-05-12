@@ -20,7 +20,7 @@
     "@reduxjs/toolkit": "^2.11.2",
     "axios": "^1.16.0",
     "classnames": "^2.5.1",
-    "msw": "^2.14.3",
+    "msw": "^2.14.6",
     "react": "^19.2.5",
     "react-dom": "^19.2.6",
     "react-error-boundary": "^6.1.1",
