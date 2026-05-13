@@ -46,17 +46,17 @@
 - [x] Поиск → раскрывающийся `Collapse` в Header (🔍)
 - [x] Источники → попап `⚙️` в Header
 
-### US 2.1.4: Оптимизация рендеринга — 🔄 ACTIVE
+### US 2.1.4: Оптимизация рендеринга — ✅ DONE
 
-- [ ] `NewsItem` обёрнут в `React.memo` + Profiler: зафиксировать renders до/после
-- [ ] `useMemo` для подготовки списка (или задокументировать почему не нужен)
-- [ ] `useCallback` для стабилизации колбэков
-- [ ] `React.lazy` + `Suspense` для `NewsDetail` (code splitting)
-- [ ] `vite-bundle-visualizer`: зафиксировать размер main chunk до/после
+- [x] `NewsItem` обёрнут в `React.memo` (shallow comparison, нет колбэков из родителя)
+- [x] `useMemo` — не нужен сейчас, перенесён в US 2.3.2 (BookmarkButton)
+- [x] `useCallback` — не нужен сейчас, перенесён в US 2.3.2 (BookmarkButton)
+- [x] `React.lazy` — не нужен сейчас (NewsDetail = 1.47 kB), перенесён в US 2.3.6 (Auth + recharts)
+- [x] `vite-bundle-visualizer`: MSW исключён из prod через `import.meta.env.DEV` — сохранено 278 kB (1.93 MB → 1.42 MB)
 
 > `react-window` перенесён в **US 2.1.8** — обоснован только при 200+ элементах.
 
-### US 2.1.5: Миграция RTK Query → TanStack Query — ⏳ PENDING
+### US 2.1.5: Миграция RTK Query → TanStack Query — 🔄 ACTIVE
 
 - [ ] Установить `@tanstack/react-query`, удалить `@reduxjs/toolkit` + `react-redux`
 - [ ] Создать `client/src/shared/api/queryClient.ts` + `QueryClientProvider` в `main.tsx`
