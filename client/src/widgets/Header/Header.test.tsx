@@ -1,4 +1,3 @@
-import { NewsFilterProvider } from '@features/news-filter'
 import { MantineProvider } from '@mantine/core'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -18,11 +17,7 @@ vi.mock('react-router-dom', async () => {
 const MOCK_STORAGE_KEY = 'happyNews_mockMode'
 
 function Providers({ children }: { children: ReactNode }) {
-  return (
-    <MantineProvider>
-      <NewsFilterProvider>{children}</NewsFilterProvider>
-    </MantineProvider>
-  )
+  return <MantineProvider>{children}</MantineProvider>
 }
 
 function renderHeader() {

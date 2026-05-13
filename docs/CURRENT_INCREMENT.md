@@ -12,12 +12,12 @@
 - [x] Фильтры (sources, q, category) читаются из URL search params (`useNewsFilterParams`)
 - [x] `NewsFilterContext` и `localStorage` для sources удалены
 - [x] URL `/?q=climate&category=science&sources=guardian` работает при прямом переходе
-- [ ] `NewsItem` обёрнут в `React.memo` — не ререндерится при смене несвязанных пропов
-- [ ] `useCallback` для колбэков, передаваемых в `NewsItem` (чтобы `React.memo` работал)
-- [ ] `useMemo` для отфильтрованного/подготовленного списка (или задокументировано почему не нужен)
-- [ ] `React.lazy` + `Suspense` для страниц — code splitting (NewsDetail)
-- [ ] `vite-bundle-visualizer` — зафиксировать размер main chunk до и после splitting
-- [ ] React Profiler: зафиксировать количество renders при открытии попапа ⚙️ до и после `React.memo`
+- [x] `NewsItem` обёрнут в `React.memo` — shallow comparison пропов работает корректно
+- [x] `useCallback` — **не нужен сейчас**: `NewsItem` не принимает колбэков из родителя. Перенесён в US 2.3.2 (BookmarkButton), где появится `onBookmark` + `isBookmarked`
+- [x] `useMemo` — **не нужен сейчас**: RTK Query кэширует массив, трансформации нет. Перенесён в US 2.3.2 (закладки), где `news.map(item => ({ ...item, isBookmarked }))` создаст новые объекты и сломает `React.memo` без `useMemo`
+- [x] `React.lazy` — **не нужен сейчас**: `NewsDetail` = 1.47 kB (0.07% бандла), выигрыш незаметен. Перенесён в US 2.3.6, где появятся Auth + Dashboard + recharts (~200–300 kB)
+- [x] `vite-bundle-visualizer` — ✅ выполнено. До: 1.93 MB root (browser MSW + index). После удаления MSW из prod: 1.42 MB. MSW исключён через `import.meta.env.DEV` в `main.tsx`
+- [ ] React Profiler: зафиксировать количество renders с `isBookmarked` prop до/после `memo` + `useCallback` — перенесён в US 2.3.2
 
 ---
 
@@ -83,173 +83,154 @@ client/src/
 
 ---
 
-## Шаг 1: React.memo для NewsItem
+## Шаг 1: React.memo для NewsItem ✅ DONE
 
 **Файл:** `client/src/entities/news/NewsItem/NewsItem.tsx`
 
-```typescript
-// Обернуть дефолтный экспорт в React.memo:
-// export const NewsItem = memo(function NewsItem({ item }: NewsItemProps) { ... })
-//
-// React.memo делает shallow comparison всех пропов перед ререндером.
-// Если пропы не изменились (по ссылке) — компонент пропускается.
-//
-// ВАЖНО: работает только если пропы стабильны.
-// Если родитель передаёт inline-колбэк `() => onClick(id)` — он новый при каждом рендере.
-// Поэтому шаг 1 неполный без шага 2 (useCallback).
-```
+`React.memo` добавлен. `NewsItem` получает единственный проп `item` — колбэков из родителя нет,
+shallow comparison работает корректно.
 
-**Как замерить:**
-1. DevTools → Profiler → Settings → включить "Highlight updates when components render"
-2. Открыть попап ⚙️ (Источники) — без memo все NewsItem подсвечиваются синим
-3. После обёртки в `memo` — попап перерендерится, NewsItem — нет
-4. Записать в коммит-сообщении: "было N renders → стало M renders при открытии попапа"
-
-**Подводный камень:** после `memo` проверь в React Profiler — если `NewsItem` всё ещё мигает,
-значит какой-то проп нестабилен (обычно колбэк).
+**Замер (Profiler + console.count):**
+- В dev-режиме каждый item рендерится 4 раза при загрузке:
+  - 2× — React Strict Mode намеренно double-invokes render при монтировании
+  - 2× — реальный второй цикл (RTK Query: `isFetching: true` → `false`)
+- Разница между с/без `memo` не видна в этом сценарии, потому что `item` объекты реально новые
+  (RTK Query вернул свежий массив), а в дереве нет родителя с local state выше `NewsList`.
+- `memo` вступит в силу в **US 2.3.2 (BookmarkButton)** — см. примечание ниже.
 
 ```bash
 git add client/src/entities/news/NewsItem/NewsItem.tsx
-git commit -m "perf: #40 NewsItem — React.memo для предотвращения wasted renders"
+git commit -m "perf: #40 NewsItem — React.memo, проф замер в US 2.3.2"
 ```
 
 ---
 
-## Шаг 2: useCallback в NewsList / NewsFeed
+## Шаг 2: useCallback — отложено до US 2.3.2
 
-**Файл:** `client/src/entities/news/NewsList/NewsList.tsx` и/или `client/src/pages/Main/NewsFeed.tsx`
+**Почему сейчас не нужен:**
+`NewsItem` принимает только `item` — никаких колбэков из родителя. `handleClick` определён
+внутри самого `NewsItem`. `memo` уже работает корректно без `useCallback` в родителе.
+
+**Когда станет нужен — US 2.3.2 (Закладки):**
 
 ```typescript
-// Если NewsItem принимает колбэки (onClick, onBookmark и т.п.) —
-// стабилизировать их через useCallback в компоненте-родителе:
+// NewsList будет передавать в NewsItem новые пропы:
+// <NewsItem
+//   item={item}
+//   isBookmarked={bookmarkedIds.has(item.id)}   // ← boolean per-item
+//   onBookmark={handleBookmark}                  // ← колбэк из родителя
+// />
 //
-// const handleClick = useCallback((id: string) => {
-//   navigate(`/news/${id}`)
-// }, [navigate])
+// Без useCallback: handleBookmark новый при каждом рендере родителя
+// → React.memo видит изменение → все NewsItem ре-рендерятся
+// → профит от memo обнуляется
 //
-// Deps: включаем только то, что реально используется внутри.
-// navigate из react-router стабилен — можно включить без опасений.
-//
-// Если колбэков нет — шаг можно пропустить.
+// С useCallback: handleBookmark стабилен по ссылке
+// → при клике на закладку статьи X ре-рендерится только NewsItem X
+// → остальные 9 — пропускаются
 ```
 
-**Подводный камень:** не оборачивай useCallback всё подряд — это преждевременная оптимизация.
-Только то, что передаётся в мемоизированные дочерние компоненты.
+**Как будет выглядеть Profiler до/после:**
+- Без `useCallback`: клик "сохранить" → 10 цветных прямоугольников
+- С `useCallback`: клик "сохранить" → 1 цветной прямоугольник
 
-```bash
-git add client/src/entities/news/NewsList/NewsList.tsx client/src/pages/Main/NewsFeed.tsx
-git commit -m "perf: #40 useCallback — стабилизация колбэков для React.memo"
-```
+Этот шаг переносится в `CURRENT_INCREMENT` US 2.3.2.
 
 ---
 
-## Шаг 3: useMemo для подготовки данных
+## Шаг 3: useMemo — отложено до US 2.3.2
 
-**Файл:** `client/src/pages/Main/NewsFeed.tsx`
+**Почему сейчас не нужен:**
+RTK Query возвращает мемоизированный массив — не пересоздаёт объект при том же кэш-ключе.
+`news` передаётся в `NewsList` напрямую, без трансформации. Добавлять `useMemo` без причины —
+преждевременная оптимизация (лишняя работа по сравнению deps при каждом рендере).
 
-```typescript
-// Query-библиотека (RTK Query сейчас, TanStack Query после US 2.1.5)
-// возвращает мемоизированный массив — не пересоздаёт при том же кэш-ключе.
-// useMemo нужен если есть тяжёлая трансформация данных перед рендером:
-//
-// const processedNews = useMemo(() => {
-//   if (!news) return []
-//   // ... slice, map, sort — O(n) операции
-//   return news.slice(0, LIMIT)
-// }, [news])
-//
-// Если обработки нет — useMemo не нужен. Задокументируй вывод явно:
-// "Query-библиотека кэширует, дополнительный useMemo не требуется" — тоже валидный результат.
-```
+> Вывод задокументирован: Query-библиотека кэширует, дополнительный `useMemo` не требуется.
 
-**Подводный камень:** `useMemo` не бесплатен — добавляет работу по сравнению deps.
-Оправдан только если вычисление действительно дорогое (> 1ms) или результат передаётся в `memo`-компонент.
-
-```bash
-git add client/src/pages/Main/NewsFeed.tsx
-git commit -m "perf: #40 useMemo — мемоизация подготовленного списка новостей"
-```
-
----
-
-## Шаг 4: React.lazy + Suspense (code splitting)
-
-**Файл:** `client/src/app/router.tsx` (или где объявлен роутер)
+**Когда станет нужен — US 2.3.2 (Закладки):**
 
 ```typescript
-// Заменить статические импорты страниц на lazy:
+// Если bookmarkedIds встраивать в объект item перед передачей в NewsItem:
 //
-// Было:
-// import { NewsDetail } from '@pages/NewsDetail'
+// const newsWithBookmarks = news.map(item => ({
+//   ...item,
+//   isBookmarked: bookmarkedIds.has(item.id),
+// }))
+// ← новый массив + новые объекты при каждом рендере родителя
+// → React.memo на NewsItem видит новый item → все карточки ре-рендерятся
 //
-// Стало:
-// const NewsDetail = lazy(() =>
-//   import('@pages/NewsDetail').then(m => ({ default: m.NewsDetail }))
+// Решение:
+// const newsWithBookmarks = useMemo(() =>
+//   news.map(item => ({ ...item, isBookmarked: bookmarkedIds.has(item.id) })),
+//   [news, bookmarkedIds]
 // )
+// ← пересчитывается только когда news или bookmarkedIds реально изменились
+// → React.memo работает как ожидается
 //
-// В роуте обернуть в Suspense с fallback:
+// Альтернатива без useMemo: передавать isBookmarked отдельным пропом (boolean),
+// не встраивая в item — тогда useMemo не нужен совсем.
+// Какой подход выбрать — решается при реализации US 2.3.2.
+```
+
+Этот шаг переносится в `CURRENT_INCREMENT` US 2.3.2.
+
+---
+
+## Шаг 4: React.lazy — отложено до US 2.3.6
+
+**Почему сейчас не нужен:**
+Анализ через `rollup-plugin-visualizer` показал: `NewsDetail` = 1.47 kB (0.07% бандла).
+Выносить 1.5 kB в отдельный чанк — не оптимизация.
+
+**Когда станет нужен — US 2.3.6 (Protected Routes):**
+В `router.tsx` появятся новые тяжёлые страницы:
+
+```typescript
+// Auth (React Hook Form + Zod resolvers) — ~50–80 kB
+// Dashboard (recharts) — ~200–300 kB
+// Bookmarks — отдельная страница
+//
+// Все три не нужны при первом открытии главной.
+// Без lazy — едут в index.js и грузятся всегда.
+// С lazy — грузятся только при первом переходе.
+//
+// const Dashboard = lazy(() => import('@pages/Dashboard').then(m => ({ default: m.Dashboard })))
+// const Auth = lazy(() => import('@pages/Auth').then(m => ({ default: m.Auth })))
+//
 // element: (
-//   <Suspense fallback={<Skeleton type="item" count={5} height="100px" />}>
-//     <NewsDetail />
+//   <Suspense fallback={<Skeleton type="item" count={3} height="80px" />}>
+//     <Dashboard />
 //   </Suspense>
 // )
 //
-// Main оставить статическим — это критический путь первой загрузки.
-// NewsDetail грузить лениво — пользователь переходит туда после просмотра ленты.
+// Подводный камень: named export + lazy требует .then(m => ({ default: m.Component }))
 ```
 
-**Как замерить:**
-1. DevTools → Network → фильтр: `JS` → Hard Reload (Ctrl+Shift+R)
-2. **До splitting:** один файл `main.js` ~300KB загружается при старте
-3. **После splitting:** `main.js` меньше + отдельный `newsDetail.[hash].js` появляется только при первом клике на новость
-4. Также в DevTools → Network → вкладка `newsDetail.[hash].js` — Vite автоматически добавляет `<link rel="modulepreload">` для предзагрузки
-
-**Подводный камень:** `named export` + `lazy` требует `.then(m => ({ default: m.Component }))`.
-Либо сделать `export default` в файле страницы.
-
-```bash
-git add client/src/app/router.tsx
-git commit -m "perf: #40 React.lazy — code splitting для NewsDetail"
-```
+Этот шаг переносится в `CURRENT_INCREMENT` US 2.3.6.
 
 ---
 
-## Шаг 5: Bundle visualizer + анализ
+## Шаг 5: Bundle visualizer + анализ ✅ DONE
 
-**Установка:**
+**Установлен:** `rollup-plugin-visualizer` в `vite.config.js` (`visualizer({ open: true, filename: 'dist/stats.html' })`).
 
-```bash
-pnpm --filter react-happy-news-client add -D rollup-plugin-visualizer
-```
+**Результаты анализа:**
 
-**Файл:** `client/vite.config.js`
+| | До | После |
+|---|---|---|
+| Root бандл (visualizer) | 1.93 MB | 1.42 MB |
+| `browser-[hash].js` | 278 kB (MSW в prod!) | — (удалён) |
+| `index-[hash].js` | 579 kB | 578 kB |
 
-```javascript
-// Добавить плагин:
-// import { visualizer } from 'rollup-plugin-visualizer'
-//
-// plugins: [
-//   react(),
-//   tsconfigPaths(),
-//   visualizer({ open: true, filename: 'dist/stats.html' }),
-// ]
-//
-// Запустить: pnpm build:client
-// Откроется stats.html — интерактивная карта бандла.
-```
-
-**Что смотреть в stats.html:**
-- Самые большие прямоугольники — кандидаты на lazy load или замену
-- Убедиться что `NewsDetail` выделился в отдельный чанк (виден как отдельный блок)
-- Зафиксировать: размер main chunk **до** (записать число) и **после** splitting
-- Если `@reduxjs/toolkit` или `react-redux` видны как большие блоки — это подтверждение что миграция на TanStack Query (US 2.1.5) уменьшит бандл
-
-**Подводный камень:** `visualizer` работает только при сборке (`build`), не при dev.
-В dev-режиме плагин ничего не делает.
+**Что нашли:**
+- MSW (`browser-Dmc0mUnz.js`, 278 kB) попадал в production — динамический `import('./mocks/browser')` в `main.tsx` не был защищён `import.meta.env.DEV`
+- **Фикс:** добавлен `if (!import.meta.env.DEV) return` — Vite заменяет на `false` при build и tree-shaking вырезает весь блок
+- Весь `src/` = 29 kB (1.49% бандла) — основной вес несут зависимости (Mantine, React, Redux)
+- `NewsDetail` = 1.47 kB → `React.lazy` перенесён в US 2.3.6
 
 ```bash
-git add client/vite.config.js client/package.json
-git commit -m "perf: close #40 bundle visualizer — анализ и code splitting"
+git add client/src/app/main.tsx
+git commit -m "perf: close #40 MSW excluded from prod via import.meta.env.DEV — 278kB saved"
 ```
 
 ---

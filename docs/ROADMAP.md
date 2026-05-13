@@ -998,6 +998,20 @@ client/src/
 - [ ] Кнопка "Сохранить/Убрать" на карточке
 - [ ] Страница `/bookmarks` со списком
 
+> **Оптимизация рендеринга (перенесено из US 2.1.4):**
+> Это первый реальный кейс для связки `useMemo` + `useCallback` + `React.memo`.
+>
+> **`useCallback`** — `onBookmark: (id: string) => void` передаётся из родителя в `NewsItem`.
+> Без `useCallback`: клик на закладку → родитель ре-рендерится → `onBookmark` новый объект → `React.memo` не спасает → все карточки ре-рендерятся.
+> С `useCallback`: стабильная ссылка → `React.memo` пропускает незатронутые карточки.
+>
+> **`useMemo`** — если `isBookmarked` встраивается в объект `item` (`news.map(i => ({ ...i, isBookmarked }))`):
+> без `useMemo` массив пересоздаётся при каждом рендере → `React.memo` видит новый `item` → все карточки ре-рендерятся.
+> С `useMemo([news, bookmarkedIds])`: пересчёт только при реальном изменении данных.
+> Альтернатива: передавать `isBookmarked` отдельным `boolean`-пропом — тогда `useMemo` не нужен.
+>
+> React Profiler: зафиксировать разницу до/после (было 10 рендеров → стало 1).
+
 ### US 2.3.3: Positivity Tracker
 
 **Как** авторизованный пользователь
@@ -1050,6 +1064,15 @@ client/src/
 - [ ] errorElement: кастомная 404
 - [ ] useNavigate: программная навигация после логина
 - [ ] useLocation: сохранение пути для redirect
+
+> **React.lazy + code splitting (перенесено из US 2.1.4):**
+> Здесь `React.lazy` даёт реальный эффект — в отличие от `NewsDetail` (1.47 kB, 0.07%):
+> - `Dashboard` тянет **recharts** (~200–300 kB) — не нужен на главной
+> - `Auth` тянет **React Hook Form + Zod resolvers** (~50–80 kB) — не нужен без логина
+> - `Bookmarks` — отдельная страница, нужна только авторизованным
+>
+> Замерить в `rollup-plugin-visualizer`: `index.js` до/после добавления lazy для этих страниц.
+> Ожидаемый выигрыш: 200–400 kB из `index.js` → отдельные чанки.
 
 ### US 2.3.7: Frontend Security
 
