@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
+import { newsRepository } from '../../db/newsRepository'
 import type { AggregatorResult } from '../../services/newsAggregator'
 import { aggregateNews } from '../../services/newsAggregator'
 import { allSourceNames, SourceName, type NewsItem } from '../../types/news.types'
@@ -50,6 +51,7 @@ export const getNewsList: RequestHandler = async (req, res) => {
       result = await aggregateNews(sources)
       setCached(cacheKey, result)
       result.news.forEach((item) => setCached(`newsItem:${item.id}`, item))
+      newsRepository.upsertMany(result.news)
     }
 
     let news = result.news
@@ -95,11 +97,19 @@ export const getReadersSSE: RequestHandler = (req, res) => {
 
 export const getNewsDetail: RequestHandler = (req, res) => {
   const id = req.path.slice(1)
-  const item = getCached<NewsItem>(`newsItem:${id}`)
-  if (!item) {
-    // TODO: fallback новость долнжа подргружается из бд если её нет в кэше
+
+  const cached = getCached<NewsItem>(`newsItem:${id}`)
+  if (cached) {
+    res.json(cached)
+    return
+  }
+
+  const fromDb = newsRepository.findById(id)
+  if (!fromDb) {
     res.status(404).json({ error: 'News item not found' })
     return
   }
-  res.json(item)
+
+  setCached(`newsItem:${id}`, fromDb)
+  res.json(fromDb)
 }
