@@ -1,3 +1,12 @@
 #!/usr/bin/env sh
 
 node ./node_modules/@vv0rkz/js-template/tools-gh/validate-branch.js
+
+echo "Running type-check (client)..."
+pnpm type-check
+
+echo "Running type-check (server)..."
+pnpm --filter react-happy-news-server build
+
+echo "Running tests..."
+pnpm test run
