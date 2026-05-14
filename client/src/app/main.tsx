@@ -2,12 +2,13 @@ import { MantineProvider, createTheme, localStorageColorSchemeManager } from '@m
 import '@mantine/core/styles.css'
 import { Notifications } from '@mantine/notifications'
 import '@mantine/notifications/styles.css'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Provider } from 'react-redux'
 import { RouterProvider } from 'react-router-dom'
+import { queryClient } from '@shared/api/queryClient'
 import { router } from './router'
-import { store } from './store'
 
 const theme = createTheme({
   primaryColor: 'indigo',
@@ -41,9 +42,10 @@ enableMocking().finally(() => {
     <StrictMode>
       <MantineProvider theme={theme} colorSchemeManager={colorSchemeManager}>
         <Notifications position="bottom-center" />
-        <Provider store={store}>
+        <QueryClientProvider client={queryClient}>
           <RouterProvider router={router} />
-        </Provider>
+          {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+        </QueryClientProvider>
       </MantineProvider>
     </StrictMode>,
   )
