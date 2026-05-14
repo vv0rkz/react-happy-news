@@ -87,9 +87,22 @@ git add <файлы шага>
 git commit -m "feat: #N <что сделано>"
 ```
 
-> Последний шаг закрывает issue: `feat: close #N <что сделано>`
-
 > Повтори блок "## Шаг N" для каждого шага
+
+---
+
+## Шаг ФИНАЛЬНЫЙ: Закрыть инкремент
+
+```bash
+# 1. Закрыть GitHub issue
+gh issue close N --comment "US X.X.X завершён: <краткое описание>"
+
+# 2. Обновить CURRENT_RELEASE.md — пометить US как ✅ DONE, следующий US как 🔄 ACTIVE
+# 3. Переписать CURRENT_INCREMENT.md на следующий US (по шаблону)
+
+git add docs/
+git commit -m "docs: US X.X.X DONE → US X.X.Y active (#N)"
+```
 
 ---
 
