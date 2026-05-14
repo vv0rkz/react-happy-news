@@ -5,7 +5,7 @@ import styles from './styles.module.css'
 export const FeedbackForm = (): React.ReactNode => {
   const [message, setMessage] = useState('')
   const [email, setEmail] = useState('')
-  const [postFeedback, { isLoading, isSuccess, isError }] = usePostFeedbackMutation()
+  const { mutate: postFeedback, isPending: isLoading, isSuccess, isError } = usePostFeedbackMutation()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
