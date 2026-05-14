@@ -226,6 +226,20 @@ git commit -m "feat: close #52 NewsDetailView — DOMPurify body render + read-o
 
 ---
 
+## Шаг 8: Закрыть инкремент
+
+```bash
+# Закрыть issue
+gh issue close 52 --comment "US 2.1.7 завершён: Guardian body, RSS, DOMPurify"
+
+# Обновить CURRENT_RELEASE.md — пометить US как DONE
+# Обновить CURRENT_INCREMENT.md — переключить на следующий US
+git add docs/
+git commit -m "docs: US 2.1.7 DONE → US 2.1.8 active (#52)"
+```
+
+---
+
 ## Подводные камни
 
 - **Guardian `body` может быть `null`** — Guardian free API иногда не возвращает тело статьи. `hasFullContent: Boolean(item.fields?.body)` корректно обрабатывает этот случай.
