@@ -1,267 +1,215 @@
-# US 2.1.5 — Миграция RTK Query → TanStack Query
+# US 2.1.6 — SQLite-персистентность новостей
 
 **Статус:** `active`
 **Релиз:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md)
-**Issue:** `#41`
-**Покрывает вопросы:** FQ36 (RTK Query → TanStack Query), FQ38 (server vs client state), FQ24 (хуки)
+**Issue:** `#42`
+**Покрывает вопросы:** Q22 (параллельные запросы + кэш), Q64 (падение сервера), Q65 (скрытие ошибок)
 
 **Acceptance Criteria:**
 
-- [ ] `@tanstack/react-query` установлен, `@reduxjs/toolkit` и `react-redux` удалены
-- [ ] `QueryClientProvider` в `main.tsx`, `store.ts` удалён
-- [ ] `entities/news/api/tanstack/newsQueries.ts` заменяет `rtk/newsApi.ts`
-- [ ] `useHealthCheck.ts`: кастомный polling/backoff заменён на `refetchInterval` + `retry` + `retryDelay`
-- [ ] `ReactQueryDevtools` подключены в dev-режиме
-- [ ] Все компоненты работают: лента, детальная страница, offline mode
+- [ ] `better-sqlite3` установлен на сервере
+- [ ] Таблица `news_items (id, source, data TEXT, fetched_at INTEGER)` создаётся при старте
+- [ ] `upsertMany` вызывается в `getNewsList` после каждой агрегации
+- [ ] `getNewsDetail`: L1 node-cache → L2 SQLite → 404
+- [ ] Прямая ссылка `/news/:id` работает после рестарта сервера (`pnpm dev:server`)
+- [ ] Lazy TTL-cleanup: записи старше 7 дней удаляются при `upsertMany`
 
 ---
 
 ## Концепция
 
 ```
-Сейчас (RTK Query + Redux):
-  store.ts → configureStore → newsApi.reducer + newsApi.middleware
-  main.tsx → <Provider store={store}>
-  newsApi.ts → createApi → useGetNewsQuery / useGetNewsDetailQuery
-  useHealthCheck.ts → 60+ строк: fetch + AbortController + setTimeout + backoff вручную
+Сейчас:
+  GET /api/news → aggregateNews → node-cache (TTL 5 мин)
+  GET /api/news/:id → getCached('newsItem:id') → 404 если нет в кэше
+                   ↑ после рестарта сервера кэш пуст → все прямые ссылки ломаются
 
-После (TanStack Query):
-  queryClient.ts → new QueryClient({ defaultOptions })
-  main.tsx → <QueryClientProvider client={queryClient}>  (store.ts удалён)
-  newsQueries.ts → useQuery / useMutation — нативный кэш, dedupe, loading states
-  useHealthCheck.ts → useQuery({ refetchInterval, retry, retryDelay }) — 15 строк
+После:
+  GET /api/news → aggregateNews → node-cache (L1) + SQLite upsert (L2)
+  GET /api/news/:id → L1: getCached → MISS?
+                    → L2: db.findById(id) → нашли → setCached обратно → вернуть
+                    → оба MISS → 404
+
+  Рестарт сервера:
+    L1 (node-cache) пуст
+    L2 (SQLite) содержит все когда-либо агрегированные новости
+    → прямая ссылка работает
 ```
 
-**Почему TanStack Query, а не оставить RTK Query:**
-RTK Query требует Redux-обвязки (`store`, `Provider`, `reducer`, `middleware`) даже для простого server state.
-TanStack Query — специализированная библиотека для server state: встроенный polling, retry, devtools, меньше boilerplate.
-Redux остаётся обоснованным только при наличии глобального client state (auth, UI-состояния) — это появится в v2.3.
+**Почему SQLite, а не PostgreSQL:**
+Нет сетевого сервера, нет migrations-runner — один файл `.db` рядом с приложением.
+`better-sqlite3` — синхронный драйвер, не нужен `async/await` для простых запросов.
+PostgreSQL обоснован только при горизонтальном масштабировании (US 2.5).
+
+**Почему `data TEXT` (JSON-строка), а не отдельные колонки:**
+`NewsItem` будет расширяться (US 2.1.7: `body`, `url`, `hasFullContent`).
+Хранить JSON — гибко, не нужны ALTER TABLE при каждом добавлении поля.
+Поиск идёт только по `id` — индекс по `id` достаточен.
 
 ---
 
 ## Git
 
 **Ветка:** `v2.1.0-live-sse-feed` (продолжаем в той же ветке)
-**Issue:** `#41`
+**Issue:** `#42`
 
 ---
 
 ## Архитектура
 
 ```
-client/src/
-├── app/
-│   ├── main.tsx                    ← ИЗМЕНИТЬ: QueryClientProvider вместо Provider
-│   └── store/
-│       └── store.ts                ← УДАЛИТЬ полностью
-├── shared/
-│   └── api/
-│       └── queryClient.ts          ← НОВЫЙ: new QueryClient с defaultOptions
-├── entities/news/
-│   └── api/
-│       ├── rtk/
-│       │   └── newsApi.ts          ← УДАЛИТЬ (заменяется tanstack/)
-│       └── tanstack/               ← НОВАЯ ПАПКА
-│           └── newsQueries.ts      ← useGetNewsQuery / useGetNewsDetailQuery / usePostFeedback
-└── features/
-    └── health-check/
-        └── useHealthCheck.ts       ← ИЗМЕНИТЬ: useQuery вместо ручного polling
+server/src/
+├── db/                              ← НОВАЯ ПАПКА
+│   ├── schema.ts                    ← НОВЫЙ: CREATE TABLE + открытие БД
+│   └── newsRepository.ts            ← НОВЫЙ: findById, upsertMany, cleanup
+├── routes/news/
+│   └── handlers.ts                  ← ИЗМЕНИТЬ: upsertMany после агрегации + L2 в getNewsDetail
+└── types/
+    └── news.types.ts                ← без изменений
 ```
 
-**FSD:** изменения только внутри слоёв, не нарушают границы. Public API (`index.ts`) остаётся прежним — компоненты выше не знают о смене библиотеки.
+**FSD:** только серверные изменения, клиент не затрагивается.
 
 ---
 
-## Шаг 1: Установка и удаление зависимостей
+## Шаг 1: Установка better-sqlite3
 
 ```bash
-pnpm --filter react-happy-news-client add @tanstack/react-query @tanstack/react-query-devtools
-pnpm --filter react-happy-news-client remove @reduxjs/toolkit react-redux
+pnpm --filter react-happy-news-server add better-sqlite3
+pnpm --filter react-happy-news-server add -D @types/better-sqlite3
 ```
 
-**Подводный камень:** проверь что `@tanstack/react-query-devtools` добавлен только в `devDependencies`.
-Если попал в `dependencies` — перенеси вручную в `package.json`.
-
 ```bash
-git add client/package.json pnpm-lock.yaml
-git commit -m "build: #41 replace RTK Query+Redux with TanStack Query"
+git add server/package.json pnpm-lock.yaml
+git commit -m "build: #42 add better-sqlite3"
 ```
 
 ---
 
-## Шаг 2: QueryClient
+## Шаг 2: schema.ts — открытие БД и создание таблицы
 
-**Файл:** `client/src/shared/api/queryClient.ts`
+**Файл:** `server/src/db/schema.ts`
 
 ```typescript
-// import { QueryClient } from '@tanstack/react-query'
+// import Database from 'better-sqlite3'
+// import path from 'node:path'
 //
-// export const queryClient = new QueryClient({
-//   defaultOptions: {
-//     queries: {
-//       staleTime: 5 * 60 * 1000,   // 5 минут — данные считаются свежими
-//       retry: 2,                    // 2 попытки при ошибке
-//       refetchOnWindowFocus: false, // не перезапрашивать при возврате на вкладку
-//     },
+// const DB_PATH = path.join(process.cwd(), 'news.db')
+//
+// export const db = new Database(DB_PATH)
+//
+// // WAL-режим: улучшает конкурентные чтения
+// db.pragma('journal_mode = WAL')
+//
+// // CREATE TABLE IF NOT EXISTS — безопасно вызывать при каждом старте
+// db.exec(`
+//   CREATE TABLE IF NOT EXISTS news_items (
+//     id         TEXT PRIMARY KEY,
+//     source     TEXT NOT NULL,
+//     data       TEXT NOT NULL,       -- JSON.stringify(NewsItem)
+//     fetched_at INTEGER NOT NULL     -- Date.now()
+//   )
+// `)
+//
+// // Индекс для быстрого cleanup по fetched_at
+// db.exec(`
+//   CREATE INDEX IF NOT EXISTS idx_fetched_at ON news_items (fetched_at)
+// `)
+```
+
+**Подводный камень:** `new Database(DB_PATH)` — синхронный вызов, бросает если файл недоступен.
+Оборачивать в try/catch не нужно — при ошибке БД сервер не должен стартовать.
+
+```bash
+git add server/src/db/schema.ts
+git commit -m "feat: #42 SQLite schema — news_items table + WAL mode"
+```
+
+---
+
+## Шаг 3: newsRepository.ts
+
+**Файл:** `server/src/db/newsRepository.ts`
+
+```typescript
+// import { db } from './schema'
+// import type { NewsItem } from '../types/news.types'
+//
+// const TTL_MS = 7 * 24 * 60 * 60 * 1000  // 7 дней
+//
+// export const newsRepository = {
+//
+//   findById(id: string): NewsItem | undefined {
+//     // SELECT data FROM news_items WHERE id = ?
+//     // Если нашли — JSON.parse(row.data)
 //   },
-// })
 //
-// staleTime 5 минут соответствует текущему node-cache TTL на сервере.
-// Пользователь не увидит лишних запросов при переключении вкладок.
+//   upsertMany(items: NewsItem[]): void {
+//     // INSERT OR REPLACE INTO news_items (id, source, data, fetched_at)
+//     // VALUES (?, ?, ?, ?)
+//     //
+//     // Использовать db.transaction() для batch-insert:
+//     // const insert = db.prepare('INSERT OR REPLACE INTO ...')
+//     // const insertAll = db.transaction((rows) => rows.forEach(insert.run))
+//     // insertAll(items.map(item => [item.id, item.source, JSON.stringify(item), Date.now()]))
+//     //
+//     // После upsert — cleanup старых записей:
+//     // db.prepare('DELETE FROM news_items WHERE fetched_at < ?').run(Date.now() - TTL_MS)
+//   },
+// }
 ```
 
-**Подводный камень:** `staleTime: 0` (дефолт) означает что данные сразу устаревают —
-каждый переход на главную будет делать новый запрос даже если кэш есть.
+**Подводный камень:** `better-sqlite3` — **синхронный** API. Не нужен `await`. Если попытаться
+вернуть Promise — код будет работать но это антипаттерн для sync-драйвера.
+
+**Подводный камень:** `db.transaction()` — атомарная операция. При 20 новостях это один `BEGIN/COMMIT`
+вместо 20 отдельных транзакций. Без `transaction()` каждый `insert.run()` — отдельный commit → в 10x медленнее.
 
 ```bash
-git add client/src/shared/api/queryClient.ts
-git commit -m "feat: #41 QueryClient with staleTime matching server cache TTL"
+git add server/src/db/newsRepository.ts
+git commit -m "feat: #42 newsRepository — findById, upsertMany, lazy TTL-cleanup"
 ```
 
 ---
 
-## Шаг 3: newsQueries.ts
+## Шаг 4: Интеграция в handlers.ts
 
-**Файл:** `client/src/entities/news/api/tanstack/newsQueries.ts`
-
-```typescript
-// import { useQuery, useMutation } from '@tanstack/react-query'
-// import type { NewsDetailsData } from '../apiNews/utils/transforms.types'
-// import type { components } from '@shared/api/openapi'
-//
-// const BASE_URL = import.meta.env.VITE_API_BASE_URL
-//
-// // Ключи запросов — массив, первый элемент — namespace
-// export const newsKeys = {
-//   list: (params: string) => ['news', 'list', params] as const,
-//   detail: (id: string)   => ['news', 'detail', id] as const,
-// }
-//
-// export function useGetNewsQuery(queryParams: string) {
-//   return useQuery({
-//     queryKey: newsKeys.list(queryParams),
-//     queryFn: async () => {
-//       const res = await fetch(`${BASE_URL}/api/news?${queryParams}`)
-//       if (!res.ok) throw new Error('Failed to fetch news')
-//       const data: components['schemas']['NewsListResponse'] = await res.json()
-//       return data.news  // ← аналог transformResponse из RTK Query
-//     },
-//   })
-// }
-//
-// export function useGetNewsDetailQuery(id: string) {
-//   return useQuery({
-//     queryKey: newsKeys.detail(id),
-//     queryFn: async () => { ... },
-//     enabled: Boolean(id),  // не запрашивать если id пустой
-//   })
-// }
-//
-// export function usePostFeedbackMutation() {
-//   return useMutation({
-//     mutationFn: async (body: FeedbackPayload) => { ... }
-//   })
-// }
-```
-
-**Подводный камень:** `queryKey` должен включать все переменные от которых зависит запрос.
-`newsKeys.list(queryParams)` — queryParams меняется при смене фильтров → автоматически новый запрос.
-Если забыть включить params в ключ — кэш будет всегда возвращать первый результат.
-
-```bash
-git add client/src/entities/news/api/tanstack/
-git commit -m "feat: #41 newsQueries — useQuery/useMutation replacing RTK endpoints"
-```
-
----
-
-## Шаг 4: Обновить main.tsx и удалить store.ts
-
-**Файл:** `client/src/app/main.tsx`
+**Файл:** `server/src/routes/news/handlers.ts`
 
 ```typescript
-// Удалить:
-// import { Provider } from 'react-redux'
-// import { store } from './store'
+// В getNewsList — после setCached:
+// result.news.forEach((item) => setCached(`newsItem:${item.id}`, item))
+// newsRepository.upsertMany(result.news)   // ← добавить эту строку
 //
-// Добавить:
-// import { QueryClientProvider } from '@tanstack/react-query'
-// import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-// import { queryClient } from '@shared/api/queryClient'
-//
-// Обернуть:
-// <QueryClientProvider client={queryClient}>
-//   ...приложение...
-//   {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
-// </QueryClientProvider>
-//
-// ReactQueryDevtools — только в dev (аналог того как мы исключили MSW из prod)
-```
-
-После этого удалить `client/src/app/store/store.ts` и всю папку `store/` если пуста.
-
-**Подводный камень:** если где-то остался импорт из `react-redux` (useSelector, useDispatch) —
-TypeScript сразу покажет ошибку. Это хороший сигнал что зависимость не удалена.
-
-```bash
-git add client/src/app/main.tsx
-git rm client/src/app/store/store.ts
-git commit -m "feat: #41 QueryClientProvider replaces Redux Provider, store.ts removed"
-```
-
----
-
-## Шаг 5: Упростить useHealthCheck.ts
-
-**Файл:** `client/src/features/health-check/useHealthCheck.ts`
-
-Текущая реализация — 60+ строк ручного polling:
-- `useRef` для AbortController, isPolling, errorCount, timerId
-- рекурсивный `setTimeout` с экспоненциальным backoff вручную
-- ручная логика "не слать следующий запрос пока текущий не завершился"
-
-TanStack Query заменяет всё это встроенными опциями:
-
-```typescript
-// export function useHealthCheck(): UseHealthCheckReturn {
-//   const [lastOnlineAt, setLastOnlineAt] = useState<Date | null>(null)
-//
-//   const { status: queryStatus } = useQuery({
-//     queryKey: ['health'],
-//     queryFn: async ({ signal }) => {
-//       const res = await fetch(`${BASE_URL}/api/health`, { signal })
-//       if (!res.ok) throw new Error('Server error')
-//       return res.json()
-//     },
-//     refetchInterval: 30_000,   // polling каждые 30 секунд
-//     retry: 3,                  // 3 попытки перед offline
-//     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30_000), // backoff
-//   })
-//
-//   // queryStatus: 'pending' | 'success' | 'error'
-//   // маппинг на HealthStatus: 'checking' | 'online' | 'offline'
+// В getNewsDetail — добавить L2 после L1 MISS:
+// const item = getCached<NewsItem>(`newsItem:${id}`)
+// if (!item) {
+//   const fromDb = newsRepository.findById(id)   // ← L2
+//   if (!fromDb) {
+//     res.status(404).json({ error: 'News item not found' })
+//     return
+//   }
+//   setCached(`newsItem:${id}`, fromDb)           // ← восстановить в L1
+//   res.json(fromDb)
+//   return
 // }
+// res.json(item)
 ```
 
-**Подводный камень:** TanStack Query не останавливает polling при потере сети — он продолжает
-попытки согласно `retry`. `refetchOnReconnect: true` (дефолт) автоматически перезапросит
-при восстановлении соединения. AbortController передаётся через `{ signal }` в `queryFn` — не нужно управлять вручную.
-
-**Подводный камень:** `refetchInterval` работает только пока окно/вкладка активна.
-При `refetchIntervalInBackground: false` (дефолт) polling приостанавливается когда вкладка скрыта.
-Для health-check это приемлемо.
+**Подводный камень:** `upsertMany` вызывается только при CACHE MISS (строка 50 handlers.ts).
+При повторных запросах кэш отдаёт данные без агрегации — upsert не вызывается.
+Это корректно: данные уже в SQLite с прошлой агрегации.
 
 ```bash
-git add client/src/features/health-check/useHealthCheck.ts
-git commit -m "feat: close #41 useHealthCheck — refetchInterval+retry replaces manual polling"
+git add server/src/routes/news/handlers.ts
+git commit -m "feat: close #42 handlers — L2 SQLite for news detail + upsertMany after aggregation"
 ```
 
 ---
 
 ## Подводные камни
 
-- **Public API barrel:** `entities/news/api/index.ts` экспортирует хуки. После миграции обнови экспорты — убери rtk-хуки, добавь tanstack-хуки. Компоненты выше должны импортировать из `@entities/news/api`, не из внутреннего пути.
-- **Именование хуков:** RTK генерировал `useGetNewsQuery` автоматически. В TanStack Query называй руками — сохрани те же имена чтобы не менять вызывающий код.
-- **`isFetching` vs `isPending`:** в TanStack Query v5 `isLoading` переименован в `isPending`. `isFetching: true` означает фоновый refetch (данные уже есть). `isPending: true` — первый запрос (данных нет). В `NewsFeed.tsx` используется `isInitialLoading || isFetching` — пересмотри логику.
-- **MSW handlers:** `handlers.ts` использует `http.get` из MSW — он не зависит от RTK Query. После миграции MSW продолжает работать без изменений.
-- **Тесты:** если тесты используют RTK `store` как часть провайдера — замени на `QueryClientProvider` с тестовым `queryClient`.
+- **`better-sqlite3` и ESM:** сервер использует `"type": "module"` или `tsx`? Проверь `server/package.json`. `better-sqlite3` — CommonJS, при ESM нужен `createRequire` или `import { createRequire } from 'module'`. С `tsx` (который используется для dev) проблем обычно нет.
+- **Путь к DB файлу:** `process.cwd()` зависит от того откуда запускается `tsx`. При `pnpm dev:server` из корня — `cwd` будет корень проекта, файл `news.db` создастся там. Лучше использовать `import.meta.url` + `path.dirname` или явный путь относительно `server/`.
+- **Тесты:** серверных тестов нет, но убедись что `pnpm --filter react-happy-news-server build` проходит без ошибок TypeScript.
+- **`.gitignore`:** добавить `news.db` — это runtime-файл, не должен быть в репозитории.

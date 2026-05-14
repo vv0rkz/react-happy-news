@@ -56,7 +56,16 @@
 
 > `react-window` перенесён в **US 2.1.8** — обоснован только при 200+ элементах.
 
-### US 2.1.5: Миграция RTK Query → TanStack Query — 🔄 ACTIVE
+### US 2.1.5: Миграция RTK Query → TanStack Query — ✅ DONE
+
+- [x] `@tanstack/react-query` установлен, `@reduxjs/toolkit` + `react-redux` удалены
+- [x] `QueryClientProvider` в `main.tsx`, `store.ts` удалён
+- [x] `entities/news/api/tanstack/newsQueries.ts` заменяет `rtk/newsApi.ts` (удалён)
+- [x] `useHealthCheck.ts`: ручной polling/backoff заменён на `refetchInterval` + `retry` + `retryDelay`; статус использует TanStack `QueryStatus` напрямую
+- [x] `ReactQueryDevtools` подключены в dev-режиме
+- [x] `FeedbackForm` адаптирован под TanStack `useMutation` API
+
+### US 2.1.6: SQLite-персистентность новостей — 🔄 ACTIVE
 
 - [ ] Установить `@tanstack/react-query`, удалить `@reduxjs/toolkit` + `react-redux`
 - [ ] Создать `client/src/shared/api/queryClient.ts` + `QueryClientProvider` в `main.tsx`
