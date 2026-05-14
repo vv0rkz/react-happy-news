@@ -2,6 +2,7 @@ export enum SourceName {
   Guardian = 'guardian',
   NewsApi = 'newsapi',
   HackerNews = 'hackernews',
+  Rss = 'rss',
 }
 export const allSourceNames = Object.values(SourceName)
 
@@ -14,4 +15,7 @@ export interface NewsItem {
   author: string
   tag: string
   source: SourceName
+  url: string
+  body?: string | null
+  hasFullContent: boolean
 }

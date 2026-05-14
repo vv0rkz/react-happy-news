@@ -45,5 +45,8 @@ export async function fetchNewsApiNews(): Promise<NewsItem[]> {
       author: article.author ?? article.source.name,
       tag: article.source.name,
       source: SourceName.NewsApi,
+      url: article.url,
+      body: null,
+      hasFullContent: false,
     }))
 }

@@ -7,12 +7,14 @@ interface GuardianFields {
   thumbnail?: string
   trailText?: string
   byline?: string
+  body?: string
 }
 
 interface GuardianResult {
   id: string
   webTitle: string
   webPublicationDate: string
+  webUrl: string
   sectionName: string
   fields?: GuardianFields | null
 }
@@ -26,7 +28,7 @@ interface GuardianResponse {
 export async function fetchGuardianNews(): Promise<NewsItem[]> {
   const params = new URLSearchParams({
     'api-key': API_KEY,
-    'show-fields': 'thumbnail,trailText,byline',
+    'show-fields': 'thumbnail,trailText,byline,body',
     section: 'science|environment|culture|technology|lifeandstyle',
     'page-size': '50',
   })
@@ -48,5 +50,8 @@ export async function fetchGuardianNews(): Promise<NewsItem[]> {
     author: item.fields?.byline ?? 'Unknown',
     tag: item.sectionName,
     source: SourceName.Guardian,
+    url: item.webUrl,
+    body: item.fields?.body ?? null,
+    hasFullContent: Boolean(item.fields?.body),
   }))
 }

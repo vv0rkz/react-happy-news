@@ -3,6 +3,7 @@ import { isPositiveNews } from '../utils/positivityFilter'
 import { fetchGuardianNews } from './guardianApi'
 import { fetchHackerNews } from './hackerNewsApi'
 import { fetchNewsApiNews } from './newsApi'
+import { fetchRssNews } from './rssApi'
 
 type SourceStatus = 'ok' | 'error' | 'skipped'
 

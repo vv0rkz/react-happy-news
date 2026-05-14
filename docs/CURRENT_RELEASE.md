@@ -65,32 +65,27 @@
 - [x] `ReactQueryDevtools` подключены в dev-режиме
 - [x] `FeedbackForm` адаптирован под TanStack `useMutation` API
 
-### US 2.1.6: SQLite-персистентность новостей — 🔄 ACTIVE
+### US 2.1.6: SQLite-персистентность новостей — ✅ DONE
 
-- [ ] Установить `@tanstack/react-query`, удалить `@reduxjs/toolkit` + `react-redux`
-- [ ] Создать `client/src/shared/api/queryClient.ts` + `QueryClientProvider` в `main.tsx`
-- [ ] Создать `client/src/entities/news/api/tanstack/newsQueries.ts`, удалить `rtk/newsApi.ts` и `store.ts`
-- [ ] Упростить `useHealthCheck.ts`: убрать кастомный polling/backoff → `refetchInterval` + `retryDelay`
-- [ ] Добавить `ReactQueryDevtools` в dev-режиме
-- [ ] Проверить что все компоненты работают: список, детальная страница, offline mode
+- [x] `better-sqlite3` установлен
+- [x] `server/src/db/schema.ts` — таблица `news_items (id, source, data, fetched_at)`, WAL-режим
+- [x] `server/src/db/newsRepository.ts` — `findById`, `upsertMany` (без TTL — накапливаем для аналитики)
+- [x] `getNewsList`: `newsRepository.upsertMany(result.news)` после агрегации
+- [x] `getNewsDetail`: L1 node-cache → L2 SQLite → 404
+- [x] Прямая ссылка `/news/:id` работает после рестарта сервера
+- [x] `news.db` добавлен в `.gitignore`
 
-### US 2.1.6: SQLite-персистентность новостей — ⏳ PENDING
+### US 2.1.7: Богатая детальная страница — 🔄 ACTIVE
 
-- [ ] Установить `better-sqlite3` на сервере
-- [ ] Создать `server/src/db/schema.ts` — таблица `news_items (id, source, data, fetched_at)`
-- [ ] Создать `server/src/db/newsRepository.ts` — `findById`, `upsertMany` + lazy TTL-cleanup (7 дней)
-- [ ] `getNewsList`: после агрегации вызывать `newsRepository.upsertMany(result.news)`
-- [ ] `getNewsDetail`: при L1-miss смотреть в SQLite, восстанавливать в L1
-- [ ] Прямая ссылка `/news/:id` работает после рестарта сервера
-
-### US 2.1.7: Богатая детальная страница — ⏳ PENDING
-
-- [ ] Расширить `NewsItem`: добавить `body?: string | null`, `url: string`, `hasFullContent: boolean`
-- [ ] `guardianApi.ts`: добавить `body` в `show-fields`
-- [ ] Установить `rss-parser`, создать `server/src/services/rssApi.ts` (Positive News UK + GNN)
-- [ ] Добавить `SourceName.Rss` и зарегистрировать в `newsAggregator.ts`
-- [ ] `NewsDetail`: если `hasFullContent` → рендер HTML через DOMPurify, иначе → "Читать оригинал"
-- [ ] Обновить зеркальный тип на фронте (`transforms.types.ts`)
+- [x] `rss-parser` + `dompurify` установлены
+- [ ] `NewsItem`: `url`, `body`, `hasFullContent` + `SourceName.Rss`
+- [ ] `guardianApi.ts`: `show-fields=body`, `webUrl`, `hasFullContent`
+- [ ] `newsApi.ts` + `hackerNewsApi.ts`: `url`, `body: null`, `hasFullContent: false`
+- [ ] `rssApi.ts`: Positive News UK + Good News Network
+- [ ] RSS зарегистрирован в `newsAggregator.ts`
+- [ ] OpenAPI схема обновлена, `openapi.d.ts` пересобран
+- [ ] `transforms.types.ts`: `SourceName.Rss`
+- [ ] `NewsDetailView`: DOMPurify рендер body или кнопка "Читать оригинал"
 
 ### US 2.1.8: Виртуализация ленты — 🔒 ЗАБЛОКИРОВАН
 

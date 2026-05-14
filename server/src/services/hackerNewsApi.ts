@@ -43,5 +43,8 @@ export async function fetchHackerNews(): Promise<NewsItem[]> {
       author: item.by ?? 'Unknown',
       tag: 'Technology',
       source: SourceName.HackerNews,
+      url: item.url ?? `https://news.ycombinator.com/item?id=${item.id}`,
+      body: null,
+      hasFullContent: false,
     }))
 }
