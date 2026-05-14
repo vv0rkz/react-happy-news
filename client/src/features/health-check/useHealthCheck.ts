@@ -9,7 +9,6 @@ interface UseHealthCheckReturn {
 }
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
-
 export const useHealthCheck = (): UseHealthCheckReturn => {
   const { status, dataUpdatedAt } = useQuery({
     queryKey: ['health'],

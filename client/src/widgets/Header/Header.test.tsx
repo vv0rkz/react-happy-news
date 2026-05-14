@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 import { Header } from './Header'
 
 const mockNavigate = vi.fn()
@@ -17,7 +18,11 @@ vi.mock('react-router-dom', async () => {
 const MOCK_STORAGE_KEY = 'happyNews_mockMode'
 
 function Providers({ children }: { children: ReactNode }) {
-  return <MantineProvider>{children}</MantineProvider>
+  return (
+    <MemoryRouter>
+      <MantineProvider>{children}</MantineProvider>
+    </MemoryRouter>
+  )
 }
 
 function renderHeader() {
