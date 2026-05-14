@@ -12,9 +12,9 @@ export function App(): React.ReactNode {
     const prev = prevStatusRef.current
     prevStatusRef.current = status
 
-    if (prev === 'checking') return
+    if (prev === 'pending') return
 
-    if (status === 'offline' && prev === 'online') {
+    if (status === 'error' && prev === 'success') {
       notifications.show({
         message: 'Соединение с сервером потеряно',
         color: 'red',
@@ -22,7 +22,7 @@ export function App(): React.ReactNode {
       })
     }
 
-    if (status === 'online' && prev === 'offline') {
+    if (status === 'success' && prev === 'error') {
       notifications.show({
         message: 'Соединение восстановлено',
         color: 'green',
@@ -34,7 +34,7 @@ export function App(): React.ReactNode {
   return (
     <>
       <Header status={status} />
-      {status === 'offline' && <OfflineBanner lastOnlineAt={lastOnlineAt} />}
+      {status === 'error' && <OfflineBanner lastOnlineAt={lastOnlineAt} />}
       <Outlet />
     </>
   )

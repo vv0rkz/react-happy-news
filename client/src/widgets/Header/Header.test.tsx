@@ -21,7 +21,7 @@ function Providers({ children }: { children: ReactNode }) {
 }
 
 function renderHeader() {
-  return render(<Header status="online" />, { wrapper: Providers })
+  return render(<Header status="success" />, { wrapper: Providers })
 }
 
 describe('Header', () => {

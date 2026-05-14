@@ -5,26 +5,21 @@ interface StatusBadgeProps {
   status: HealthStatus
 }
 
-const STATUS_CONFIG: Record<HealthStatus, { label: string; tooltip: string; color: string }> = {
-  online: {
+const STATUS_CONFIG: Record<Exclude<HealthStatus, 'pending'>, { label: string; tooltip: string; color: string }> = {
+  success: {
     label: 'Сервер работает',
     tooltip: 'Соединение с сервером установлено. Данные актуальны.',
     color: 'green',
   },
-  offline: {
+  error: {
     label: 'Нет связи',
     tooltip: 'Сервер недоступен. Показываем данные из кэша.',
     color: 'red',
   },
-  checking: {
-    label: 'Проверяем...',
-    tooltip: 'Проверяем соединение с сервером.',
-    color: 'gray',
-  },
 }
 
 export const StatusBadge = ({ status }: StatusBadgeProps): React.ReactNode => {
-  if (status === 'checking') return null
+  if (status === 'pending') return null
 
   const { label, tooltip, color } = STATUS_CONFIG[status]
 
