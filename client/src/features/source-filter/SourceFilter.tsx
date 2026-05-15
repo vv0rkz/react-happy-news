@@ -3,8 +3,7 @@ import { Chip, Group } from '@mantine/core'
 
 const SOURCE_LABELS: Record<SourceName, string> = {
   [SourceName.Guardian]: 'Guardian',
-  [SourceName.NewsApi]: 'NewsAPI',
-  [SourceName.HackerNews]: 'HackerNews',
+  [SourceName.Rss]: 'RSS',
 }
 
 interface SourceFilterProps {
