@@ -14,24 +14,46 @@ const parser = new Parser<Record<string, never>, CustomItem>({
 // Минимальная длина тела — отсеивает attribution-footers (~80-100 символов)
 const MIN_BODY_LENGTH = 300
 
-const RSS_FEEDS = [
-  { url: 'https://www.positive.news/feed/', tag: 'Positive News' },
-  { url: 'https://reasonstobecheerful.world/feed/', tag: 'Reasons to be Cheerful' },
-  { url: 'https://www.upworthy.com/rss', tag: 'Upworthy' },
-  { url: 'https://news.mongabay.com/feed/', tag: 'Mongabay' },
-  { url: 'https://theconversation.com/us/science/articles.atom', tag: 'The Conversation' },
-  { url: 'https://theconversation.com/us/environment/articles.atom', tag: 'The Conversation' },
-  { url: 'https://www.atlasobscura.com/feeds/latest', tag: 'Atlas Obscura' },
-  { url: 'https://www.sciencealert.com/feed', tag: 'ScienceAlert' },
-]
-
-export async function fetchRssNews(): Promise<NewsItem[]> {
-  const results = await Promise.allSettled(RSS_FEEDS.map(({ url, tag }) => fetchFeed(url, tag)))
-
-  return results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
+function createRssFetcher(urls: string[], source: SourceName): () => Promise<NewsItem[]> {
+  return async () => {
+    const results = await Promise.allSettled(urls.map((url) => fetchFeed(url, source)))
+    return results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
+  }
 }
 
-async function fetchFeed(feedUrl: string, tag: string): Promise<NewsItem[]> {
+export const fetchPositiveNews = createRssFetcher(
+  ['https://www.positive.news/feed/'],
+  SourceName.PositiveNews,
+)
+export const fetchReasonsToBeCheerful = createRssFetcher(
+  ['https://reasonstobecheerful.world/feed/'],
+  SourceName.ReasonsToBeCheerful,
+)
+export const fetchUpworthy = createRssFetcher(
+  ['https://www.upworthy.com/rss'],
+  SourceName.Upworthy,
+)
+export const fetchMongabay = createRssFetcher(
+  ['https://news.mongabay.com/feed/'],
+  SourceName.Mongabay,
+)
+export const fetchTheConversation = createRssFetcher(
+  [
+    'https://theconversation.com/us/science/articles.atom',
+    'https://theconversation.com/us/environment/articles.atom',
+  ],
+  SourceName.TheConversation,
+)
+export const fetchAtlasObscura = createRssFetcher(
+  ['https://www.atlasobscura.com/feeds/latest'],
+  SourceName.AtlasObscura,
+)
+export const fetchScienceAlert = createRssFetcher(
+  ['https://www.sciencealert.com/feed'],
+  SourceName.ScienceAlert,
+)
+
+async function fetchFeed(feedUrl: string, source: SourceName): Promise<NewsItem[]> {
   const feed = await parser.parseURL(feedUrl)
 
   return (feed.items ?? [])
@@ -46,8 +68,8 @@ async function fetchFeed(feedUrl: string, tag: string): Promise<NewsItem[]> {
         description: item.contentSnippet ?? item.summary ?? '',
         published: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
         author: item.creator ?? feed.title ?? 'Unknown',
-        tag,
-        source: SourceName.Rss,
+        tag: item.categories?.[0] ?? feed.title ?? '',
+        source,
         url: item.link!,
         body: fullBody,
         hasFullContent: fullBody !== null,

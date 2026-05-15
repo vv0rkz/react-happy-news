@@ -164,7 +164,7 @@ export interface components {
              * @example guardian
              * @enum {string}
              */
-            source: "guardian" | "rss";
+            source: "guardian" | "positive-news" | "reasons-to-be-cheerful" | "upworthy" | "mongabay" | "the-conversation" | "atlas-obscura" | "science-alert";
             /** @example https://www.theguardian.com/environment/2025/jan/01/title */
             url: string;
             /** @example <p>Full article content...</p> */
@@ -177,7 +177,8 @@ export interface components {
             /**
              * @example {
              *       "guardian": "ok",
-             *       "rss": "ok"
+             *       "positive-news": "ok",
+             *       "mongabay": "skipped"
              *     }
              */
             sources: {

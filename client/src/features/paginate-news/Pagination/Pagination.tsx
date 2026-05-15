@@ -7,7 +7,7 @@ interface PaginationProps<T> {
 }
 
 export function Pagination<T>({ data, children }: PaginationProps<T>): React.ReactNode {
-  const { paginatedData, currentPage, totalPages, goToPage } = usePagination(data ?? [], 10)
+  const { paginatedData, currentPage, totalPages, goToPage } = usePagination(data ?? [], 500)
 
   return (
     <>

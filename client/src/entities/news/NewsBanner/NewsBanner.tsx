@@ -22,12 +22,7 @@ export const NewsBanner = ({ item }: NewsBannerProps): React.ReactNode => {
   return (
     <div className={styles.banner}>
       <Image image={item.image} className={styles.image ?? ''} />
-      {source && (
-        <SourceBadge
-          source={source}
-          label={source === SourceName.Rss ? item.tag : undefined}
-        />
-      )}
+      {source && <SourceBadge source={source} />}
       <h1 className={styles.title}>{item.title}</h1>
       <p className={styles.extra}>
         {formatTimeAgo(item.published)} by {item.author}

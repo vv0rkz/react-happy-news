@@ -25,7 +25,7 @@ export const NewsListResponseSchema = registry.register(
   z.object({
     news:    z.array(NewsItemSchema),
     sources: z.record(z.enum(['ok', 'error', 'skipped'])).openapi({
-      example: { guardian: 'ok', newsapi: 'skipped', hackernews: 'ok' },
+      example: { guardian: 'ok', 'positive-news': 'ok', mongabay: 'skipped' },
     }),
     cached: z.boolean().openapi({ example: false }),
   }),

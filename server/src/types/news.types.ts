@@ -1,6 +1,12 @@
 export enum SourceName {
   Guardian = 'guardian',
-  Rss = 'rss',
+  PositiveNews = 'positive-news',
+  ReasonsToBeCheerful = 'reasons-to-be-cheerful',
+  Upworthy = 'upworthy',
+  Mongabay = 'mongabay',
+  TheConversation = 'the-conversation',
+  AtlasObscura = 'atlas-obscura',
+  ScienceAlert = 'science-alert',
 }
 export const allSourceNames = Object.values(SourceName)
 

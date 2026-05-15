@@ -28,12 +28,7 @@ export const NewsItem = React.memo(({ item }: NewsItemProps): React.ReactNode =>
     <article className={styles.item} onClick={handleClick}>
       <Image image={item.image} className={styles.image ?? ''} />
       <div className={styles.info}>
-        {item.source && (
-          <SourceBadge
-            source={item.source}
-            label={item.source === SourceName.Rss ? item.tag : undefined}
-          />
-        )}
+        {item.source && <SourceBadge source={item.source} />}
         <h3 className={styles.title}>{item.title}</h3>
         <p className={styles.extra}>{item.description}</p>
       </div>

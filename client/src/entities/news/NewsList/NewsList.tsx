@@ -1,16 +1,19 @@
+import { Virtuoso } from 'react-virtuoso'
 import { NewsItem } from '../NewsItem'
 import styles from './styles.module.css'
 
+type NewsListItem = {
+  id: string
+  title: string
+  description: string
+  image: string
+  published: string
+  author: string
+  tag: string
+}
+
 interface NewsListProps {
-  news: Array<{
-    id: string
-    title: string
-    description: string
-    image: string
-    published: string
-    author: string
-    tag: string
-  }>
+  news: NewsListItem[]
 }
 
 export const NewsList = ({ news }: NewsListProps): React.ReactNode => {
@@ -19,12 +22,14 @@ export const NewsList = ({ news }: NewsListProps): React.ReactNode => {
   }
 
   return (
-    <ul className={styles.list}>
-      {news.map((item) => (
-        <li key={item.id} className={styles.listItem}>
+    <Virtuoso
+      data={news}
+      useWindowScroll
+      itemContent={(_index, item) => (
+        <div className={styles.listItem}>
           <NewsItem item={item} />
-        </li>
-      ))}
-    </ul>
+        </div>
+      )}
+    />
   )
 }
