@@ -1,8 +1,6 @@
 import { SourceName, type NewsItem } from '../types/news.types'
 import { isPositiveNews } from '../utils/positivityFilter'
 import { fetchGuardianNews } from './guardianApi'
-import { fetchHackerNews } from './hackerNewsApi'
-import { fetchNewsApiNews } from './newsApi'
 import { fetchRssNews } from './rssApi'
 
 type SourceStatus = 'ok' | 'error' | 'skipped'
@@ -15,8 +13,7 @@ interface SourceConfig {
 // Добавить новый источник = одна строка здесь
 const SOURCES: SourceConfig[] = [
   { name: SourceName.Guardian, fetch: fetchGuardianNews },
-  { name: SourceName.NewsApi, fetch: fetchNewsApiNews },
-  { name: SourceName.HackerNews, fetch: fetchHackerNews },
+  { name: SourceName.Rss, fetch: fetchRssNews },
 ]
 
 export interface AggregatorResult {
