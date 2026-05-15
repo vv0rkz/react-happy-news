@@ -2,15 +2,27 @@ import { createHash } from 'crypto'
 import Parser from 'rss-parser'
 import { SourceName, type NewsItem } from '../types/news.types'
 
-type CustomItem = { 'content:encoded'?: string; 'media:content'?: { $?: { url?: string } } }
+type CustomItem = {
+  'content:encoded'?: string
+  'media:content'?: { $?: { url?: string } }
+}
 
 const parser = new Parser<Record<string, never>, CustomItem>({
   customFields: { item: ['content:encoded', 'media:content'] },
 })
 
+// Минимальная длина тела — отсеивает attribution-footers (~80-100 символов)
+const MIN_BODY_LENGTH = 300
+
 const RSS_FEEDS = [
-  { url: 'https://www.positive.news/feed/', tag: 'Positive' },
-  { url: 'https://www.goodnewsnetwork.org/feed/', tag: 'Good News' },
+  { url: 'https://www.positive.news/feed/', tag: 'Good News' },
+  { url: 'https://reasonstobecheerful.world/feed/', tag: 'Environment' },
+  { url: 'https://www.upworthy.com/rss', tag: 'Society' },
+  { url: 'https://news.mongabay.com/feed/', tag: 'Conservation' },
+  { url: 'https://theconversation.com/us/science/articles.atom', tag: 'Science' },
+  { url: 'https://theconversation.com/us/environment/articles.atom', tag: 'Environment' },
+  { url: 'https://www.atlasobscura.com/feeds/latest', tag: 'Culture' },
+  { url: 'https://www.sciencealert.com/feed', tag: 'Science' },
 ]
 
 export async function fetchRssNews(): Promise<NewsItem[]> {
@@ -25,11 +37,8 @@ async function fetchFeed(feedUrl: string, tag: string): Promise<NewsItem[]> {
   return (feed.items ?? [])
     .filter((item) => item.title && item.link)
     .map((item) => {
-      const fullBody = item['content:encoded'] ?? null
-      const image =
-        item['media:content']?.['$']?.url ??
-        (fullBody ? (fullBody.match(/<img[^>]+src="([^"]+)"/)?.[1] ?? '') : '') ??
-        ''
+      const fullBody = extractBody(item)
+      const image = extractImage(item, fullBody)
       return {
         id: `rss-${createHash('md5').update(item.link!).digest('hex').slice(0, 16)}`,
         title: item.title!,
@@ -41,7 +50,39 @@ async function fetchFeed(feedUrl: string, tag: string): Promise<NewsItem[]> {
         source: SourceName.Rss,
         url: item.link!,
         body: fullBody,
-        hasFullContent: Boolean(fullBody && fullBody.trim().length > 0),
+        hasFullContent: fullBody !== null,
       }
     })
+}
+
+function extractBody(item: Parser.Item & CustomItem): string | null {
+  // content:encoded (RSS), content (Atom), summary (RSS <description> / Atom <summary>)
+  const candidates = [item['content:encoded'], item.content, item.summary]
+  for (const candidate of candidates) {
+    if (candidate && candidate.trim().length > MIN_BODY_LENGTH) return candidate
+  }
+  return null
+}
+
+function extractImage(item: Parser.Item & CustomItem, body: string | null): string {
+  // media:content (Nautilus, некоторые Mongabay)
+  const mediaUrl = item['media:content']?.['$']?.url
+  if (mediaUrl) return mediaUrl
+
+  // enclosure (Mongabay, другие)
+  if (item.enclosure?.url && item.enclosure.type?.startsWith('image/')) return item.enclosure.url
+
+  // первый <img> в теле статьи
+  if (body) {
+    const match = body.match(/<img[^>]+src="([^"]+)"/)
+    if (match?.[1]) return match[1]
+  }
+
+  // первый <img> в summary/description
+  if (item.summary) {
+    const match = item.summary.match(/<img[^>]+src="([^"]+)"/)
+    if (match?.[1]) return match[1]
+  }
+
+  return ''
 }
