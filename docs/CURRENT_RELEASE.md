@@ -1,6 +1,6 @@
 # React Happy News — Релиз v2.1 — Positivity Stream
 
-**Статус:** `in progress` (US 2.1.4 active)
+**Статус:** `in progress` (US 2.1.7 DONE, US 2.1.8 active)
 **Ветка релиза:** `v2.1.0-*`
 **Полный roadmap:** [ROADMAP.md](./ROADMAP.md)
 **Покрытие:** 27 вопросов (45.3% нарастающим после v2.0) + новые US 2.1.5–2.1.8
@@ -75,17 +75,17 @@
 - [x] Прямая ссылка `/news/:id` работает после рестарта сервера
 - [x] `news.db` добавлен в `.gitignore`
 
-### US 2.1.7: Богатая детальная страница — 🔄 ACTIVE
+### US 2.1.7: Богатая детальная страница — ✅ DONE
 
 - [x] `rss-parser` + `dompurify` установлены
-- [ ] `NewsItem`: `url`, `body`, `hasFullContent` + `SourceName.Rss`
-- [ ] `guardianApi.ts`: `show-fields=body`, `webUrl`, `hasFullContent`
-- [ ] `newsApi.ts` + `hackerNewsApi.ts`: `url`, `body: null`, `hasFullContent: false`
-- [ ] `rssApi.ts`: Positive News UK + Good News Network
-- [ ] RSS зарегистрирован в `newsAggregator.ts`
-- [ ] OpenAPI схема обновлена, `openapi.d.ts` пересобран
-- [ ] `transforms.types.ts`: `SourceName.Rss`
-- [ ] `NewsDetailView`: DOMPurify рендер body или кнопка "Читать оригинал"
+- [x] `NewsItem`: `url`, `body`, `hasFullContent` + `SourceName.Rss`
+- [x] `guardianApi.ts`: `show-fields=body`, `webUrl`, `hasFullContent`
+- [x] `newsApi.ts` + `hackerNewsApi.ts`: удалены
+- [x] `rssApi.ts`: Positive News UK + Good News Network, `content:encoded` → `body`
+- [x] RSS зарегистрирован в `newsAggregator.ts`, фильтр `hasFullContent`
+- [x] OpenAPI схема обновлена, `openapi.d.ts` пересобран
+- [x] `transforms.types.ts`: `SourceName.Rss`
+- [x] `NewsDetailView`: DOMPurify рендер body + ссылка "Читать оригинал"
 
 ### US 2.1.8: Виртуализация ленты — 🔒 ЗАБЛОКИРОВАН
 

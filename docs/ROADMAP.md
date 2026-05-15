@@ -17,7 +17,7 @@
 | **Моки**        | MSW (browser + vitest node)                                         |
 | **Тесты**       | Vitest + RTL (6 файлов)                                             |
 | **Backend**     | Express + TypeScript, node-cache                                    |
-| **API Sources** | Guardian API + NewsAPI + HackerNews (агрегация, Promise.allSettled) |
+| **API Sources** | Guardian API + RSS (Positive News UK, Good News Network) — агрегация, Promise.allSettled, hasFullContent-фильтр |
 | **CI/CD**       | Нет                                                                 |
 
 ### Текущие фичи

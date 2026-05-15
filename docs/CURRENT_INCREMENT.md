@@ -1,21 +1,16 @@
-# US 2.1.7 — Богатая детальная страница
+# US 2.1.8 — Виртуализация ленты
 
-**Статус:** `active`
+**Статус:** `active` 🔒 ЗАБЛОКИРОВАН
 **Релиз:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md)
-**Issue:** `#52`
-**Покрывает вопросы:** FQ68 (XSS/DOMPurify), Q82 (RSS как источник)
+**Issue:** TBD
+**Покрывает вопросы:** FQ44 (виртуализация)
 
 **Acceptance Criteria:**
 
-- [ ] `NewsItem` расширен: `url: string`, `body?: string | null`, `hasFullContent: boolean`
-- [ ] `guardianApi.ts`: `show-fields` включает `body`, маппинг `url` и `hasFullContent`
-- [ ] `newsApi.ts` и `hackerNewsApi.ts` **удалены**; `SourceName.NewsApi` и `SourceName.HackerNews` удалены из серверного enum и из клиентского `transforms.types.ts`
-- [ ] `rss-parser` установлен, `rssApi.ts` парсит Positive News UK + Good News Network; `content:encoded` → `body`, `hasFullContent: true`
-- [ ] `SourceName.Rss` добавлен, RSS зарегистрирован в `SOURCES`
-- [ ] `newsAggregator.ts`: после агрегации отфильтровываются статьи с `hasFullContent === false`
-- [ ] OpenAPI схема обновлена, `openapi.d.ts` пересобран
-- [ ] Клиентский `SourceName` в `transforms.types.ts` содержит `Rss`
-- [ ] `NewsDetailView`: рендер HTML через DOMPurify + ссылка на оригинал в конце (`url`)
+- [ ] MSW seed: генератор 500+ новостей для demo-режима
+- [ ] Profiler без виртуализации: зафиксировать frame drops при скролле 500+ элементов
+- [ ] Установить `react-window`, обернуть `NewsList`
+- [ ] Profiler после: убедиться в 60fps
 
 ---
 
@@ -23,257 +18,81 @@
 
 ```
 Сейчас:
-  NewsDetail → показывает только title, description, image
-  Guardian body недоступен
-  Нет RSS-источников
+  NewsList рендерит все элементы сразу
+  При 50–100 новостях — ок
+  При 200+ — начинаются frame drops при скролле
 
 После:
-  Сервер агрегирует все источники → отфильтровывает статьи где hasFullContent === false
-  Клиент получает только статьи с полным телом → рендерит body через DOMPurify
-  После тела — ссылка "Читать оригинал" → data.url (для тех, кто хочет первоисточник)
-  Guardian: body из show-fields API → hasFullContent: true
-  RSS: content:encoded из фида → hasFullContent: true; без content:encoded → отсеивается
-  NewsAPI / HackerNews: удалены из кодовой базы — не могут обеспечить полный контент
-  RSS: два новых источника (Positive News UK + Good News Network)
+  react-window VariableSizeList / FixedSizeList
+  DOM содержит только видимые + overscan элементы
+  60fps при 500+ элементах
 ```
 
-**Почему фильтрация на сервере, а не ветвление в UI:**
-Клиент не должен знать об ограничениях источников. Агрегатор — это контракт:
-"я отдаю только полные статьи". Если источник не может выполнить контракт — он
-отсеивается на сервере. Завтра NewsAPI введёт платный full-content — достаточно
-убрать `hasFullContent: false` в адаптере, клиент не меняется.
-
-**Почему DOMPurify:**
-Guardian и RSS возвращают HTML-разметку (`<p>`, `<b>`, `<a>`, `<figure>`). Вставлять через
-`dangerouslySetInnerHTML` без очистки — XSS-уязвимость. DOMPurify удаляет
-`<script>`, `onerror=`, `javascript:href` и другие опасные конструкции.
-
-**Почему `hasFullContent`, а не проверка `body != null`:**
-Явный флаг — это намерение адаптера, а не артефакт данных. RSS-фид может прислать
-пустой `content:encoded` — `body` будет строкой `""`, но `hasFullContent` останется `false`.
-Флаг отражает семантику источника, а не наличие байт.
+**Блокер:** US открывается когда выполнено одно из условий:
+- SQLite накопил 200+ записей (органически, после US 2.1.6)
+- MSW seed генерирует 500+ элементов (первый шаг этого US)
 
 ---
 
 ## Git
 
 **Ветка:** `v2.1.0-live-sse-feed` (продолжаем в той же ветке)
-**Issue:** `#52`
+**Issue:** TBD
 
 ---
 
 ## Архитектура
 
 ```
-server/src/
-├── types/
-│   └── news.types.ts          ← ИЗМЕНИТЬ: url, body, hasFullContent + SourceName.Rss; удалить NewsApi, HackerNews из enum
-├── services/
-│   ├── guardianApi.ts         ← ИЗМЕНИТЬ: show-fields body + webUrl
-│   ├── newsApi.ts             ← УДАЛИТЬ
-│   ├── hackerNewsApi.ts       ← УДАЛИТЬ
-│   └── rssApi.ts              ← НОВЫЙ: rss-parser, два фида
-├── swagger/
-│   └── schemas.ts             ← ИЗМЕНИТЬ: новые поля + rss в enum
-└── services/
-    └── newsAggregator.ts      ← ИЗМЕНИТЬ: добавить RSS в SOURCES
-
 client/src/
-├── shared/api/
-│   ├── openapi.json           ← ОБНОВИТЬ: новые поля NewsItem
-│   └── openapi.d.ts          ← РЕГЕНЕРИРОВАТЬ: pnpm gen:openapi
-├── entities/news/api/apiNews/utils/
-│   └── transforms.types.ts   ← ИЗМЕНИТЬ: добавить SourceName.Rss; удалить NewsApi, HackerNews
-└── pages/NewsDetail/
-    └── NewsDetailView.tsx     ← ИЗМЕНИТЬ: body рендер + "Читать оригинал"
+├── entities/news/api/apiNews/mocks/
+│   └── newsData.json              ← ИЗМЕНИТЬ: seed 500+ новостей (генератор)
+├── pages/Main/
+│   └── NewsList/
+│       └── NewsList.tsx           ← ИЗМЕНИТЬ: обернуть в react-window
+└── shared/
+    └── VirtualList/ (опционально) ← НОВЫЙ: абстракция над react-window
 ```
 
 ---
 
-## Шаг 1: Зависимости
+## Шаг 1: MSW seed
 
-```bash
-pnpm --filter react-happy-news-server add rss-parser
-pnpm --filter react-happy-news-client add dompurify
-pnpm --filter react-happy-news-client add -D @types/dompurify
-```
-
-```bash
-git add server/package.json client/package.json pnpm-lock.yaml
-git commit -m "build: #52 install rss-parser + dompurify"
-```
+Написать скрипт или inline-генератор в `newsData.json` → 500+ элементов.
+Варианты:
+- `scripts/gen-mock-news.js` → записывает `newsData.json`
+- Или генерировать прямо в `handlers.ts` через `Array.from({ length: 500 }, ...)`
 
 ---
 
-## Шаг 2: Расширить типы сервера
+## Шаг 2: Профилирование без виртуализации
 
-**Файл:** `server/src/types/news.types.ts`
-
-```typescript
-// Добавить SourceName.Rss = 'rss'
-// Удалить: SourceName.NewsApi = 'newsapi'
-// Удалить: SourceName.HackerNews = 'hackernews'
-// Добавить в NewsItem:
-//   url: string
-//   body?: string | null
-//   hasFullContent: boolean
-```
-
-**Подводный камень:** `allSourceNames = Object.values(SourceName)` автоматически включит `rss` и исключит удалённые значения.
-Клиентский `SourceName` в `transforms.types.ts` — зеркало, синхронизировать вручную.
-
-```bash
-git add server/src/types/news.types.ts
-git commit -m "feat: #52 extend NewsItem — url, body, hasFullContent; Rss added, NewsApi/HackerNews removed from enum"
-```
+React DevTools Profiler → записать рендер при скролле 500 элементов.
+Зафиксировать: среднее время фрейма, количество dropped frames.
 
 ---
 
-## Шаг 3: Удалить мёртвые адаптеры + обновить Guardian
-
-**Удалить файлы** (они всегда возвращали `hasFullContent: false` — агрегатор их отсеивал):
-```bash
-git rm server/src/services/newsApi.ts
-git rm server/src/services/hackerNewsApi.ts
-```
-
-**`newsAggregator.ts`** — убрать импорты и записи из `SOURCES`:
-```typescript
-// Удалить: import { fetchNewsApiNews } from './newsApi'
-// Удалить: import { fetchHackerNews } from './hackerNewsApi'
-// Удалить из SOURCES: { name: SourceName.NewsApi, fetch: fetchNewsApiNews }
-// Удалить из SOURCES: { name: SourceName.HackerNews, fetch: fetchHackerNews }
-```
-
-**`guardianApi.ts`** — добавить полный контент:
-```typescript
-// show-fields: 'thumbnail,trailText,byline,body'
-// GuardianFields: добавить body?: string
-// GuardianResult: добавить webUrl: string
-// map: url: item.webUrl, body: item.fields?.body ?? null, hasFullContent: Boolean(item.fields?.body)
-```
+## Шаг 3: Установить react-window
 
 ```bash
-git add server/src/services/newsAggregator.ts server/src/services/guardianApi.ts
-git commit -m "feat: #52 remove NewsAPI/HackerNews adapters; Guardian — url + body + hasFullContent"
+pnpm --filter react-happy-news-client add react-window
+pnpm --filter react-happy-news-client add -D @types/react-window
 ```
+
+Обернуть `NewsList` в `FixedSizeList` (если карточки одинаковой высоты)
+или `VariableSizeList` (если разная высота).
 
 ---
 
-## Шаг 4: rssApi.ts
+## Шаг 4: Профилирование после
 
-**Файл:** `server/src/services/rssApi.ts`
-
-```typescript
-// import Parser from 'rss-parser'
-// const RSS_FEEDS = [
-//   { url: 'https://www.positive.news/feed/', tag: 'Positive' },
-//   { url: 'https://www.goodnewsnetwork.org/feed/', tag: 'Good News' },
-// ]
-//
-// Тип кастомных полей: type CustomItem = { 'content:encoded'?: string }
-// const parser = new Parser<{}, CustomItem>({ customFields: { item: ['content:encoded'] } })
-//
-// export async function fetchRssNews(): Promise<NewsItem[]>
-//   Promise.allSettled по фидам → flatMap fulfilled
-//   parser.parseURL(feedUrl) → items
-//   id: `rss-${Buffer.from(item.link).toString('base64').slice(0, 20)}`
-//   const fullBody = item['content:encoded'] || null
-//   source: SourceName.Rss
-//   body: fullBody
-//   hasFullContent: Boolean(fullBody && fullBody.trim().length > 0)
-```
-
-```bash
-git add server/src/services/rssApi.ts
-git commit -m "feat: #52 rssApi — Positive News UK + Good News Network"
-```
-
----
-
-## Шаг 5: Зарегистрировать RSS в агрегаторе
-
-**Файл:** `server/src/services/newsAggregator.ts`
-
-```typescript
-// SOURCES: добавить { name: SourceName.Rss, fetch: fetchRssNews }
-// После Promise.allSettled + flatMap:
-//   отфильтровать: allNews.filter(item => item.hasFullContent)
-```
-
-```bash
-git add server/src/services/newsAggregator.ts
-git commit -m "feat: #52 newsAggregator — register RSS source + filter hasFullContent"
-```
-
----
-
-## Шаг 6: Обновить OpenAPI схему + регенерировать типы
-
-**`swagger/schemas.ts`:** добавить в `NewsItemSchema`:
-```typescript
-// url:            z.string().openapi({ example: 'https://www.theguardian.com/...' }),
-// body:           z.string().nullable().optional().openapi({ example: '<p>Full article...</p>' }),
-// hasFullContent: z.boolean().openapi({ example: true }),
-// source:         z.nativeEnum(SourceName) — уже включает Rss после шага 2
-```
-
-Обновить `openapi.json` вручную + пересобрать:
-```bash
-pnpm gen:openapi
-```
-
-```bash
-git add server/src/swagger/schemas.ts client/src/shared/api/openapi.json client/src/shared/api/openapi.d.ts
-git commit -m "feat: #52 OpenAPI schema — url, body, hasFullContent, rss source"
-```
-
----
-
-## Шаг 7: Клиентские изменения
-
-**`transforms.types.ts`:**
-```typescript
-// Добавить: SourceName.Rss = 'rss'
-// Удалить: SourceName.NewsApi = 'newsapi'
-// Удалить: SourceName.HackerNews = 'hackernews'
-```
-
-**`NewsDetailView.tsx`:**
-```tsx
-// Сервер гарантирует: все статьи в ответе имеют body
-// 1. Рендер тела:
-// <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(data.body!) }} />
-// 2. После тела — ссылка на оригинал:
-// <a href={data.url} target="_blank" rel="noopener noreferrer">Читать оригинал</a>
-```
-
-```bash
-git add client/src/entities/news/api/apiNews/utils/transforms.types.ts
-git add client/src/pages/NewsDetail/NewsDetailView.tsx
-git commit -m "feat: close #52 NewsDetailView — DOMPurify body render + read-original link"
-```
-
----
-
-## Шаг 8: Закрыть инкремент
-
-```bash
-# Закрыть issue
-gh issue close 52 --comment "US 2.1.7 завершён: Guardian body, RSS, DOMPurify"
-
-# Обновить CURRENT_RELEASE.md — пометить US как DONE
-# Обновить CURRENT_INCREMENT.md — переключить на следующий US
-git add docs/
-git commit -m "docs: US 2.1.7 DONE → US 2.1.8 active (#52)"
-```
+Повторить замер — убедиться в 60fps.
 
 ---
 
 ## Подводные камни
 
-- **Guardian `body` может быть `null`** — Guardian free API иногда не возвращает тело статьи. `hasFullContent: Boolean(item.fields?.body)` корректно обрабатывает этот случай — такие статьи будут отсеяны агрегатором.
-- **RSS таймаут** — внешние фиды могут отвечать медленно. `Promise.allSettled` в `fetchRssNews` изолирует сбой одного фида. Общий `Promise.allSettled` в агрегаторе изолирует сбой всего RSS-источника.
-- **DOMPurify в SSR** — у нас SPA, `window` доступен, проблем нет. При SSR нужен `isomorphic-dompurify`.
-- **`@types/dompurify` deprecated** — начиная с DOMPurify 3.x типы поставляются в самом пакете. `@types/dompurify` можно убрать, но он не мешает.
-- **`openapi.d.ts` вручную** — поскольку сервер не запущен, `gen:openapi:sync` не работает. Обновляем `openapi.json` вручную и запускаем `gen:openapi`.
+- **`react-window` требует фиксированной высоты контейнера** — нужно задать `height` в px или vh
+- **CSS Modules + виртуализация** — стили применяются к элементу, а не к контейнеру списка
+- **Infinite scroll** — если появится пагинация, `react-window` + `react-window-infinite-loader`
+- **`VariableSizeList` медленнее** `FixedSizeList` — начать с Fixed, перейти к Variable только если нужно
