@@ -23,7 +23,7 @@ const newsItemSchema = z.object({
   hasFullContent: z.boolean(),
 })
 
-const validatedMockNewsData: NewsItem[] = z.array(newsItemSchema).parse(mockNewsData)
+const validatedMockNewsData = z.array(newsItemSchema).parse(mockNewsData) as NewsItem[]
 
 // --- Seed-генератор для демонстрации виртуализации ---
 
