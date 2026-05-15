@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify'
 import { NewsBanner } from '@entities/news/NewsBanner'
 import { useGetNewsDetailQuery } from '@entities/news/api'
 import { ReadersCount } from '@features/live-readers'
@@ -27,6 +28,20 @@ export const NewsDetailView = ({ id }: NewsDetailViewProps): React.ReactNode => 
           <>
             <ReadersCount articleId={id} />
             <NewsBanner item={data} />
+            {data.body && (
+              <div
+                className="news-detail__body"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(data.body) }}
+              />
+            )}
+            <a
+              href={data.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="news-detail__original-link"
+            >
+              Читать оригинал
+            </a>
           </>
         )
       )}

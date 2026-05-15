@@ -34,17 +34,16 @@ describe('MSW handlers — регрессия URL и формат ответа',
       expect(item).toHaveProperty('tag')
     })
 
-    it('sources содержит статус для каждого из трёх источников', async () => {
+    it('sources содержит статус для каждого из двух источников', async () => {
       const res = await fetch(`${BASE_URL}/api/news`)
       const { sources } = await res.json()
 
       expect(sources).toHaveProperty(SourceName.Guardian)
-      expect(sources).toHaveProperty(SourceName.NewsApi)
-      expect(sources).toHaveProperty(SourceName.HackerNews)
+      expect(sources).toHaveProperty(SourceName.Rss)
     })
 
     it('принимает query-параметр ?sources= без ошибки', async () => {
-      const res = await fetch(`${BASE_URL}/api/news?sources=guardian,newsapi`)
+      const res = await fetch(`${BASE_URL}/api/news?sources=guardian,rss`)
       expect(res.ok).toBe(true)
     })
   })
