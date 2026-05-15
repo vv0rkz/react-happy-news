@@ -9,12 +9,13 @@
 
 - [ ] `NewsItem` расширен: `url: string`, `body?: string | null`, `hasFullContent: boolean`
 - [ ] `guardianApi.ts`: `show-fields` включает `body`, маппинг `url` и `hasFullContent`
-- [ ] `newsApi.ts` и `hackerNewsApi.ts`: маппинг `url`, `body: null`, `hasFullContent: false`
-- [ ] `rss-parser` установлен, `rssApi.ts` парсит Positive News UK + Good News Network
+- [ ] `newsApi.ts` и `hackerNewsApi.ts` **удалены**; `SourceName.NewsApi` и `SourceName.HackerNews` удалены из серверного enum и из клиентского `transforms.types.ts`
+- [ ] `rss-parser` установлен, `rssApi.ts` парсит Positive News UK + Good News Network; `content:encoded` → `body`, `hasFullContent: true`
 - [ ] `SourceName.Rss` добавлен, RSS зарегистрирован в `SOURCES`
+- [ ] `newsAggregator.ts`: после агрегации отфильтровываются статьи с `hasFullContent === false`
 - [ ] OpenAPI схема обновлена, `openapi.d.ts` пересобран
 - [ ] Клиентский `SourceName` в `transforms.types.ts` содержит `Rss`
-- [ ] `NewsDetailView`: Guardian → рендер HTML через DOMPurify, остальные → "Читать оригинал"
+- [ ] `NewsDetailView`: рендер HTML через DOMPurify + ссылка на оригинал в конце (`url`)
 
 ---
 
@@ -24,23 +25,33 @@
 Сейчас:
   NewsDetail → показывает только title, description, image
   Guardian body недоступен
-  Нет ссылки на оригинал
   Нет RSS-источников
 
 После:
-  Guardian: body приходит с сервера → DOMPurify.sanitize(body) → dangerouslySetInnerHTML
-  NewsAPI / HackerNews / RSS: hasFullContent = false → кнопка "Читать оригинал" → открывает url
+  Сервер агрегирует все источники → отфильтровывает статьи где hasFullContent === false
+  Клиент получает только статьи с полным телом → рендерит body через DOMPurify
+  После тела — ссылка "Читать оригинал" → data.url (для тех, кто хочет первоисточник)
+  Guardian: body из show-fields API → hasFullContent: true
+  RSS: content:encoded из фида → hasFullContent: true; без content:encoded → отсеивается
+  NewsAPI / HackerNews: удалены из кодовой базы — не могут обеспечить полный контент
   RSS: два новых источника (Positive News UK + Good News Network)
 ```
 
+**Почему фильтрация на сервере, а не ветвление в UI:**
+Клиент не должен знать об ограничениях источников. Агрегатор — это контракт:
+"я отдаю только полные статьи". Если источник не может выполнить контракт — он
+отсеивается на сервере. Завтра NewsAPI введёт платный full-content — достаточно
+убрать `hasFullContent: false` в адаптере, клиент не меняется.
+
 **Почему DOMPurify:**
-Guardian возвращает HTML-разметку (`<p>`, `<b>`, `<a>`, `<figure>`). Вставлять через
+Guardian и RSS возвращают HTML-разметку (`<p>`, `<b>`, `<a>`, `<figure>`). Вставлять через
 `dangerouslySetInnerHTML` без очистки — XSS-уязвимость. DOMPurify удаляет
 `<script>`, `onerror=`, `javascript:href` и другие опасные конструкции.
 
 **Почему `hasFullContent`, а не проверка `body != null`:**
-Явный флаг понятнее при рендере условий в компоненте. RSS в будущем может
-добавить `body` (content:encoded) — изменить один флаг проще чем трогать логику рендера.
+Явный флаг — это намерение адаптера, а не артефакт данных. RSS-фид может прислать
+пустой `content:encoded` — `body` будет строкой `""`, но `hasFullContent` останется `false`.
+Флаг отражает семантику источника, а не наличие байт.
 
 ---
 
@@ -56,11 +67,11 @@ Guardian возвращает HTML-разметку (`<p>`, `<b>`, `<a>`, `<figu
 ```
 server/src/
 ├── types/
-│   └── news.types.ts          ← ИЗМЕНИТЬ: url, body, hasFullContent + SourceName.Rss
+│   └── news.types.ts          ← ИЗМЕНИТЬ: url, body, hasFullContent + SourceName.Rss; удалить NewsApi, HackerNews из enum
 ├── services/
 │   ├── guardianApi.ts         ← ИЗМЕНИТЬ: show-fields body + webUrl
-│   ├── newsApi.ts             ← ИЗМЕНИТЬ: url, body: null, hasFullContent: false
-│   ├── hackerNewsApi.ts       ← ИЗМЕНИТЬ: url, body: null, hasFullContent: false
+│   ├── newsApi.ts             ← УДАЛИТЬ
+│   ├── hackerNewsApi.ts       ← УДАЛИТЬ
 │   └── rssApi.ts              ← НОВЫЙ: rss-parser, два фида
 ├── swagger/
 │   └── schemas.ts             ← ИЗМЕНИТЬ: новые поля + rss в enum
@@ -72,7 +83,7 @@ client/src/
 │   ├── openapi.json           ← ОБНОВИТЬ: новые поля NewsItem
 │   └── openapi.d.ts          ← РЕГЕНЕРИРОВАТЬ: pnpm gen:openapi
 ├── entities/news/api/apiNews/utils/
-│   └── transforms.types.ts   ← ИЗМЕНИТЬ: SourceName.Rss
+│   └── transforms.types.ts   ← ИЗМЕНИТЬ: добавить SourceName.Rss; удалить NewsApi, HackerNews
 └── pages/NewsDetail/
     └── NewsDetailView.tsx     ← ИЗМЕНИТЬ: body рендер + "Читать оригинал"
 ```
@@ -100,25 +111,41 @@ git commit -m "build: #52 install rss-parser + dompurify"
 
 ```typescript
 // Добавить SourceName.Rss = 'rss'
+// Удалить: SourceName.NewsApi = 'newsapi'
+// Удалить: SourceName.HackerNews = 'hackernews'
 // Добавить в NewsItem:
 //   url: string
 //   body?: string | null
 //   hasFullContent: boolean
 ```
 
-**Подводный камень:** `allSourceNames = Object.values(SourceName)` автоматически включит `rss`.
-Клиентский `SourceName` в `transforms.types.ts` — зеркало, добавить вручную.
+**Подводный камень:** `allSourceNames = Object.values(SourceName)` автоматически включит `rss` и исключит удалённые значения.
+Клиентский `SourceName` в `transforms.types.ts` — зеркало, синхронизировать вручную.
 
 ```bash
 git add server/src/types/news.types.ts
-git commit -m "feat: #52 extend NewsItem — url, body, hasFullContent + SourceName.Rss"
+git commit -m "feat: #52 extend NewsItem — url, body, hasFullContent; Rss added, NewsApi/HackerNews removed from enum"
 ```
 
 ---
 
-## Шаг 3: Обновить API-адаптеры
+## Шаг 3: Удалить мёртвые адаптеры + обновить Guardian
 
-**`guardianApi.ts`:**
+**Удалить файлы** (они всегда возвращали `hasFullContent: false` — агрегатор их отсеивал):
+```bash
+git rm server/src/services/newsApi.ts
+git rm server/src/services/hackerNewsApi.ts
+```
+
+**`newsAggregator.ts`** — убрать импорты и записи из `SOURCES`:
+```typescript
+// Удалить: import { fetchNewsApiNews } from './newsApi'
+// Удалить: import { fetchHackerNews } from './hackerNewsApi'
+// Удалить из SOURCES: { name: SourceName.NewsApi, fetch: fetchNewsApiNews }
+// Удалить из SOURCES: { name: SourceName.HackerNews, fetch: fetchHackerNews }
+```
+
+**`guardianApi.ts`** — добавить полный контент:
 ```typescript
 // show-fields: 'thumbnail,trailText,byline,body'
 // GuardianFields: добавить body?: string
@@ -126,16 +153,9 @@ git commit -m "feat: #52 extend NewsItem — url, body, hasFullContent + SourceN
 // map: url: item.webUrl, body: item.fields?.body ?? null, hasFullContent: Boolean(item.fields?.body)
 ```
 
-**`newsApi.ts`** и **`hackerNewsApi.ts`:**
-```typescript
-// url: article.url (newsapi) / item.url ?? `https://news.ycombinator.com/item?id=${item.id}` (hn)
-// body: null
-// hasFullContent: false
-```
-
 ```bash
-git add server/src/services/guardianApi.ts server/src/services/newsApi.ts server/src/services/hackerNewsApi.ts
-git commit -m "feat: #52 API adapters — url + body + hasFullContent"
+git add server/src/services/newsAggregator.ts server/src/services/guardianApi.ts
+git commit -m "feat: #52 remove NewsAPI/HackerNews adapters; Guardian — url + body + hasFullContent"
 ```
 
 ---
@@ -151,11 +171,17 @@ git commit -m "feat: #52 API adapters — url + body + hasFullContent"
 //   { url: 'https://www.goodnewsnetwork.org/feed/', tag: 'Good News' },
 // ]
 //
+// Тип кастомных полей: type CustomItem = { 'content:encoded'?: string }
+// const parser = new Parser<{}, CustomItem>({ customFields: { item: ['content:encoded'] } })
+//
 // export async function fetchRssNews(): Promise<NewsItem[]>
 //   Promise.allSettled по фидам → flatMap fulfilled
 //   parser.parseURL(feedUrl) → items
 //   id: `rss-${Buffer.from(item.link).toString('base64').slice(0, 20)}`
-//   source: SourceName.Rss, hasFullContent: false, body: null
+//   const fullBody = item['content:encoded'] || null
+//   source: SourceName.Rss
+//   body: fullBody
+//   hasFullContent: Boolean(fullBody && fullBody.trim().length > 0)
 ```
 
 ```bash
@@ -170,13 +196,14 @@ git commit -m "feat: #52 rssApi — Positive News UK + Good News Network"
 **Файл:** `server/src/services/newsAggregator.ts`
 
 ```typescript
-// import { fetchRssNews } from './rssApi'
 // SOURCES: добавить { name: SourceName.Rss, fetch: fetchRssNews }
+// После Promise.allSettled + flatMap:
+//   отфильтровать: allNews.filter(item => item.hasFullContent)
 ```
 
 ```bash
 git add server/src/services/newsAggregator.ts
-git commit -m "feat: #52 newsAggregator — register RSS source"
+git commit -m "feat: #52 newsAggregator — register RSS source + filter hasFullContent"
 ```
 
 ---
@@ -207,15 +234,18 @@ git commit -m "feat: #52 OpenAPI schema — url, body, hasFullContent, rss sourc
 
 **`transforms.types.ts`:**
 ```typescript
-// SourceName.Rss = 'rss'
+// Добавить: SourceName.Rss = 'rss'
+// Удалить: SourceName.NewsApi = 'newsapi'
+// Удалить: SourceName.HackerNews = 'hackernews'
 ```
 
 **`NewsDetailView.tsx`:**
 ```tsx
-// if (data.hasFullContent && data.body) {
-//   return <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(data.body) }} />
-// }
-// return <a href={data.url} target="_blank" rel="noopener noreferrer">Читать оригинал</a>
+// Сервер гарантирует: все статьи в ответе имеют body
+// 1. Рендер тела:
+// <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(data.body!) }} />
+// 2. После тела — ссылка на оригинал:
+// <a href={data.url} target="_blank" rel="noopener noreferrer">Читать оригинал</a>
 ```
 
 ```bash
@@ -242,7 +272,7 @@ git commit -m "docs: US 2.1.7 DONE → US 2.1.8 active (#52)"
 
 ## Подводные камни
 
-- **Guardian `body` может быть `null`** — Guardian free API иногда не возвращает тело статьи. `hasFullContent: Boolean(item.fields?.body)` корректно обрабатывает этот случай.
+- **Guardian `body` может быть `null`** — Guardian free API иногда не возвращает тело статьи. `hasFullContent: Boolean(item.fields?.body)` корректно обрабатывает этот случай — такие статьи будут отсеяны агрегатором.
 - **RSS таймаут** — внешние фиды могут отвечать медленно. `Promise.allSettled` в `fetchRssNews` изолирует сбой одного фида. Общий `Promise.allSettled` в агрегаторе изолирует сбой всего RSS-источника.
 - **DOMPurify в SSR** — у нас SPA, `window` доступен, проблем нет. При SSR нужен `isomorphic-dompurify`.
 - **`@types/dompurify` deprecated** — начиная с DOMPurify 3.x типы поставляются в самом пакете. `@types/dompurify` можно убрать, но он не мешает.

@@ -33,6 +33,8 @@
 | Backend-агрегация                 | ✅ Работает | 3 API → единый формат → позитивный фильтр → кэш           |
 | Детальная страница новости        | ⚠️ Частично | Работает через MSW, на бэке нет `GET /api/news/:id`       |
 | **Выбор источников (API filter)** | 🔴 Нет UI   | Backend возвращает `source` в каждой новости, UI не готов |
+| **Монетизация / Подписки**        | 🔴 Не начато | Заложено в v2.6 (Stripe + ЮKassa, Premium tier)          |
+| **Русская локализация + AI-перевод** | 🔴 Не начато | Заложено в v2.7 (i18n + LLM-перевод статей)           |
 
 ### Главная проблема
 
@@ -65,19 +67,23 @@ Backend уже агрегирует новости из 3 источников, 
 
 **Killer Feature — "Positivity Stream":** живой трекер позитивности. Пользователь видит сколько людей читает ту же статью (SSE), выражает реакцию 😊❤️🌟 и видит реакции других в реальном времени (WebSocket). Счётчик "сегодня X% новостей — позитивные" обновляется в реальном времени (GraphQL).
 
+**Monetization Layer (v2.6 → v2.7):** на базе аккаунта (v2.3) выстраивается Premium-tier с двумя провайдерами (Stripe для международной аудитории, ЮKassa для РФ). Premium-фичи: AI-перевод англоязычных статей на русский без лимитов, расширенные AI-резюме, "похожие позитивные новости" через embeddings. Архитектура: `PaymentProvider` (Strategy pattern) + webhooks с HMAC-проверкой + entitlements middleware.
+
 ---
 
 ## Обзор релизов
 
-| Релиз     | Название            | Ключевые фичи для пользователя                                     | Срок           |
-| --------- | ------------------- | ------------------------------------------------------------------ | -------------- |
-| **v2.0**  | Multi-Source News   | Выбор источников, source badges, детальная страница, feedback      | 4–5 дн.        |
-| **v2.1**  | Positivity Stream   | Счётчик читателей (SSE), health-индикатор, продвинутый поиск       | 3–4 дн.        |
-| **v2.2**  | Social & Engagement | Live-реакции (WS), топ реакций, share                              | 3–4 дн.        |
-| **v2.3**  | Персонализация      | Аккаунт, закладки, Positivity Tracker, streak, тёмная тема         | 4–5 дн.        |
-| **v2.4**  | Analytics           | Дашборд позитивности, графики, Protocol Comparison                 | 3–4 дн.        |
-| **v2.5**  | Production          | Accessibility, Docker, CI/CD, performance audit                    | 3–4 дн.        |
-| **ИТОГО** |                     |                                                                    | **~20–26 дн.** |
+| Релиз     | Название               | Ключевые фичи для пользователя                                                | Срок           |
+| --------- | ---------------------- | ----------------------------------------------------------------------------- | -------------- |
+| **v2.0**  | Multi-Source News      | Выбор источников, source badges, детальная страница, feedback                 | 4–5 дн.        |
+| **v2.1**  | Positivity Stream      | Счётчик читателей (SSE), health-индикатор, продвинутый поиск                  | 3–4 дн.        |
+| **v2.2**  | Social & Engagement    | Live-реакции (WS), топ реакций, share                                         | 3–4 дн.        |
+| **v2.3**  | Персонализация         | Аккаунт, закладки, Positivity Tracker, streak, тёмная тема                    | 4–5 дн.        |
+| **v2.4**  | Analytics              | Дашборд позитивности, графики, Protocol Comparison                            | 3–4 дн.        |
+| **v2.5**  | Production             | Accessibility, Docker, CI/CD, performance audit                               | 3–4 дн.        |
+| **v2.6**  | Monetization           | Stripe + ЮKassa, Premium-подписка, pay-per-action, billing portal             | 5–7 дн.        |
+| **v2.7**  | Translation & AI Premium | i18n (RU), AI-перевод статей, AI-резюме без лимитов, embeddings (похожее)   | 4–6 дн.        |
+| **ИТОГО** |                        |                                                                               | **~29–39 дн.** |
 
 ---
 
@@ -1579,6 +1585,607 @@ react-happy-news/
 
 ---
 
+# RELEASE v2.6 — Monetization
+
+> Пользователь оплачивает Premium-подписку или разовое действие через Stripe (международный) или ЮKassa (РФ). Backend выдаёт права (entitlements) после webhook от провайдера. Premium открывает AI-перевод статей и расширенные фичи, описанные в v2.7.
+
+## Зависит от
+
+- **v2.3 Auth** — нужен `userId` для привязки подписок и транзакций
+- **v2.1.6 SQLite** — таблицы `subscriptions`, `transactions`, `payment_events`, `entitlements`
+- **v2.5 Production** — webhook callback требует HTTPS-домена в проде (в dev — Stripe CLI tunnel)
+- **v2.4.4 AI Summary** — становится первой реальной Premium-фичей
+
+## Фичи v2.6
+
+### F2.6.1: PaymentProvider абстракция (Strategy Pattern)
+
+**Что получает разработчик:**
+
+- Единый интерфейс над Stripe + ЮKassa: `createCheckout`, `cancelSubscription`, `getSubscriptionStatus`, `verifyWebhook`
+- Frontend не знает, какой провайдер используется — выбор через `region` пользователя
+- Завтра добавится третий провайдер (Tinkoff, PayPal) — реализуется один файл, остальной код не меняется
+
+**Что нужно сделать:**
+
+| Сторона | Задача                                                                |
+| ------- | --------------------------------------------------------------------- |
+| Backend | `payments/providers/PaymentProvider.ts` — абстрактный интерфейс       |
+| Backend | `payments/subscriptionService.ts` — бизнес-логика поверх провайдеров  |
+| Backend | Выбор провайдера по `user.region` или явному параметру                |
+
+### F2.6.2: ЮKassa интеграция (приоритет — RU-аудитория)
+
+**Что видит пользователь:**
+
+- Кнопка "Оформить Premium" на странице `/pricing`
+- Redirect на платёжную страницу ЮKassa
+- После оплаты — возврат на `/billing/success` с обновлённым статусом подписки
+
+**Что нужно сделать:**
+
+| Сторона  | Задача                                                                  |
+| -------- | ----------------------------------------------------------------------- |
+| Backend  | `@a2seven/yoo-checkout` SDK; тест-магазин ЮKassa (бесплатно, без оферты) |
+| Backend  | `yookassaProvider.ts` реализует `PaymentProvider`                       |
+| Backend  | Webhook `/api/webhooks/yookassa` с проверкой подписи (HMAC-SHA1)        |
+| Frontend | Redirect flow через `window.location` на `confirmation_url` ЮKassa     |
+
+### F2.6.3: Stripe интеграция (международная аудитория)
+
+**Что видит пользователь:**
+
+- На странице `/pricing` для не-RU регионов — Stripe Elements (embedded форма карты)
+- Прямо на странице вводит данные карты, без редиректа
+- Использует тестовую карту `4242 4242 4242 4242` в dev
+
+**Что нужно сделать:**
+
+| Сторона  | Задача                                                                       |
+| -------- | ---------------------------------------------------------------------------- |
+| Backend  | `stripe` SDK (Node)                                                          |
+| Backend  | `stripeProvider.ts` реализует `PaymentProvider`                              |
+| Backend  | Webhook `/api/webhooks/stripe` с проверкой `stripe-signature` header         |
+| Backend  | Stripe CLI для туннеля в dev: `stripe listen --forward-to localhost:3001/...` |
+| Frontend | `@stripe/react-stripe-js` + `@stripe/stripe-js` — Stripe Elements            |
+
+### F2.6.4: Subscription model + Feature Gating
+
+**Что получает разработчик:**
+
+- Backend middleware `requirePremium('feature_key')` — 403, если нет права
+- Frontend hook `usePaywall('feature_key')` — рендерит UI с paywall вместо контента
+- Понятная модель: `subscription.status` определяет, какие `entitlements` активны
+
+**Что нужно сделать:**
+
+| Сторона  | Задача                                                                             |
+| -------- | ---------------------------------------------------------------------------------- |
+| Backend  | Таблица `subscriptions (user_id, provider, plan, status, expires_at, external_id)` |
+| Backend  | Таблица `entitlements (user_id, feature, granted_at, source)`                      |
+| Backend  | Webhook handler обновляет `subscriptions` → пересчитывает `entitlements`           |
+| Backend  | Middleware `requirePremium(feature)` — проверка по `entitlements`                  |
+| Frontend | `useSubscription()` — глобальный hook со статусом                                  |
+| Frontend | `<PaywallModal feature="..." />` — гейт перед Premium-контентом                    |
+
+### F2.6.5: Pay-per-action (one-shot платежи)
+
+**Что видит пользователь:**
+
+- На детальной странице английской статьи — кнопка "Перевести на русский за 30₽"
+- При клике — модалка с выбором: "Оплатить разово" или "Получить Premium (без лимитов)"
+- После одноразовой оплаты — `entitlements` получает запись `translate:articleId` (single-use)
+
+**Что нужно сделать:**
+
+- Использует те же `PaymentProvider`, но без `subscription_id` — обычный payment
+- Backend помечает `entitlement.source = 'one_shot'` и `expires_at = NULL`
+- Frontend: единый `<PaywallModal>` поддерживает оба варианта
+
+### F2.6.6: Billing UI (Pricing + Personal Billing)
+
+**Что видит пользователь:**
+
+- `/pricing` — три тарифа: Free / Premium (399₽/мес) / Translation Pack (одноразово)
+- `/billing` — текущий статус, история платежей, "Отменить подписку"
+- При смене статуса (webhook → SSE push) — toast "Premium активирован" / "Подписка отменена"
+
+**Что нужно сделать:**
+
+| Сторона  | Задача                                                          |
+| -------- | --------------------------------------------------------------- |
+| Backend  | `GET /api/billing/subscription` — текущий статус               |
+| Backend  | `GET /api/billing/transactions` — история платежей             |
+| Backend  | `POST /api/billing/cancel` — отмена recurring подписки         |
+| Backend  | SSE push в комнату пользователя при изменении подписки         |
+| Frontend | Страницы `Pricing.tsx` + `Billing.tsx`                         |
+| Frontend | `useSubscription()` подписывается на SSE для live-обновлений   |
+
+### F2.6.7: Reconciliation cron + Audit Log
+
+**Что получает разработчик:**
+
+- `node-cron` каждый час сверяет локальные `subscriptions.status` с провайдером
+- Защита от пропущенных webhook (сетевой сбой, рестарт сервера в момент webhook)
+- Все финансовые операции пишутся в `payment_events` (immutable audit log)
+
+**Что нужно сделать:**
+
+- `reconciliation.ts` — cron job, для каждой active subscription зовёт `provider.getSubscriptionStatus()`
+- Если расхождение → обновить локальную БД + alert в Sentry
+- `payment_events (id, user_id, provider, event_type, payload, created_at)` — append-only
+
+## User Stories v2.6
+
+### US 2.6.1: PaymentProvider абстракция
+
+**Как** разработчик
+**Я хочу** единый интерфейс для всех платёжных провайдеров
+**Чтобы** добавление третьего провайдера занимало 1 файл
+
+**Acceptance Criteria:**
+
+- [ ] `PaymentProvider` interface с методами `createCheckout`, `cancelSubscription`, `getSubscriptionStatus`, `verifyWebhook`
+- [ ] `subscriptionService.ts` зависит от интерфейса, не от конкретных провайдеров
+- [ ] Выбор провайдера по `user.region` (RU → ЮKassa, остальные → Stripe)
+- [ ] Юнит-тесты с mock-провайдером
+
+### US 2.6.2: ЮKassa интеграция (test mode)
+
+**Как** российский пользователь
+**Я хочу** оплатить подписку через ЮKassa
+**Чтобы** воспользоваться Premium
+
+**Acceptance Criteria:**
+
+- [ ] `@a2seven/yoo-checkout` установлен, тестовый магазин подключён
+- [ ] `yookassaProvider.ts` реализует `PaymentProvider`
+- [ ] `POST /api/billing/checkout?provider=yookassa` → возвращает `confirmation_url`
+- [ ] Тестовая оплата проходит на тестовых картах ЮKassa
+- [ ] После оплаты → redirect на `/billing/success` с обновлённым статусом
+
+### US 2.6.3: Stripe интеграция (test mode)
+
+**Как** международный пользователь
+**Я хочу** оплатить картой через Stripe Elements
+**Чтобы** не покидать сайт во время оплаты
+
+**Acceptance Criteria:**
+
+- [ ] `stripe` (server) + `@stripe/react-stripe-js` (client) установлены
+- [ ] `stripeProvider.ts` реализует `PaymentProvider`
+- [ ] Stripe Elements встроены на `/pricing` (PCI-safe — данные карты не доходят до нашего сервера)
+- [ ] Тестовая оплата через `4242 4242 4242 4242`
+- [ ] Stripe CLI tunneling настроен в `pnpm dev:server` (документация в README)
+
+### US 2.6.4: Webhook endpoints + HMAC + Idempotency
+
+**Как** разработчик
+**Я хочу** надёжно обрабатывать webhook от провайдеров
+**Чтобы** платёжный статус всегда был корректным
+
+**Acceptance Criteria:**
+
+- [ ] `/api/webhooks/stripe` — проверка `stripe-signature` через HMAC-SHA256
+- [ ] `/api/webhooks/yookassa` — проверка подписи через HMAC-SHA1
+- [ ] Idempotency: каждый webhook имеет `event_id`, повторные вызовы не дублируют записи
+- [ ] Webhook возвращает 200 даже при no-op (provider будет ретраить при 5xx)
+- [ ] Все webhook-события сохраняются в `payment_events` для аудита
+
+### US 2.6.5: Subscription DB schema + entitlements
+
+**Как** разработчик
+**Я хочу** прозрачную модель подписок и прав
+**Чтобы** легко проверять "что доступно пользователю"
+
+**Acceptance Criteria:**
+
+- [ ] Таблица `subscriptions (id, user_id, provider, plan, status, started_at, expires_at, external_id)`
+- [ ] Таблица `entitlements (id, user_id, feature, source, expires_at)` — single source of truth
+- [ ] Webhook handler обновляет `subscriptions` → пересчитывает `entitlements`
+- [ ] Middleware `requirePremium('feature_key')` — 403 если нет в `entitlements`
+
+### US 2.6.6: Premium feature gating (UI + Backend)
+
+**Как** Free-пользователь
+**Я хочу** понимать, какие фичи доступны только в Premium
+**Чтобы** осознанно решить про подписку
+
+**Acceptance Criteria:**
+
+- [ ] `<PaywallModal feature="..." />` — компонент с заголовком, описанием Premium и CTA
+- [ ] `usePaywall(feature)` — возвращает `{ hasAccess, openPaywall }`
+- [ ] Premium-фичи в UI отмечены бейджем "Premium"
+- [ ] Бэкенд возвращает 403 с `{ reason: 'premium_required', feature }`
+- [ ] Frontend интерсептор: 403 + `premium_required` → автоматическое открытие paywall
+
+### US 2.6.7: Pay-per-action flow
+
+**Как** Free-пользователь
+**Я хочу** разово купить одну фичу
+**Чтобы** не оформлять подписку ради одной статьи
+
+**Acceptance Criteria:**
+
+- [ ] `POST /api/billing/checkout?type=one_shot&action=translate&target_id=...`
+- [ ] `entitlement.source = 'one_shot'`, привязан к конкретному `target_id`
+- [ ] После использования (single-use) — `entitlement` помечается `consumed_at`
+- [ ] PaywallModal показывает оба варианта: "Premium" и "Разово за 30₽"
+
+### US 2.6.8: Billing portal UI
+
+**Как** пользователь
+**Я хочу** видеть статус подписки и историю платежей
+**Чтобы** управлять своим аккаунтом
+
+**Acceptance Criteria:**
+
+- [ ] Страница `/pricing` — три тарифа с CTA-кнопками
+- [ ] Страница `/billing` — статус подписки, дата следующего списания, история платежей
+- [ ] Кнопка "Отменить подписку" → confirm-модалка → `POST /api/billing/cancel`
+- [ ] При отмене — подписка работает до `expires_at`, потом auto-downgrade на Free
+- [ ] Toast при изменении статуса (через SSE-канал)
+
+### US 2.6.9: Reconciliation cron + Audit Log
+
+**Как** разработчик
+**Я хочу** автоматическую сверку статусов с провайдером
+**Чтобы** пропущенные webhook не оставляли rогами консистентность
+
+**Acceptance Criteria:**
+
+- [ ] `node-cron` запускает `reconciliation.ts` каждый час
+- [ ] Для каждой active subscription — вызов `provider.getSubscriptionStatus(externalId)`
+- [ ] При расхождении → `subscriptions` обновляется + Sentry alert
+- [ ] Все финансовые события пишутся в `payment_events` (append-only, immutable)
+
+### US 2.6.10: E2E тестирование платежей
+
+**Как** разработчик
+**Я хочу** автотесты на платёжный flow
+**Чтобы** регрессии в billing не доходили до прода
+
+**Acceptance Criteria:**
+
+- [ ] Playwright тест: Free → click "Buy Premium" → Stripe test card → entitlement granted
+- [ ] Playwright тест: Premium → cancel → status === 'canceled' → expires_at в будущем
+- [ ] Тест webhook idempotency: повторный POST с тем же event_id → no-op
+- [ ] Документация: чек-лист для ручного теста перед production-запуском
+
+## Архитектура v2.6
+
+```
+server/src/
+├── payments/
+│   ├── providers/
+│   │   ├── PaymentProvider.ts        ← интерфейс (Strategy)
+│   │   ├── stripeProvider.ts
+│   │   └── yookassaProvider.ts
+│   ├── webhookHandlers/
+│   │   ├── stripeWebhook.ts          ← подпись, idempotency
+│   │   └── yookassaWebhook.ts
+│   ├── subscriptionService.ts        ← бизнес-логика
+│   └── reconciliation.ts             ← node-cron
+├── routes/
+│   ├── billing.routes.ts             ← POST /checkout, GET /subscription, POST /cancel
+│   └── webhooks.routes.ts            ← /webhooks/stripe, /webhooks/yookassa
+├── middleware/
+│   └── requirePremium.ts
+└── db/
+    └── schema.ts                     ← + subscriptions, entitlements, payment_events
+
+client/src/
+├── features/
+│   ├── billing/
+│   │   ├── usePaywall.ts
+│   │   ├── PaywallModal.tsx
+│   │   ├── PremiumBadge.tsx
+│   │   └── index.ts
+│   └── subscription/
+│       ├── useSubscription.ts
+│       └── ManageSubscription.tsx
+└── pages/
+    ├── Pricing/Pricing.tsx           ← тарифы
+    └── Billing/Billing.tsx           ← кабинет: статус, история, отмена
+```
+
+## Стек v2.6
+
+| Компонент             | Технология                                            |
+| --------------------- | ----------------------------------------------------- |
+| Stripe (server)       | `stripe`                                              |
+| Stripe (client)       | `@stripe/stripe-js` + `@stripe/react-stripe-js`       |
+| ЮKassa (server)       | `@a2seven/yoo-checkout`                               |
+| Reconciliation        | `node-cron`                                           |
+| HMAC                  | Native `crypto` (SHA256 для Stripe, SHA1 для ЮKassa)  |
+| Webhook tunnel (dev)  | Stripe CLI                                            |
+| E2E тесты             | Playwright (sandbox cards)                            |
+
+## Закрываемые темы v2.6
+
+<details>
+<summary>Backend: 9 новых тем</summary>
+
+| #     | Тема                          | Как закрывается                                      |
+| ----- | ----------------------------- | ---------------------------------------------------- |
+| Q91   | Webhooks: signature           | HMAC-SHA256 (Stripe), HMAC-SHA1 (ЮKassa)             |
+| Q92   | Idempotency keys              | `Stripe-Idempotency-Key`, дедупликация по `event_id` |
+| Q93   | Strategy Pattern на бэке      | `PaymentProvider` interface + 2 реализации           |
+| Q94   | Recurring billing             | Subscription lifecycle: trial → active → canceled    |
+| Q95   | Sandbox vs Production         | Stripe test mode, ЮKassa тест-магазин                |
+| Q96   | Reconciliation pattern        | Eventually consistent: cron + diff с провайдером     |
+| Q97   | Audit logging                 | `payment_events` — append-only, immutable            |
+| Q98   | PCI compliance basics         | Никогда не храним номер карты — только токен         |
+| Q99   | Webhook retry policy          | Provider ретраит при 5xx, 200 на дубликаты           |
+
+</details>
+
+<details>
+<summary>Frontend: 6 новых тем</summary>
+
+| #     | Тема                          | Как закрывается                                  |
+| ----- | ----------------------------- | ------------------------------------------------ |
+| FQ81  | Stripe Elements               | PCI-safe input fields, embedded checkout         |
+| FQ82  | Redirect vs embedded checkout | ЮKassa redirect, Stripe embedded                 |
+| FQ83  | Paywall UI patterns           | Modal, blur-overlay, teaser-режим                |
+| FQ84  | Optimistic UI на платежах     | Pending → success/failure через SSE              |
+| FQ85  | Subscription state            | Глобальный hook + SSE подписка на изменения      |
+| FQ86  | Client-side feature flags     | `useEntitlements()` + lazy refetch при mutation  |
+
+</details>
+
+**Оценка: 5–7 дней**
+
+---
+
+# RELEASE v2.7 — Translation & AI Premium
+
+> Англоязычные позитивные новости становятся доступны русскоязычной аудитории. Premium открывает AI-перевод статей без лимитов, расширенные AI-резюме и блок "похожие позитивные новости" через embeddings. Free-пользователи могут разово купить перевод одной статьи через pay-per-action из v2.6.
+
+## Зависит от
+
+- **v2.6 Monetization** — для feature gating Premium-фич и pay-per-action
+- **v2.4.4 AI Summary** — расширяется с лимита "3 в день" до "без лимитов в Premium"
+- **v2.1.6 SQLite** — таблицы `translations`, `embeddings`, `ai_usage_log`
+
+## Фичи v2.7
+
+### F2.7.1: i18n инфраструктура
+
+**Что видит пользователь:**
+
+- Переключатель языка в Header: 🇬🇧 EN / 🇷🇺 RU
+- При выборе RU — весь UI переводится на русский
+- Выбор сохраняется в localStorage и применяется при следующем визите
+
+**Что нужно сделать:**
+
+| Сторона  | Задача                                                          |
+| -------- | --------------------------------------------------------------- |
+| Frontend | `react-i18next` + `i18next-browser-languagedetector`            |
+| Frontend | `client/src/shared/i18n/locales/{en,ru}.json` — все строки UI   |
+| Frontend | `LanguageSwitcher` в Header                                     |
+| Frontend | Persist в localStorage + URL-параметр `?lang=ru` (опционально)  |
+
+### F2.7.2: AI-перевод статей на русский (Premium / Pay-per-action)
+
+**Что видит пользователь:**
+
+- На детальной странице английской статьи — toggle "Original | На русском"
+- Free tier: модалка "Перевести разово за 30₽ или оформить Premium (без лимитов)"
+- Premium tier: один клик → перевод появляется
+- Перевод подгружается прогрессивно (streaming), есть skeleton
+
+**Что нужно сделать:**
+
+| Сторона  | Задача                                                                          |
+| -------- | ------------------------------------------------------------------------------- |
+| Backend  | `translationService.ts` — вызов OpenAI gpt-4o-mini                              |
+| Backend  | Кэш в SQLite по ключу `(articleId, targetLang)` — повторный перевод бесплатный  |
+| Backend  | `POST /api/ai/translate` — `requirePremium('translate')` ИЛИ entitlement по `targetId` |
+| Backend  | Streaming ответ через SSE (опционально для UX)                                  |
+| Frontend | `useArticleTranslation(articleId)` — хук с loading/data/error                   |
+| Frontend | `<TranslationToggle>` — переключатель Original/Russian                          |
+| Frontend | Skeleton + прогрессивный рендер при streaming                                   |
+
+### F2.7.3: AI Summary без лимитов (Premium gate)
+
+**Что видит пользователь:**
+
+- US 2.4.4 даёт 3 AI-резюме в день для Free
+- В v2.7: для Premium — без лимитов; в Free после 3 — paywall
+- Бейдж "✨ AI-резюме" с дополнительной отметкой "Unlimited" в Premium
+
+**Что нужно сделать:**
+
+- Расширение middleware `requirePremium('ai_summary_unlimited')` поверх US 2.4.4
+- Free лимит хранится в `ai_usage_log (user_id, feature, count, reset_at)`
+- Frontend: при достижении лимита → `<PaywallModal feature="ai_summary_unlimited" />`
+
+### F2.7.4: Похожие новости через embeddings
+
+**Что видит пользователь:**
+
+- На детальной странице — блок "Похожие позитивные новости" (3-5 карточек)
+- Free tier: 3 запроса в день; Premium — без лимита
+- Релевантность ощутимо выше, чем по `tag` — embeddings ловят семантику
+
+**Что нужно сделать:**
+
+| Сторона  | Задача                                                                          |
+| -------- | ------------------------------------------------------------------------------- |
+| Backend  | При `upsertMany` — параллельно создавать embedding (OpenAI `text-embedding-3-small`) |
+| Backend  | Хранить в SQLite как `vector BLOB` (бинарный массив floats)                     |
+| Backend  | `embeddingService.findSimilar(articleId, limit)` — cosine similarity native     |
+| Backend  | `GET /api/ai/similar?articleId=` — Free лимит + Premium-gate                    |
+| Frontend | Блок `<SimilarNews articleId={id} />` под телом статьи                          |
+
+## User Stories v2.7
+
+### US 2.7.1: i18n инфраструктура + перевод UI на русский
+
+**Как** русскоязычный пользователь
+**Я хочу** видеть интерфейс на русском
+**Чтобы** комфортно пользоваться сайтом
+
+**Acceptance Criteria:**
+
+- [ ] `react-i18next` установлен, `I18nextProvider` в `main.tsx`
+- [ ] Все строки UI вынесены в `locales/en.json` + `locales/ru.json`
+- [ ] `LanguageSwitcher` в Header: 🇬🇧 / 🇷🇺
+- [ ] Выбор сохраняется в localStorage (`happyNews_lang`)
+- [ ] URL-параметр `?lang=ru` имеет приоритет над localStorage
+- [ ] `<html lang="...">` обновляется при смене языка
+
+### US 2.7.2: Backend AI-перевода статей
+
+**Как** разработчик
+**Я хочу** надёжный сервис перевода с кэшем
+**Чтобы** не платить OpenAI за повторные переводы одной статьи
+
+**Acceptance Criteria:**
+
+- [ ] `openai` SDK установлен
+- [ ] `translationService.translate(articleId, targetLang)` — gpt-4o-mini
+- [ ] Кэш в SQLite: таблица `translations (id, article_id, target_lang, body, created_at)`
+- [ ] Повторный вызов с тем же `(articleId, targetLang)` → данные из кэша, без вызова OpenAI
+- [ ] `POST /api/ai/translate` с middleware: проверка Premium ИЛИ entitlement по `target_id`
+- [ ] Логирование в `ai_usage_log` для биллинга и метрик
+
+### US 2.7.3: Frontend "Перевести на русский" + paywall flow
+
+**Как** Free-пользователь
+**Я хочу** прочитать английскую статью на русском
+**Чтобы** не упускать интересный материал из-за языка
+
+**Acceptance Criteria:**
+
+- [ ] `<TranslationToggle>` под title английской статьи: "Original | Русский"
+- [ ] Клик "Русский" в Free → `<PaywallModal feature="translate" targetId={articleId}>`
+- [ ] PaywallModal предлагает: "Premium (без лимитов)" / "Разово за 30₽"
+- [ ] После оплаты → автоматический вызов `/api/ai/translate` → перевод подгружается
+- [ ] Premium → клик сразу запускает перевод без modal
+- [ ] Skeleton при загрузке, error-state при ошибке OpenAI
+
+### US 2.7.4: AI Summary unlimited (Premium gate)
+
+**Как** Premium-пользователь
+**Я хочу** генерировать неограниченное количество AI-резюме
+**Чтобы** быстро просматривать много статей
+
+**Acceptance Criteria:**
+
+- [ ] `requirePremium('ai_summary_unlimited')` — middleware поверх US 2.4.4
+- [ ] Free лимит: 3 в день, хранится в `ai_usage_log`
+- [ ] При превышении → 429 + `{ reason: 'rate_limit', upgrade: 'premium' }`
+- [ ] Frontend: при 429 → `<PaywallModal feature="ai_summary_unlimited" />`
+
+### US 2.7.5: Embeddings + похожие новости
+
+**Как** пользователь
+**Я хочу** видеть похожие позитивные новости после прочтения статьи
+**Чтобы** продолжить чтение без поиска
+
+**Acceptance Criteria:**
+
+- [ ] При `upsertMany` (US 2.1.6) — параллельно создаём embedding через OpenAI
+- [ ] Таблица `embeddings (article_id PRIMARY KEY, vector BLOB, created_at)`
+- [ ] `findSimilar(articleId, limit=5)` — cosine similarity, in-memory перебор (для пет-проекта ОК)
+- [ ] `GET /api/ai/similar?articleId=` — Free лимит 3/день, Premium без лимита
+- [ ] Блок `<SimilarNews>` на детальной странице, lazy-load при скролле
+
+### US 2.7.6: Telegram-бот / email-дайджест (опционально)
+
+**Как** пользователь
+**Я хочу** получать ежедневный дайджест позитивных новостей в Telegram или email
+**Чтобы** не открывать сайт каждый день
+
+**Acceptance Criteria:**
+
+- [ ] `node-telegram-bot-api` или `nodemailer` + SMTP
+- [ ] `/api/notifications/subscribe` — настройка частоты + канала
+- [ ] Cron каждое утро: топ-5 позитивных новостей за день → отправка
+- [ ] Email-дайджест — Free; Telegram-бот — Premium (опциональная сегментация)
+
+## Архитектура v2.7
+
+```
+server/src/
+├── ai/
+│   ├── translationService.ts         ← OpenAI translate + кэш
+│   ├── embeddingService.ts           ← embed + similarity search
+│   ├── llmClient.ts                  ← provider-agnostic (OpenAI/Anthropic)
+│   └── usageTracker.ts               ← rate limits для Free
+├── routes/
+│   └── ai.routes.ts                  ← POST /translate, GET /similar
+├── jobs/
+│   └── digestJob.ts                  ← cron для дайджеста
+└── db/
+    └── schema.ts                     ← + translations, embeddings, ai_usage_log
+
+client/src/
+├── shared/i18n/
+│   ├── i18n.ts                       ← i18next instance
+│   └── locales/
+│       ├── en.json
+│       └── ru.json
+├── features/
+│   ├── language-switcher/
+│   │   ├── LanguageSwitcher.tsx
+│   │   └── useLanguage.ts
+│   ├── article-translation/
+│   │   ├── useArticleTranslation.ts
+│   │   ├── TranslationToggle.tsx
+│   │   └── index.ts
+│   └── similar-news/
+│       ├── useSimilarNews.ts
+│       ├── SimilarNews.tsx
+│       └── index.ts
+```
+
+## Стек v2.7
+
+| Компонент       | Технология                                              |
+| --------------- | ------------------------------------------------------- |
+| i18n            | `react-i18next` + `i18next-browser-languagedetector`    |
+| LLM SDK         | `openai` (gpt-4o-mini для перевода — дёшево)            |
+| Embeddings      | OpenAI `text-embedding-3-small`                         |
+| Vector storage  | SQLite BLOB + native cosine similarity                  |
+| Streaming       | SSE (опционально для translate)                         |
+| Email           | `nodemailer` (опционально, US 2.7.6)                    |
+| Telegram        | `node-telegram-bot-api` (опционально)                   |
+
+## Закрываемые темы v2.7
+
+<details>
+<summary>Backend: 5 новых тем</summary>
+
+| #     | Тема                          | Как закрывается                                |
+| ----- | ----------------------------- | ---------------------------------------------- |
+| Q100  | LLM API integration           | Rate limits, retry, streaming, cost tracking   |
+| Q101  | Embeddings + semantic search  | OpenAI embedding-3-small + cosine similarity   |
+| Q102  | Кэш дорогих API-вызовов       | LLM в SQLite по ключу `(input_hash, model)`    |
+| Q103  | Async pipeline                | Embed в фоне, не блокируем response агрегатора |
+| Q104  | Rate limiting per user        | `ai_usage_log` + sliding window                |
+
+</details>
+
+<details>
+<summary>Frontend: 4 новых темы</summary>
+
+| #     | Тема                          | Как закрывается                                  |
+| ----- | ----------------------------- | ------------------------------------------------ |
+| FQ87  | i18n паттерны                 | Interpolation, plurals, namespaces в i18next     |
+| FQ88  | Lazy loading локалей          | Динамический импорт `ru.json` при смене языка    |
+| FQ89  | Persistence языкового выбора  | localStorage + URL-параметр + `<html lang>`      |
+| FQ90  | Bilingual UI                  | TranslationToggle: side-by-side или toggle-tabs  |
+
+</details>
+
+**Оценка: 4–6 дней**
+
+---
+
 # Сводка
 
 ## Полная карта фич по релизам
@@ -1608,65 +2215,86 @@ react-happy-news/
 | **Accessibility**                        | v2.5  | —                 |
 | **Docker + CI/CD**                       | v2.5  | —                 |
 | **HTTPS + DNS + Nginx**                  | v2.5  | —                 |
+| **PaymentProvider абстракция**           | v2.6  | v2.3/Auth         |
+| **ЮKassa интеграция (RU)**               | v2.6  | v2.6/Provider     |
+| **Stripe интеграция (intl)**             | v2.6  | v2.6/Provider     |
+| **Webhooks + HMAC + Idempotency**        | v2.6  | v2.6/Provider     |
+| **Premium Feature Gating**               | v2.6  | v2.6/Webhooks     |
+| **Pay-per-action**                       | v2.6  | v2.6/Webhooks     |
+| **Billing Portal UI**                    | v2.6  | v2.6/Gating       |
+| **Reconciliation cron**                  | v2.6  | v2.6/Webhooks     |
+| **i18n (RU локализация UI)**             | v2.7  | —                 |
+| **AI-перевод статей**                    | v2.7  | v2.6/Gating       |
+| **AI Summary unlimited**                 | v2.7  | v2.4.4, v2.6/Gating |
+| **Похожие новости (embeddings)**         | v2.7  | v2.1.6/SQLite     |
+| **Telegram-бот / email-дайджест**        | v2.7  | v2.6/Gating       |
 
 ## Инвентарь вопросов
 
-### Backend (90 вопросов, Q1–Q90)
+### Backend (104 вопроса, Q1–Q104)
 
-| Блок | Диапазон | Темы                                               |
-| ---- | -------- | -------------------------------------------------- |
-| 1    | Q1–Q10   | HTTPS, Auth, CORS, Cookie, OPTIONS, Real-time      |
-| 2    | Q11–Q20  | GET/POST, REST, OSI, HTTP-структура                |
-| 3    | Q21–Q30  | Коды ошибок, Promise.all, JWT, токены              |
-| 4    | Q31–Q40  | HTTP-статусы, Swagger, CORS, Same-origin, блокчейн |
-| 5    | Q41–Q50  | WebSocket vs REST, HTTP-методы, пароли             |
-| 6    | Q51–Q60  | Passwordless, GraphQL, real-time                   |
-| 7    | Q61–Q70  | Polling, retry, AbortController, DNS               |
-| 8    | Q71–Q80  | WS vs HTTP, Cookie lifetime, REST, URL→Page        |
-| 9    | Q81–Q90  | Storage, gRPC, Server internals, Performance       |
+| Блок | Диапазон | Темы                                                              |
+| ---- | -------- | ----------------------------------------------------------------- |
+| 1    | Q1–Q10   | HTTPS, Auth, CORS, Cookie, OPTIONS, Real-time                     |
+| 2    | Q11–Q20  | GET/POST, REST, OSI, HTTP-структура                               |
+| 3    | Q21–Q30  | Коды ошибок, Promise.all, JWT, токены                             |
+| 4    | Q31–Q40  | HTTP-статусы, Swagger, CORS, Same-origin, блокчейн                |
+| 5    | Q41–Q50  | WebSocket vs REST, HTTP-методы, пароли                            |
+| 6    | Q51–Q60  | Passwordless, GraphQL, real-time                                  |
+| 7    | Q61–Q70  | Polling, retry, AbortController, DNS                              |
+| 8    | Q71–Q80  | WS vs HTTP, Cookie lifetime, REST, URL→Page                       |
+| 9    | Q81–Q90  | Storage, gRPC, Server internals, Performance                      |
+| 10   | Q91–Q99  | Webhooks, HMAC, Idempotency, Strategy, PCI, Reconciliation, Audit |
+| 11   | Q100–Q104 | LLM API, Embeddings, Кэш дорогих вызовов, Async pipelines, Rate limiting |
 
-### Frontend (80 вопросов, FQ1–FQ80)
+### Frontend (90 вопросов, FQ1–FQ90)
 
-| Блок | Диапазон  | Темы                                              |
-| ---- | --------- | ------------------------------------------------- |
-| B1   | FQ1–FQ13  | Архитектура, паттерны (SOLID, FSD, HOC, Compound) |
-| B2   | FQ14–FQ23 | React Core (VDOM, рендер, JSX, keys, batching)    |
-| B3   | FQ24–FQ33 | Хуки (useEffect, custom, useReducer, useRef)      |
-| B4   | FQ34–FQ40 | State management (Context, Redux, RTK Query)      |
-| B5   | FQ41–FQ54 | Производительность (memo, virtualization, CRP)    |
-| B6   | FQ55–FQ58 | Обработка ошибок (Boundaries, Suspense, race)     |
-| B7   | FQ59–FQ64 | Роутинг (protected, lazy, nested, error)          |
-| B8   | FQ65–FQ67 | Формы и валидация (RHF + Zod)                     |
-| B9   | FQ68–FQ72 | Безопасность (XSS, CSRF, CSP, .env)               |
-| B10  | FQ73–FQ77 | Тестирование (pyramid, RTL, MSW, Playwright)      |
-| B11  | FQ78–FQ80 | HTML, CSS, Accessibility                          |
+| Блок | Диапазон  | Темы                                                       |
+| ---- | --------- | ---------------------------------------------------------- |
+| B1   | FQ1–FQ13  | Архитектура, паттерны (SOLID, FSD, HOC, Compound)          |
+| B2   | FQ14–FQ23 | React Core (VDOM, рендер, JSX, keys, batching)             |
+| B3   | FQ24–FQ33 | Хуки (useEffect, custom, useReducer, useRef)               |
+| B4   | FQ34–FQ40 | State management (Context, Redux, RTK Query)               |
+| B5   | FQ41–FQ54 | Производительность (memo, virtualization, CRP)             |
+| B6   | FQ55–FQ58 | Обработка ошибок (Boundaries, Suspense, race)              |
+| B7   | FQ59–FQ64 | Роутинг (protected, lazy, nested, error)                   |
+| B8   | FQ65–FQ67 | Формы и валидация (RHF + Zod)                              |
+| B9   | FQ68–FQ72 | Безопасность (XSS, CSRF, CSP, .env)                        |
+| B10  | FQ73–FQ77 | Тестирование (pyramid, RTL, MSW, Playwright)               |
+| B11  | FQ78–FQ80 | HTML, CSS, Accessibility                                   |
+| B12  | FQ81–FQ86 | Платежи: Stripe Elements, Paywall, Subscription state, Feature flags |
+| B13  | FQ87–FQ90 | i18n: react-i18next, lazy locales, persistence, bilingual UI |
 
 ### Покрытие по релизам
 
 | Релиз     | Backend (Q) | Frontend (FQ) | Всего   | Нарастающий % |
 | --------- | ----------- | ------------- | ------- | ------------- |
-| **v2.0**  | 34          | 16            | 50      | 29.4%         |
-| **v2.1**  | 12          | 15            | 27      | 45.3%         |
-| **v2.2**  | 8           | 14            | 22      | 58.2%         |
-| **v2.3**  | 19          | 21            | 40      | 81.8%         |
-| **v2.4**  | 7           | 9             | 16      | 91.2%         |
-| **v2.5**  | 9           | 6             | 15      | 100%          |
+| **v2.0**  | 34          | 16            | 50      | 25.8%         |
+| **v2.1**  | 12          | 15            | 27      | 39.7%         |
+| **v2.2**  | 8           | 14            | 22      | 51.0%         |
+| **v2.3**  | 19          | 21            | 40      | 71.6%         |
+| **v2.4**  | 7           | 9             | 16      | 79.9%         |
+| **v2.5**  | 9           | 6             | 15      | 87.6%         |
+| **v2.6**  | 9           | 6             | 15      | 95.4%         |
+| **v2.7**  | 5           | 4             | 9       | 100%          |
 | —         | 1 (Q40)     | —             | 1       | —             |
-| **ИТОГО** | **90**      | **80**        | **170** |               |
+| **ИТОГО** | **104**     | **90**        | **194** |               |
 
-**Покрытие на практике: 169/170 = 99.4%** (Q40 — блокчейн — не реализуется)
+**Покрытие на практике: 193/194 = 99.5%** (Q40 — блокчейн — не реализуется)
 
 ## Итоговый таймлайн
 
-| Релиз     | Фичи                                     | Срок       | Q   | FQ  | %     |
-| --------- | ---------------------------------------- | ---------- | --- | --- | ----- |
-| **v2.0**  | Source Filter, Badges, Detail, Feedback  | 4–5 дн.    | 34  | 16  | 29.4% |
-| **v2.1**  | Readers Counter, Health, Поиск, Виртуализация | 3–4 дн. | 12  | 15  | 45.3% |
-| **v2.2**  | Live Reactions, Топ реакций, Share       | 3–4 дн.    | 8   | 14  | 58.2% |
-| **v2.3**  | Auth, Закладки, Tracker, Streak, Тема    | 4–5 дн.    | 19  | 21  | 81.8% |
-| **v2.4**  | Analytics, Protocols, Storybook          | 3–4 дн.    | 7   | 9   | 91.2% |
-| **v2.5**  | A11y, Docker, CI/CD, HTTPS               | 3–4 дн.    | 9   | 6   | 100%  |
-| **ИТОГО** |                                          | **~20–26** | 89  | 80  | 99.4% |
+| Релиз     | Фичи                                          | Срок       | Q   | FQ  | %     |
+| --------- | --------------------------------------------- | ---------- | --- | --- | ----- |
+| **v2.0**  | Source Filter, Badges, Detail, Feedback       | 4–5 дн.    | 34  | 16  | 25.8% |
+| **v2.1**  | Readers Counter, Health, Поиск, Виртуализация | 3–4 дн.    | 12  | 15  | 39.7% |
+| **v2.2**  | Live Reactions, Топ реакций, Share            | 3–4 дн.    | 8   | 14  | 51.0% |
+| **v2.3**  | Auth, Закладки, Tracker, Streak, Тема         | 4–5 дн.    | 19  | 21  | 71.6% |
+| **v2.4**  | Analytics, Protocols, Storybook               | 3–4 дн.    | 7   | 9   | 79.9% |
+| **v2.5**  | A11y, Docker, CI/CD, HTTPS                    | 3–4 дн.    | 9   | 6   | 87.6% |
+| **v2.6**  | Stripe + ЮKassa, Premium, Pay-per-action, Billing | 5–7 дн. | 9   | 6   | 95.4% |
+| **v2.7**  | i18n (RU), AI-перевод, AI Summary unlimited, Embeddings | 4–6 дн. | 5   | 4 | 100%  |
+| **ИТОГО** |                                               | **~29–39** | 103 | 90  | 99.5% |
 
 ## Порядок может меняться
 
@@ -1678,4 +2306,10 @@ react-happy-news/
 - Хочешь персонализацию → начни с v2.3 (Auth)
 - Хочешь React-паттерны + WS → начни с v2.2 (live-реакции)
 
-Рекомендуемый порядок: **v2.0 → v2.1 → v2.2 → v2.3 → v2.4 → v2.5**
+Релизы v2.6 и v2.7 — пост-Production:
+
+- v2.6 (Monetization) технически возможна сразу после v2.3 (Auth), но webhook callback требует HTTPS — поэтому удобнее после v2.5 (Production)
+- v2.7 (Translation + AI Premium) **обязательно после v2.6** — все Premium-фичи опираются на entitlements middleware
+- Если запускаешь только для русскоязычной аудитории → начни v2.6 с ЮKassa, Stripe можно отложить
+
+Рекомендуемый порядок: **v2.0 → v2.1 → v2.2 → v2.3 → v2.4 → v2.5 → v2.6 → v2.7**
