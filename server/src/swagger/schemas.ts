@@ -6,14 +6,17 @@ import './setup'
 export const NewsItemSchema = registry.register(
   'NewsItem',
   z.object({
-    id:          z.string().openapi({ example: 'technology/2025/jan/01/news-title' }),
-    title:       z.string().openapi({ example: 'Scientists discover new renewable energy source' }),
-    description: z.string().openapi({ example: 'A breakthrough in solar panel efficiency...' }),
-    image:       z.string().openapi({ example: 'https://media.guardian.co.uk/image.jpg' }),
-    published:   z.string().openapi({ example: '2025-01-01T12:00:00Z' }),
-    author:      z.string().openapi({ example: 'Jane Smith' }),
-    tag:         z.string().openapi({ example: 'Technology' }),
-    source:      z.nativeEnum(SourceName).openapi({ example: SourceName.Guardian }),
+    id:             z.string().openapi({ example: 'technology/2025/jan/01/news-title' }),
+    title:          z.string().openapi({ example: 'Scientists discover new renewable energy source' }),
+    description:    z.string().openapi({ example: 'A breakthrough in solar panel efficiency...' }),
+    image:          z.string().openapi({ example: 'https://media.guardian.co.uk/image.jpg' }),
+    published:      z.string().openapi({ example: '2025-01-01T12:00:00Z' }),
+    author:         z.string().openapi({ example: 'Jane Smith' }),
+    tag:            z.string().openapi({ example: 'Technology' }),
+    source:         z.nativeEnum(SourceName).openapi({ example: SourceName.Guardian }),
+    url:            z.string().openapi({ example: 'https://www.theguardian.com/environment/2025/jan/01/title' }),
+    body:           z.string().nullable().optional().openapi({ example: '<p>Full article content...</p>' }),
+    hasFullContent: z.boolean().openapi({ example: true }),
   }),
 )
 

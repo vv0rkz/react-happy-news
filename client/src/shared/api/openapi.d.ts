@@ -164,15 +164,20 @@ export interface components {
              * @example guardian
              * @enum {string}
              */
-            source: "guardian" | "newsapi" | "hackernews";
+            source: "guardian" | "rss";
+            /** @example https://www.theguardian.com/environment/2025/jan/01/title */
+            url: string;
+            /** @example <p>Full article content...</p> */
+            body?: string | null;
+            /** @example true */
+            hasFullContent: boolean;
         };
         NewsListResponse: {
             news: components["schemas"]["NewsItem"][];
             /**
              * @example {
              *       "guardian": "ok",
-             *       "newsapi": "skipped",
-             *       "hackernews": "ok"
+             *       "rss": "ok"
              *     }
              */
             sources: {
