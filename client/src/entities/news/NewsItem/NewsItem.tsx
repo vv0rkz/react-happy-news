@@ -1,4 +1,4 @@
-import type { SourceName } from '@entities/news/api/apiNews/utils/transforms.types'
+import { SourceName } from '@entities/news/api/apiNews/utils/transforms.types'
 import { APP_ROUTES } from '@shared/config/routes'
 import { Image } from '@shared/Image'
 import React from 'react'
@@ -28,7 +28,12 @@ export const NewsItem = React.memo(({ item }: NewsItemProps): React.ReactNode =>
     <article className={styles.item} onClick={handleClick}>
       <Image image={item.image} className={styles.image ?? ''} />
       <div className={styles.info}>
-        {item.source && <SourceBadge source={item.source} />}
+        {item.source && (
+          <SourceBadge
+            source={item.source}
+            label={item.source === SourceName.Rss ? item.tag : undefined}
+          />
+        )}
         <h3 className={styles.title}>{item.title}</h3>
         <p className={styles.extra}>{item.description}</p>
       </div>

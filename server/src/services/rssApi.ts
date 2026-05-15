@@ -15,14 +15,14 @@ const parser = new Parser<Record<string, never>, CustomItem>({
 const MIN_BODY_LENGTH = 300
 
 const RSS_FEEDS = [
-  { url: 'https://www.positive.news/feed/', tag: 'Good News' },
-  { url: 'https://reasonstobecheerful.world/feed/', tag: 'Environment' },
-  { url: 'https://www.upworthy.com/rss', tag: 'Society' },
-  { url: 'https://news.mongabay.com/feed/', tag: 'Conservation' },
-  { url: 'https://theconversation.com/us/science/articles.atom', tag: 'Science' },
-  { url: 'https://theconversation.com/us/environment/articles.atom', tag: 'Environment' },
-  { url: 'https://www.atlasobscura.com/feeds/latest', tag: 'Culture' },
-  { url: 'https://www.sciencealert.com/feed', tag: 'Science' },
+  { url: 'https://www.positive.news/feed/', tag: 'Positive News' },
+  { url: 'https://reasonstobecheerful.world/feed/', tag: 'Reasons to be Cheerful' },
+  { url: 'https://www.upworthy.com/rss', tag: 'Upworthy' },
+  { url: 'https://news.mongabay.com/feed/', tag: 'Mongabay' },
+  { url: 'https://theconversation.com/us/science/articles.atom', tag: 'The Conversation' },
+  { url: 'https://theconversation.com/us/environment/articles.atom', tag: 'The Conversation' },
+  { url: 'https://www.atlasobscura.com/feeds/latest', tag: 'Atlas Obscura' },
+  { url: 'https://www.sciencealert.com/feed', tag: 'ScienceAlert' },
 ]
 
 export async function fetchRssNews(): Promise<NewsItem[]> {

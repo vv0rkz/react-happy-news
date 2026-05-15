@@ -8,9 +8,10 @@ const SOURCE_CONFIG: Record<SourceName, { label: string; colorClass: string }> =
 
 interface SourceBadgeProps {
   source: SourceName
+  label?: string | undefined
 }
 
-export const SourceBadge = ({ source }: SourceBadgeProps): React.ReactNode => {
+export const SourceBadge = ({ source, label }: SourceBadgeProps): React.ReactNode => {
   const config = SOURCE_CONFIG[source]
-  return <span className={`${styles.badge} ${config.colorClass}`}>{config.label}</span>
+  return <span className={`${styles.badge} ${config.colorClass}`}>{label ?? config.label}</span>
 }
