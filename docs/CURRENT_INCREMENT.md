@@ -1,16 +1,19 @@
-# US 2.1.8 — Виртуализация ленты
+# US 2.2.1 — Live-реакции через WebSocket
 
-**Статус:** `active` 🔒 ЗАБЛОКИРОВАН
+**Статус:** `active`
 **Релиз:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md)
 **Issue:** TBD
-**Покрывает вопросы:** FQ44 (виртуализация)
+**Покрывает вопросы:** FQ45 (WebSocket), React Patterns (Provider, Compound, Observer, HOC, Factory, useSyncExternalStore)
 
 **Acceptance Criteria:**
 
-- [ ] MSW seed: генератор 500+ новостей для demo-режима
-- [ ] Profiler без виртуализации: зафиксировать frame drops при скролле 500+ элементов
-- [ ] Установить `react-window`, обернуть `NewsList`
-- [ ] Profiler после: убедиться в 60fps
+- [ ] WebSocket-сервер обрабатывает `{ type: "react", articleId, emoji }`
+- [ ] `reactionsTracker` хранит счётчики реакций per-article
+- [ ] Broadcast обновлённых счётчиков всем в комнате статьи
+- [ ] Heartbeat (ping/pong): сервер пингует каждые 30с
+- [ ] Reconnect при разрыве (exponential backoff, max 3 попытки)
+- [ ] Max 3 попытки → fallback (реакции недоступны, UI degrade gracefully)
+- [ ] React Patterns: Provider, Compound, Observer, HOC, Factory, useSyncExternalStore
 
 ---
 
@@ -18,81 +21,81 @@
 
 ```
 Сейчас:
-  NewsList рендерит все элементы сразу
-  При 50–100 новостях — ок
-  При 200+ — начинаются frame drops при скролле
+  SSE — однонаправленный поток (сервер → клиент)
+  Используется для: live-счётчик читателей
 
 После:
-  react-window VariableSizeList / FixedSizeList
-  DOM содержит только видимые + overscan элементы
-  60fps при 500+ элементах
+  WebSocket — двунаправленный канал
+  Клиент отправляет: { type: "react", articleId, emoji }
+  Сервер делает broadcast: { type: "reactions", articleId, counts }
+  Все читатели статьи видят реакции в реальном времени
 ```
 
-**Блокер:** US открывается когда выполнено одно из условий:
-- SQLite накопил 200+ записей (органически, после US 2.1.6)
-- MSW seed генерирует 500+ элементов (первый шаг этого US)
+**Блокера нет** — US открыт сразу.
 
 ---
 
 ## Git
 
-**Ветка:** `v2.1.0-live-sse-feed` (продолжаем в той же ветке)
-**Issue:** TBD
+**Ветка:** создать новую `v2.2.0-websocket-reactions`
 
 ---
 
 ## Архитектура
 
 ```
+server/src/
+├── ws/
+│   ├── wsServer.ts          ← НОВЫЙ: createWsServer(httpServer)
+│   └── reactionsTracker.ts  ← НОВЫЙ: Map<articleId, Record<emoji, count>>
+└── index.ts                 ← ИЗМЕНИТЬ: подключить wsServer
+
 client/src/
-├── entities/news/api/apiNews/mocks/
-│   └── newsData.json              ← ИЗМЕНИТЬ: seed 500+ новостей (генератор)
-├── pages/Main/
-│   └── NewsList/
-│       └── NewsList.tsx           ← ИЗМЕНИТЬ: обернуть в react-window
-└── shared/
-    └── VirtualList/ (опционально) ← НОВЫЙ: абстракция над react-window
+├── shared/ws/
+│   └── wsClient.ts          ← НОВЫЙ: singleton WS-клиент + reconnect
+├── app/
+│   └── providers/
+│       └── WebSocketProvider.tsx  ← НОВЫЙ: Context с WS (Provider pattern)
+├── features/reactions/
+│   ├── ReactionsPanel.tsx   ← НОВЫЙ: Compound component
+│   ├── useReactions.ts      ← НОВЫЙ: useSyncExternalStore
+│   └── withReactions.tsx    ← НОВЫЙ: HOC для сравнения с хуком
+└── pages/NewsDetail/
+    └── NewsDetailView.tsx   ← ИЗМЕНИТЬ: добавить <ReactionsPanel>
 ```
 
 ---
 
-## Шаг 1: MSW seed
+## Шаг 1: WebSocket-сервер
 
-Написать скрипт или inline-генератор в `newsData.json` → 500+ элементов.
-Варианты:
-- `scripts/gen-mock-news.js` → записывает `newsData.json`
-- Или генерировать прямо в `handlers.ts` через `Array.from({ length: 500 }, ...)`
+`ws` пакет на сервере. `createWsServer(httpServer)` — принимает существующий HTTP-сервер Express, апгрейдит соединение до WS.
 
----
+`reactionsTracker.ts` — `Map<articleId, Record<emoji, count>>`. Методы: `addReaction`, `getCounts`.
 
-## Шаг 2: Профилирование без виртуализации
-
-React DevTools Profiler → записать рендер при скролле 500 элементов.
-Зафиксировать: среднее время фрейма, количество dropped frames.
+При получении сообщения `{ type: "react", articleId, emoji }` → обновить трекер → broadcast всем в комнате.
 
 ---
 
-## Шаг 3: Установить react-window
+## Шаг 2: Reconnect-логика на клиенте
 
-```bash
-pnpm --filter react-happy-news-client add react-window
-pnpm --filter react-happy-news-client add -D @types/react-window
-```
-
-Обернуть `NewsList` в `FixedSizeList` (если карточки одинаковой высоты)
-или `VariableSizeList` (если разная высота).
+`wsClient.ts` — singleton. Exponential backoff: 1s → 2s → 4s → max 3 попытки → `status: 'failed'`.
 
 ---
 
-## Шаг 4: Профилирование после
+## Шаг 3: React Patterns
 
-Повторить замер — убедиться в 60fps.
+- **Provider**: `<WebSocketProvider>` → Context с WS-инстансом
+- **Compound**: `<ReactionsPanel>` + `<ReactionsPanel.Button emoji="😊" />` + `<ReactionsPanel.Count emoji="😊" />`
+- **Observer**: WS = Subject, компоненты = Observers через `useSyncExternalStore`
+- **HOC**: `withReactions(Component)` — обёртка для сравнения с хук-подходом
+- **Factory**: `createApiAdapter(source)` — фабрика адаптеров
 
 ---
 
 ## Подводные камни
 
-- **`react-window` требует фиксированной высоты контейнера** — нужно задать `height` в px или vh
-- **CSS Modules + виртуализация** — стили применяются к элементу, а не к контейнеру списка
-- **Infinite scroll** — если появится пагинация, `react-window` + `react-window-infinite-loader`
-- **`VariableSizeList` медленнее** `FixedSizeList` — начать с Fixed, перейти к Variable только если нужно
+- **WS + Express**: `ws` пакет требует передать `httpServer` — нельзя создать отдельно от Express
+- **Compound компоненты**: статические поля на функциональном компоненте: `ReactionsPanel.Button = ...`
+- **useSyncExternalStore**: нужен `subscribe` + `getSnapshot` — WS store должен их реализовать
+- **MSW и WS**: MSW не перехватывает WS — для тестов нужен отдельный mock WS-сервер
+- **Heartbeat vs SSE**: в SSE heartbeat — это просто `comment` в потоке; в WS — явный `ping/pong` протокол
