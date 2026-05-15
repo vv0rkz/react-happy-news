@@ -2,7 +2,6 @@ import type { NewsDetailsData } from '@entities/news/api/apiNews/utils/transform
 import { NewsBanner } from '@entities/news/NewsBanner'
 import { NewsList } from '@entities/news/NewsList'
 import { CategoryFilter } from '@features/news-filter'
-import { Pagination } from '@features/paginate-news/Pagination'
 import { Divider, Stack } from '@mantine/core'
 import { Skeleton } from '@shared/Skeleton'
 
@@ -24,7 +23,7 @@ export const NewsFeedView = ({ news, isLoading }: NewsFeedViewProps): React.Reac
       {isLoading ? (
         <Skeleton type="item" count={10} height="100px" />
       ) : (
-        news && <Pagination data={news}>{(data) => <NewsList news={data} />}</Pagination>
+        news && <NewsList news={news} />
       )}
     </Stack>
   )
