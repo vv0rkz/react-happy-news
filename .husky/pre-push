@@ -2,6 +2,13 @@
 
 node ./node_modules/@vv0rkz/js-template/tools-gh/validate-branch.js
 
+# Пропустить проверки если изменены только docs/config (нет файлов в src/)
+CHANGED=$(git diff --name-only @{u} HEAD 2>/dev/null || git diff --name-only HEAD~1 HEAD)
+if ! echo "$CHANGED" | grep -qE '^(client/src|server/src)/'; then
+  echo "Skipping type-check and tests — no source files changed"
+  exit 0
+fi
+
 echo "Running type-check (client)..."
 pnpm type-check
 

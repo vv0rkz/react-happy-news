@@ -42,3 +42,5 @@ Thumbs.db
 
 # SQLite runtime database
 news.db
+news.db-shm
+news.db-wal
