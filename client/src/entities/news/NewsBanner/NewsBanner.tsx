@@ -1,5 +1,7 @@
+import { SourceName } from '@entities/news/api/apiNews/utils/transforms.types'
+import { SourceBadge } from '@entities/news/SourceBadge'
 import { formatTimeAgo } from '@shared/formatTimeAgo'
-import Image from '@shared/Image'
+import { Image } from '@shared/Image'
 import styles from './styles.module.css'
 
 interface NewsBannerProps {
@@ -11,13 +13,16 @@ interface NewsBannerProps {
     published: string
     author: string
     tag: string
+    source?: string
   }
 }
 
-const NewsBanner = ({ item }: NewsBannerProps): React.ReactNode => {
+export const NewsBanner = ({ item }: NewsBannerProps): React.ReactNode => {
+  const source = item.source as SourceName | undefined
   return (
     <div className={styles.banner}>
       <Image image={item.image} className={styles.image ?? ''} />
+      {source && <SourceBadge source={source} />}
       <h1 className={styles.title}>{item.title}</h1>
       <p className={styles.extra}>
         {formatTimeAgo(item.published)} by {item.author}
@@ -25,5 +30,3 @@ const NewsBanner = ({ item }: NewsBannerProps): React.ReactNode => {
     </div>
   )
 }
-
-export default NewsBanner

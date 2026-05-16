@@ -1,1 +1,1 @@
-export { default } from './NewsItem'
+export { NewsItem } from './NewsItem'

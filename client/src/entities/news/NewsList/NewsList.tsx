@@ -1,32 +1,40 @@
-import NewsItem from '../NewsItem'
+import { useVirtuosoState } from '@shared/useVirtuosoState'
+import { Virtuoso } from 'react-virtuoso'
+import { NewsItem } from '../NewsItem'
 import styles from './styles.module.css'
 
-interface NewsListProps {
-  news: Array<{
-    id: string
-    title: string
-    description: string
-    image: string
-    published: string
-    author: string
-    tag: string
-  }>
+type NewsListItem = {
+  id: string
+  title: string
+  description: string
+  image: string
+  published: string
+  author: string
+  tag: string
 }
 
-const NewsList = ({ news }: NewsListProps): React.ReactNode => {
+interface NewsListProps {
+  news: NewsListItem[]
+}
+
+export const NewsList = ({ news }: NewsListProps): React.ReactNode => {
+  const { virtuosoRef, snapshot } = useVirtuosoState('newsList-scroll')
+
   if (news.length === 0) {
     return <p className={styles.empty}>Нет новостей по выбранным источникам</p>
   }
 
   return (
-    <ul className={styles.list}>
-      {news.map((item) => (
-        <li key={item.id} className={styles.listItem}>
+    <Virtuoso
+      ref={virtuosoRef}
+      data={news}
+      useWindowScroll
+      {...(snapshot !== undefined && { restoreStateFrom: snapshot })}
+      itemContent={(_index, item) => (
+        <div className={styles.listItem}>
           <NewsItem item={item} />
-        </li>
-      ))}
-    </ul>
+        </div>
+      )}
+    />
   )
 }
-
-export default NewsList

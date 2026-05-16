@@ -1,10 +1,15 @@
 import { SourceName, allSourceNames } from '@entities/news/api/apiNews/utils/transforms.types'
-import styles from './styles.module.css'
+import { Chip, Group } from '@mantine/core'
 
 const SOURCE_LABELS: Record<SourceName, string> = {
   [SourceName.Guardian]: 'Guardian',
-  [SourceName.NewsApi]: 'NewsAPI',
-  [SourceName.HackerNews]: 'HackerNews',
+  [SourceName.PositiveNews]: 'Positive News',
+  [SourceName.ReasonsToBeCheerful]: 'Reasons to be Cheerful',
+  [SourceName.Upworthy]: 'Upworthy',
+  [SourceName.Mongabay]: 'Mongabay',
+  [SourceName.TheConversation]: 'The Conversation',
+  [SourceName.AtlasObscura]: 'Atlas Obscura',
+  [SourceName.ScienceAlert]: 'ScienceAlert',
 }
 
 interface SourceFilterProps {
@@ -12,22 +17,20 @@ interface SourceFilterProps {
   onToggle: (source: SourceName) => void
 }
 
-const SourceFilter = ({ selectedSources, onToggle }: SourceFilterProps): React.ReactNode => {
+export const SourceFilter = ({ selectedSources, onToggle }: SourceFilterProps): React.ReactNode => {
   return (
-    <div className={styles.filter}>
+    <Group gap="xs">
       {allSourceNames.map((source) => (
-        <label key={source} className={styles.label}>
-          <input
-            type="checkbox"
-            checked={selectedSources.includes(source)}
-            onChange={() => onToggle(source)}
-            className={styles.checkbox}
-          />
+        <Chip
+          key={source}
+          checked={selectedSources.includes(source)}
+          onChange={() => onToggle(source)}
+          color="indigo"
+          size="sm"
+        >
           {SOURCE_LABELS[source]}
-        </label>
+        </Chip>
       ))}
-    </div>
+    </Group>
   )
 }
-
-export default SourceFilter

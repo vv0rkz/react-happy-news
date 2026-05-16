@@ -1,14 +1,28 @@
+import { MantineProvider, createTheme, localStorageColorSchemeManager } from '@mantine/core'
+import '@mantine/core/styles.css'
+import { Notifications } from '@mantine/notifications'
+import '@mantine/notifications/styles.css'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Provider } from 'react-redux'
 import { RouterProvider } from 'react-router-dom'
-import '../index.css'
+import { queryClient } from '@shared/api/queryClient'
 import { router } from './router'
-import { store } from './store'
+
+const theme = createTheme({
+  primaryColor: 'indigo',
+  defaultRadius: 'md',
+  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+})
+
+const colorSchemeManager = localStorageColorSchemeManager({ key: 'happyNews_colorScheme' })
 
 const MOCK_STORAGE_KEY = 'happyNews_mockMode'
 
 async function enableMocking(): Promise<void> {
+  if (!import.meta.env.DEV) return
+
   const isMockEnabled = localStorage.getItem(MOCK_STORAGE_KEY) === 'true'
   if (!isMockEnabled) return
 
@@ -26,9 +40,13 @@ if (!rootElement) {
 enableMocking().finally(() => {
   createRoot(rootElement).render(
     <StrictMode>
-      <Provider store={store}>
-        <RouterProvider router={router} />
-      </Provider>
+      <MantineProvider theme={theme} colorSchemeManager={colorSchemeManager}>
+        <Notifications position="bottom-center" />
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+          {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+        </QueryClientProvider>
+      </MantineProvider>
     </StrictMode>,
   )
 })

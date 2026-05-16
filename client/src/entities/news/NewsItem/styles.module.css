@@ -2,15 +2,16 @@
   display: flex;
   gap: 12px;
   padding: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--mantine-color-default-border);
   border-radius: 8px;
-  background: white;
+  background: var(--mantine-color-body);
   cursor: pointer;
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, background 0.2s;
 }
 
 .item:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: var(--mantine-color-default-hover);
 }
 
 .image {
@@ -33,6 +34,7 @@
   font-weight: 600;
   line-height: 1.4;
   margin: 0;
+  color: var(--mantine-color-text);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -42,7 +44,7 @@
 
 .extra {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--mantine-color-dimmed);
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;

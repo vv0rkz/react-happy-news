@@ -1,11 +1,14 @@
 import type { components } from '@shared/api/openapi'
 
-// TODO: добавить тип источника — зеркало SourceName с сервера (`news.types`)
-
 export enum SourceName {
   Guardian = 'guardian',
-  NewsApi = 'newsapi',
-  HackerNews = 'hackernews',
+  PositiveNews = 'positive-news',
+  ReasonsToBeCheerful = 'reasons-to-be-cheerful',
+  Upworthy = 'upworthy',
+  Mongabay = 'mongabay',
+  TheConversation = 'the-conversation',
+  AtlasObscura = 'atlas-obscura',
+  ScienceAlert = 'science-alert',
 }
 export const allSourceNames = Object.values(SourceName)
 

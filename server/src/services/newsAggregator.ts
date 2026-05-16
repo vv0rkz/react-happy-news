@@ -1,8 +1,15 @@
 import { SourceName, type NewsItem } from '../types/news.types'
 import { isPositiveNews } from '../utils/positivityFilter'
 import { fetchGuardianNews } from './guardianApi'
-import { fetchHackerNews } from './hackerNewsApi'
-import { fetchNewsApiNews } from './newsApi'
+import {
+  fetchAtlasObscura,
+  fetchMongabay,
+  fetchPositiveNews,
+  fetchReasonsToBeCheerful,
+  fetchScienceAlert,
+  fetchTheConversation,
+  fetchUpworthy,
+} from './rssApi'
 
 type SourceStatus = 'ok' | 'error' | 'skipped'
 
@@ -14,8 +21,13 @@ interface SourceConfig {
 // Добавить новый источник = одна строка здесь
 const SOURCES: SourceConfig[] = [
   { name: SourceName.Guardian, fetch: fetchGuardianNews },
-  { name: SourceName.NewsApi, fetch: fetchNewsApiNews },
-  { name: SourceName.HackerNews, fetch: fetchHackerNews },
+  { name: SourceName.PositiveNews, fetch: fetchPositiveNews },
+  { name: SourceName.ReasonsToBeCheerful, fetch: fetchReasonsToBeCheerful },
+  { name: SourceName.Upworthy, fetch: fetchUpworthy },
+  { name: SourceName.Mongabay, fetch: fetchMongabay },
+  { name: SourceName.TheConversation, fetch: fetchTheConversation },
+  { name: SourceName.AtlasObscura, fetch: fetchAtlasObscura },
+  { name: SourceName.ScienceAlert, fetch: fetchScienceAlert },
 ]
 
 export interface AggregatorResult {
@@ -49,13 +61,16 @@ export async function aggregateNews(
   const allNews: NewsItem[] = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
 
   // 4. Фильтрация на сервере
-  const positiveNews = allNews.filter((item) => isPositiveNews(item.title, item.description))
+  const fullContentNews = allNews.filter((item) => item.hasFullContent)
+  const positiveNews = fullContentNews.filter((item) => isPositiveNews(item.title, item.description))
 
   if (positiveNews.length === 0) {
     console.warn(`[Aggregator] No positive news found out of ${allNews.length} total`)
   }
 
-  console.log(`[Aggregator] sources=[${allowSources}] total=${allNews.length} positive=${positiveNews.length}`)
+  console.log(
+    `[Aggregator] sources=[${allowSources}] total=${allNews.length} fullContent=${fullContentNews.length} positive=${positiveNews.length}`,
+  )
 
   return { news: positiveNews, sources }
 }

@@ -1,19 +1,20 @@
+import { ErrorComponent } from '@shared/ErrorComponent'
+import { Container } from '@mantine/core'
 import { ErrorBoundary } from 'react-error-boundary'
-import ErrorComponent from '@shared/ErrorComponent'
-import NewsFeed from './NewsFeed'
+import { NewsFeed } from './NewsFeed'
 
-const Main = (): React.ReactNode => {
+export const Main = (): React.ReactNode => {
   return (
     <main>
-      <ErrorBoundary
-        fallbackRender={({ error, resetErrorBoundary }) => (
-          <ErrorComponent error={error instanceof Error ? error : new Error(String(error))} onRetry={resetErrorBoundary} />
-        )}
-      >
-        <NewsFeed />
-      </ErrorBoundary>
+      <Container size="lg" py="xl">
+        <ErrorBoundary
+          fallbackRender={({ error, resetErrorBoundary }) => (
+            <ErrorComponent error={error instanceof Error ? error : new Error(String(error))} onRetry={resetErrorBoundary} />
+          )}
+        >
+          <NewsFeed />
+        </ErrorBoundary>
+      </Container>
     </main>
   )
 }
-
-export default Main

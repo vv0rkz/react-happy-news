@@ -1,37 +1,133 @@
+import type { HealthStatus } from '@features/health-check'
+import { StatusBadge } from '@features/health-check'
+import { SearchInput, useNewsFilterParams } from '@features/news-filter'
+import { SourceFilter } from '@features/source-filter'
+import {
+  ActionIcon,
+  Badge,
+  Button,
+  Collapse,
+  Container,
+  Group,
+  Popover,
+  Stack,
+  Text,
+  Tooltip,
+  useMantineColorScheme,
+} from '@mantine/core'
 import { useLocalStorage } from '@shared/useLocalStorage'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import styles from './styles.module.css'
 
 const MOCK_STORAGE_KEY = 'happyNews_mockMode'
 
-const Header = (): React.ReactNode => {
+interface HeaderProps {
+  status: HealthStatus
+}
+
+export const Header = ({ status }: HeaderProps): React.ReactNode => {
   const [isMockEnabled, setIsMockEnabled] = useLocalStorage<boolean>({ key: MOCK_STORAGE_KEY, initialValue: false })
+  const [searchVisible, setSearchVisible] = useState(false)
   const navigate = useNavigate()
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme()
+  const { q, setQ, selectedSources, toggleSource } = useNewsFilterParams()
+
+  const toggleSearch = (): void => {
+    setSearchVisible((v) => {
+      if (v) setQ('')
+      return !v
+    })
+  }
 
   const toggleMock = (): void => {
     const next = !isMockEnabled
-    // Записываем в localStorage синхронно до reload, иначе useEffect не успеет сохранить
     localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(next))
     setIsMockEnabled(next)
-    // MSW стартует/останавливается при загрузке приложения,
-    // поэтому для применения переключателя делаем reload.
     window.location.reload()
   }
 
   return (
     <header className={styles.header}>
-      <div className={styles.container}>
-        <h1 className={styles.title} onClick={() => navigate('/')}>
-          Happy News 🌞
-        </h1>
-        <button onClick={toggleMock} className={styles.toggleButton}>
-          <span className={styles.icon}>{isMockEnabled ? '🔧' : '🌐'}</span>
-          <span className={styles.label}>Mock</span>
-          <span className={isMockEnabled ? styles.statusOn : styles.statusOff}>{isMockEnabled ? 'ON' : 'OFF'}</span>
-        </button>
-      </div>
+      <Container size="lg">
+        <Stack gap={0}>
+          <Group justify="space-between" align="center">
+            <Text component="h1" className={styles.title ?? ''} onClick={() => navigate('/')}>
+              Happy News 🌞
+            </Text>
+
+            <Group gap="xs">
+              <StatusBadge status={status} />
+
+              <Tooltip label={searchVisible ? 'Закрыть поиск' : 'Поиск'} withArrow>
+                <ActionIcon
+                  onClick={toggleSearch}
+                  variant={searchVisible ? 'filled' : 'light'}
+                  color="indigo"
+                  size="lg"
+                  radius="xl"
+                  aria-label="Поиск"
+                >
+                  {searchVisible ? '✕' : '🔍'}
+                </ActionIcon>
+              </Tooltip>
+
+              <Popover width={220} position="bottom-end" withArrow shadow="md">
+                <Popover.Target>
+                  <Tooltip label="Источники" withArrow>
+                    <ActionIcon variant="light" color="indigo" size="lg" radius="xl" aria-label="Источники">
+                      ⚙️
+                    </ActionIcon>
+                  </Tooltip>
+                </Popover.Target>
+                <Popover.Dropdown>
+                  <Stack gap="xs">
+                    <Text size="xs" c="dimmed" fw={600} tt="uppercase">
+                      Источники
+                    </Text>
+                    <SourceFilter selectedSources={selectedSources} onToggle={toggleSource} />
+                  </Stack>
+                </Popover.Dropdown>
+              </Popover>
+
+              <Tooltip label={colorScheme === 'dark' ? 'Светлая тема' : 'Тёмная тема'} withArrow>
+                <ActionIcon
+                  onClick={() => toggleColorScheme()}
+                  variant="light"
+                  color="indigo"
+                  size="lg"
+                  radius="xl"
+                  aria-label="Переключить тему"
+                >
+                  {colorScheme === 'dark' ? '☀️' : '🌙'}
+                </ActionIcon>
+              </Tooltip>
+
+              <Button
+                onClick={toggleMock}
+                variant={isMockEnabled ? 'filled' : 'light'}
+                color={isMockEnabled ? 'orange' : 'indigo'}
+                size="sm"
+                radius="xl"
+                leftSection={isMockEnabled ? '🔧' : '🌐'}
+                rightSection={
+                  <Badge size="xs" color={isMockEnabled ? 'orange' : 'gray'} variant="filled">
+                    {isMockEnabled ? 'ON' : 'OFF'}
+                  </Badge>
+                }
+              >
+                Mock
+              </Button>
+            </Group>
+          </Group>
+
+          <Collapse expanded={searchVisible}>
+            <div className={styles.searchRow}>
+              <SearchInput value={q} onChange={setQ} placeholder="Поиск новостей..." />
+            </div>
+          </Collapse>
+        </Stack>
+      </Container>
     </header>
   )
 }
-
-export default Header

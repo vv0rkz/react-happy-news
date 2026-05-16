@@ -13,12 +13,37 @@
   color: #fff;
 }
 
-.newsapi {
-  background-color: #1a73e8;
+.positiveNews {
+  background-color: #2e7d32;
   color: #fff;
 }
 
-.hackernews {
-  background-color: #ff6600;
+.reasonsToBCheerful {
+  background-color: #e65100;
+  color: #fff;
+}
+
+.upworthy {
+  background-color: #c62828;
+  color: #fff;
+}
+
+.mongabay {
+  background-color: #1b5e20;
+  color: #fff;
+}
+
+.theConversation {
+  background-color: #6a1b9a;
+  color: #fff;
+}
+
+.atlasObscura {
+  background-color: #37474f;
+  color: #fff;
+}
+
+.scienceAlert {
+  background-color: #1565c0;
   color: #fff;
 }

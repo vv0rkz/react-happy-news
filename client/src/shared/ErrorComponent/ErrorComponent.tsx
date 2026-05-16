@@ -1,31 +1,30 @@
-import styles from './styles.module.css'
+import { Alert, Button, Container, List, Stack, Text, Title } from '@mantine/core'
 
 interface ErrorComponentProps {
   error: Error
   onRetry: () => void
 }
 
-function ErrorComponent({ error, onRetry }: ErrorComponentProps): React.ReactNode {
+export function ErrorComponent({ error, onRetry }: ErrorComponentProps): React.ReactNode {
   return (
-    <div className={styles.main}>
-      <div className={styles.errorContainer}>
-        <div className={styles.errorIcon}>📡</div>
-        <h2 className={styles.errorTitle}>Ошибка подключения</h2>
-        <p className={styles.errorMessage}>{error.message}</p>
-        <div className={styles.errorHint}>
-          <p>💡 Возможные причины:</p>
-          <ul>
-            <li>Нет интернета</li>
-            <li>CORS блокировка (используй Mock режим)</li>
-            <li>API временно недоступен</li>
-          </ul>
-        </div>
-        <button onClick={onRetry} className={styles.retryButton}>
+    <Container size="sm" py="xl">
+      <Stack align="center" gap="lg">
+        <Text size="80px" style={{ lineHeight: 1 }}>📡</Text>
+        <Title order={2}>Ошибка подключения</Title>
+        <Text c="dimmed">{error.message}</Text>
+
+        <Alert color="yellow" variant="light" title="💡 Возможные причины" w="100%">
+          <List size="sm" spacing="xs">
+            <List.Item>Нет интернета</List.Item>
+            <List.Item>CORS блокировка — используй Mock режим</List.Item>
+            <List.Item>API временно недоступен</List.Item>
+          </List>
+        </Alert>
+
+        <Button onClick={onRetry} color="indigo" radius="xl" size="md">
           🔄 Попробовать снова
-        </button>
-      </div>
-    </div>
+        </Button>
+      </Stack>
+    </Container>
   )
 }
-
-export default ErrorComponent

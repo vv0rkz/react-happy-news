@@ -39,3 +39,8 @@ Thumbs.db
 .webpack/
 .eslintcache
 .vercel
+
+# SQLite runtime database
+news.db
+news.db-shm
+news.db-wal
