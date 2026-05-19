@@ -17,7 +17,7 @@
     "gen:openapi:sync": "node ./scripts/fetch-openapi.mjs && openapi-typescript ./src/shared/api/openapi.json -o ./src/shared/api/openapi.d.ts"
   },
   "dependencies": {
-    "@mantine/core": "^9.1.1",
+    "@mantine/core": "^9.2.1",
     "@mantine/hooks": "^9.1.1",
     "@mantine/notifications": "^9.1.1",
     "@tanstack/react-query": "^5.100.10",
