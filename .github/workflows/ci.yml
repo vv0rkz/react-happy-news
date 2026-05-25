@@ -1,0 +1,44 @@
+name: CI
+
+# Local pre-push mirrors this job (type-check, lint:arch, arch:validate, test).
+# Add `pnpm knip` (strict) after dead-code baseline — see docs/architecture/DEAD_CODE.md
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Architecture (ESLint boundaries)
+        run: pnpm --filter react-happy-news-client lint:arch
+
+      - name: Architecture (dependency-cruiser)
+        run: pnpm --filter react-happy-news-client arch:validate
+
+      - name: Type check
+        run: pnpm type-check
+
+      - name: Test
+        run: pnpm test run
+
+      # - name: Dead code (knip strict)
+      #   run: pnpm knip

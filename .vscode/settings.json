@@ -1,0 +1,20 @@
+{
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "package.json": "pnpm-lock.yaml, pnpm-workspace.yaml, .nvmrc, commitlint.config.js, jst.config.js, changelog.config.js, vercel.json, CHANGELOG.md, CLAUDE.md",
+    "client/package.json": "tsconfig.json, vite.config.js, eslint.config.js, .dependency-cruiser.cjs, index.html",
+    "server/package.json": "tsconfig.json"
+  },
+  "files.exclude": {
+    "**/.husky": true,
+    "**/.github": true,
+    "**/.cursor": true,
+    "**/.vercel": true,
+    "client/.env": true,
+    "client/.env.*": true,
+    "news.db": true,
+    "news.db-shm": true,
+    "news.db-wal": true
+  }
+}

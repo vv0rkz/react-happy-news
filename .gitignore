@@ -21,8 +21,9 @@ server/.env
 *.log
 logs/
 
-# IDE
-.vscode/
+# IDE — shared workspace settings committed; personal files ignored
+.vscode/*
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo
@@ -40,7 +41,14 @@ Thumbs.db
 .eslintcache
 .vercel
 
-# SQLite runtime database
+# Generated architecture reports
+docs/architecture/generated/
+
+# SQLite runtime (server package)
+server/news.db
+server/news.db-shm
+server/news.db-wal
+# legacy root paths (remove after ~1 release)
 news.db
 news.db-shm
 news.db-wal

@@ -8,10 +8,15 @@
     "dev:server": "pnpm --filter react-happy-news-server dev",
     "build:client": "pnpm --filter react-happy-news-client build",
     "lint": "pnpm --filter react-happy-news-client lint",
+    "lint:arch": "pnpm --filter react-happy-news-client lint:arch",
+    "arch:validate": "pnpm --filter react-happy-news-client arch:validate",
+    "arch:report": "pnpm --filter react-happy-news-client arch:report",
     "test": "pnpm --filter react-happy-news-client test",
     "type-check": "pnpm --filter react-happy-news-client type-check",
     "gen:openapi": "pnpm --filter react-happy-news-client gen:openapi",
     "gen:openapi:sync": "pnpm --filter react-happy-news-client gen:openapi:sync",
+    "knip": "pnpm --filter react-happy-news-client knip",
+    "knip:report": "pnpm --filter react-happy-news-client knip:report",
     "jst": "jst",
     "_": "jst",
     "prepare": "husky"
@@ -29,6 +34,10 @@
     "@vv0rkz/js-template": "^1.9.0",
     "changelogen": "^0.6.2",
     "concurrently": "^9.2.1",
-    "husky": "^9.1.7"
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.5"
+  },
+  "lint-staged": {
+    "client/src/**/*.{ts,tsx}": "pnpm --filter react-happy-news-client exec eslint --max-warnings 0"
   }
 }

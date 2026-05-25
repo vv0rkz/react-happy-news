@@ -4,3 +4,4 @@ pnpm --filter react-happy-news-client gen:barrels
 pnpm --filter react-happy-news-client fix:imports
 git add 'client/src/**/index.ts'
 git add -u
+pnpm exec lint-staged

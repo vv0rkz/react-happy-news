@@ -1,9 +1,11 @@
 import type { NewsDetailsData } from '@entities/news/api/apiNews/utils/transforms.types'
-import { NewsBanner } from '@entities/news/NewsBanner'
-import { NewsList } from '@entities/news/NewsList'
-import { CategoryFilter } from '@features/news-filter'
+import { NewsBanner } from '@entities/news/ui/NewsBanner'
+import { NewsList } from '@entities/news/ui/NewsList'
 import { Divider, Stack } from '@mantine/core'
-import { Skeleton } from '@shared/Skeleton'
+import { Skeleton } from '@shared/ui/Skeleton'
+import { CategoryFilter } from './ui/CategoryFilter'
+import { NewsFilterBar } from './ui/NewsFilterBar'
+import styles from './NewsFeedView.module.css'
 
 interface NewsFeedViewProps {
   news: NewsDetailsData[] | undefined
@@ -13,10 +15,11 @@ interface NewsFeedViewProps {
 export const NewsFeedView = ({ news, isLoading }: NewsFeedViewProps): React.ReactNode => {
   return (
     <Stack gap="lg">
-      <Stack gap="xs">
+      <div className={styles.controls}>
+        <NewsFilterBar />
         <CategoryFilter />
-        <Divider />
-      </Stack>
+      </div>
+      <Divider />
 
       {isLoading ? <Skeleton count={1} type="banner" height="520px" /> : news?.[0] && <NewsBanner item={news[0]} />}
 

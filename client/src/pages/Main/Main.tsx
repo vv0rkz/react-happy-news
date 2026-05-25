@@ -1,4 +1,4 @@
-import { ErrorComponent } from '@shared/ErrorComponent'
+import { ErrorComponent } from '@shared/ui/ErrorComponent'
 import { Container } from '@mantine/core'
 import { ErrorBoundary } from 'react-error-boundary'
 import { NewsFeed } from './NewsFeed'

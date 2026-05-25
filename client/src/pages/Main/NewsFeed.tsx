@@ -1,6 +1,6 @@
 import { useGetNewsQuery } from '@entities/news/api'
-import { useNewsFilterParams } from '@features/news-filter'
-import { ErrorComponent } from '@shared/ErrorComponent'
+import { ErrorComponent } from '@shared/ui/ErrorComponent'
+import { useNewsFilterParams } from './lib/useNewsFilterParams'
 import { NewsFeedView } from './NewsFeedView'
 
 export const NewsFeed = (): React.ReactNode => {

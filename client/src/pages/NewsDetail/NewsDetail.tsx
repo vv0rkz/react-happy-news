@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { ErrorBoundary } from 'react-error-boundary'
-import { ErrorComponent } from '@shared/ErrorComponent'
+import { ErrorComponent } from '@shared/ui/ErrorComponent'
 import styles from './styles.module.css'
 import { NewsDetailView } from './NewsDetailView'
 

@@ -5,6 +5,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
+import { architectureConfig } from './eslint/architecture.config.js'
 
 export default defineConfig([
   globalIgnores(['dist', 'public/mockServiceWorker.js']),
@@ -48,4 +49,5 @@ export default defineConfig([
       'import/no-default-export': 'off',
     },
   },
+  ...architectureConfig,
 ])

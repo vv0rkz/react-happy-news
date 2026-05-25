@@ -1,6 +1,6 @@
-import { OfflineBanner, useHealthCheck } from '@features/health-check'
+import { OfflineBanner, useHealthCheck } from '@app/lib/health-check'
+import { Header } from '@app/layout/Header'
 import { notifications } from '@mantine/notifications'
-import { Header } from '@widgets/Header'
 import { useEffect, useRef } from 'react'
 import { Outlet } from 'react-router-dom'
 

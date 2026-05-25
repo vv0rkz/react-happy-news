@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 pnpm workspace monorepo with two packages:
 
-- `client/` — React 19 + Vite 7 + TypeScript (strict), RTK Query, MSW, Vitest. Package name: `react-happy-news-client`.
+- `client/` — React 19 + Vite 7 + TypeScript (strict), TanStack Query, MSW, Vitest. Package name: `react-happy-news-client`.
 - `server/` — Express + TypeScript + `node-cache`, aggregates Guardian / NewsAPI / HackerNews. Package name: `react-happy-news-server`.
 
 All root scripts proxy into workspaces via `pnpm --filter`.
@@ -21,8 +21,13 @@ pnpm dev:client       # Vite dev server (5173)
 pnpm dev:server       # Express with tsx watch (3001)
 pnpm build:client
 pnpm lint             # eslint on client
+pnpm lint:arch        # eslint boundaries only (errors)
+pnpm arch:validate    # dependency-cruiser (client)
+pnpm arch:report      # docs/architecture/generated/report.md
 pnpm type-check       # tsc --noEmit on client
 pnpm test             # vitest on client
+pnpm knip             # dead code (strict)
+pnpm knip:report      # dead code audit, exit 0
 
 # OpenAPI-клиентские типы (`client/src/shared/api/openapi.{json,d.ts}`)
 pnpm gen:openapi      # пересобрать .d.ts из закоммиченного openapi.json (без сервера)
@@ -41,7 +46,7 @@ Server has no test runner configured; `pnpm --filter react-happy-news-server bui
 
 ## Environment variables
 
-- `client/.env` → `VITE_API_BASE_URL` (points at the Express server, defaults `http://localhost:3001`). MSW handlers and RTK Query both read this.
+- `client/.env` → `VITE_API_BASE_URL` (points at the Express server, defaults `http://localhost:3001`). MSW handlers and TanStack Query both read this.
 - `server/.env` (see `server/.env.example`) → `PORT`, `GUARDIAN_API_KEY` / `GUARDIAN_BASE_URL`, `NEWSAPI_KEY` / `NEWSAPI_BASE_URL`, `HACKERNEWS_BASE_URL`. Missing keys will 500 the aggregator for that source only — the other sources still return data because of `Promise.allSettled`.
 
 ## Backend architecture (`server/src`)
@@ -57,22 +62,33 @@ Server has no test runner configured; `pnpm --filter react-happy-news-server bui
 Feature-Sliced Design layers, imported via tsconfig path aliases (enforced; do not use deep relative paths):
 
 ```
-app → pages → widgets → features → entities → shared
+app → pages → features → entities → shared
 ```
 
-Aliases: `@app/*`, `@pages/*`, `@widgets/*`, `@features/*`, `@entities/*`, `@shared/*`, plus `@/*`. Lower layers must not import higher ones.
+Physical layout: `app/layout/Header` (shell), `app/lib/health-check`, `pages/Main/{lib,ui}` (catalog filters), `entities/news/{api,ui,helpers}`, `shared/{api,hooks,ui,lib,config}`. Details: `docs/architecture/MODULE_MAP.md`, enforcement: `docs/architecture/GOVERNANCE.md`.
+
+Aliases: `@app/*`, `@pages/*`, `@features/*`, `@entities/*`, `@shared/*`, plus `@/*`. Lower layers must not import higher ones. Enforced by ESLint `eslint-plugin-boundaries` + dependency-cruiser.
 
 Key wiring:
 
-- `app/main.tsx` boots MSW **only** when `import.meta.env.DEV` **and** `localStorage.happyNews_mockMode === 'true'`. Toggling the button in `widgets/Header` writes localStorage synchronously and calls `window.location.reload()` — MSW only starts on boot.
-- `app/store/store.ts` registers `newsApi` reducer + middleware. All server IO goes through RTK Query; there is no separate thunks/slices layer.
-- `entities/news/api/rtk/newsApi.ts` is the single RTK Query API. `baseUrl` is `VITE_API_BASE_URL`; endpoints hit `/api/news` and `/api/news/:id`. `transformResponse` unwraps `{ news: [...] }` for the list query.
+- `app/main.tsx` boots MSW **only** when `import.meta.env.DEV` **and** `localStorage.happyNews_mockMode === 'true'`. Toggling the button in `app/layout/Header` writes localStorage synchronously and calls `window.location.reload()` — MSW only starts on boot.
+- `app/main.tsx` wraps the app in `QueryClientProvider` (`shared/api/queryClient.ts`). All server IO goes through TanStack Query hooks; auth session is **not** in the query cache (see `shared/api/apiFetch.ts` + `features/auth/tokenMemory.ts`).
+- `entities/news/api/tanstack/newsQueries.ts` — news list/detail/feedback hooks. Uses `shared/api/apiFetch.ts` for fetch + 401 refresh. `VITE_API_BASE_URL`; endpoints hit `/api/news` and `/api/news/:id`.
 - `app/mocks/handlers.ts` mirrors the server routes for MSW. The detail handler uses a wildcard because Guardian IDs contain slashes (`environment/2026/jan/14/...`) — see `entities/news/api/apiPaths.ts` for the `NEWS_MSW_PATTERNS` comment.
-- `features/source-filter/useSourceFilter.ts` persists selected sources to localStorage (`news-sources`); `sourcesParam` is **sorted** before join so the server cache key matches regardless of click order. At least one source is always selected (the toggle refuses to remove the last one).
+- `pages/Main/lib/useNewsFilterParams.ts` — URL state for catalog filters (`sources`, `q`, `category`); UI in `pages/Main/ui/` (SearchInput, SourceFilter, CategoryFilter, NewsFilterBar). Header is shell only (no filters).
+- `app/lib/health-check/` — `useHealthCheck`, StatusBadge, OfflineBanner (used by App + Header).
+- `pages/NewsDetail/` — ReadersCount + useLiveReaders (live SSE counter).
 
 ## Barrels are auto-generated — do not edit them
 
-`client/scripts/gen-barrels.js` runs in the `pre-commit` hook and writes `index.ts` for every folder that contains `FolderName/FolderName.tsx`. `client/scripts/update-imports.js` runs next. Both are re-staged automatically. Don't hand-author barrel re-exports for that pattern; they'll be overwritten.
+`client/scripts/gen-barrels.js` runs in the `pre-commit` hook and writes `index.ts` for every folder that contains `FolderName/FolderName.tsx`. `client/scripts/update-imports.js` runs next. Then **lint-staged** (eslint on staged ts/tsx). Both barrel scripts re-stage automatically. Don't hand-author barrel re-exports for that pattern; they'll be overwritten.
+
+## Git hooks (quality gates)
+
+- **pre-commit:** gen:barrels → fix:imports → lint-staged
+- **pre-push:** type-check → lint:arch → arch:validate → test run → validate-branch
+
+Knip (`pnpm knip:report`) — audit before release, not in hooks. Policy: `docs/architecture/DEAD_CODE.md`.
 
 ## TypeScript config notes
 
@@ -92,11 +108,21 @@ npm run _ push-release
 - **Branch name** must match `v{version}-{name}` (e.g. `v2.3.0-normalize-numbers`) — `pre-push` enforces this.
 - **Commit format** is commitlint + `jst` validated in `commit-msg`. `feat` and `fix` **require an issue reference**: `feat: #9 добавлена нормализация чисел`. Use `close` to auto-close: `feat: close #9 ...`. Other types (`refactor`, `perf`, `chore`, `docs`, `build`) are free-form.
 
+## Frontend Module Map (lite)
+
+Logical modules (not strict flat FSD): `core` / `auth` / `catalog` / `engagement`. Living diagram: `docs/architecture/MODULE_MAP.md`, ADR: `docs/roadmap/ADR-001-frontend-module-map.md`.
+
+- **Colocation:** code lives in `pages/Feature/`; extract to `features/` only when used from 2+ places.
+- **Auth:** `pages/Auth/lib/tokenMemory.ts`, `app/providers/AuthProvider.tsx`, `shared/api/apiFetch.ts`.
+- **Terminology:** UI/docs — **избранное**; code/API — **favorites** (not bookmarks).
+- **Docs analogies:** airport domain only in increment «На пальцах» — see `docs/roadmap/ANALOGY_GUIDE.md`.
+
 ## Docs to read during a task
 
-- `docs/CURRENT_INCREMENT.md` — **read first when starting work**. Contains the active User Story, step-by-step plan, exact git commands, and known pitfalls. Often has TODO comments in code files that mirror the steps here.
-- `docs/CURRENT_RELEASE.md` — overall status of the in-progress release (which US are done / active).
-- `docs/ROADMAP.md` — long-term plan (v2.0–v2.5).
+- `docs/roadmap/CURRENT_INCREMENT.md` — **read first when starting work**. Contains the active User Story, step-by-step plan, exact git commands, and known pitfalls. Often has TODO comments in code files that mirror the steps here.
+- `docs/roadmap/CURRENT_RELEASE.md` — overall status of the in-progress release (which US are done / active).
+- `docs/roadmap/ROADMAP.md` — long-term plan (v2.0–v2.5).
+- `docs/roadmap/ANALOGY_GUIDE.md` — checklist + glossary for «На пальцах» sections (when writing/reviewing docs).
 
 When `CURRENT_INCREMENT.md` exists with a pending step and the corresponding file has matching `// TODO:` comments, those comments **are** the spec — follow them rather than inventing an alternative approach.
 

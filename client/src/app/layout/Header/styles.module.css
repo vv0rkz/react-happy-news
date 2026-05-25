@@ -1,0 +1,24 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--mantine-color-body);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  padding: 12px 0;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--mantine-color-indigo-6);
+  cursor: pointer;
+  margin: 0;
+  letter-spacing: -0.3px;
+  transition: color 0.2s ease;
+  line-height: 1;
+}
+
+.title:hover {
+  color: var(--mantine-color-indigo-8);
+}

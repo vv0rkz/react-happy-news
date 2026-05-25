@@ -11,3 +11,12 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+
+.searchRow {
+  flex: 1;
+  min-width: 220px;
+}
+
+.searchRow input {
+  width: 100%;
+}

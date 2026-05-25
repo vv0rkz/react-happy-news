@@ -8,13 +8,18 @@
     "build": "tsc && vite build",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
+    "lint:arch": "eslint . --quiet",
+    "arch:validate": "depcruise src --config .dependency-cruiser.cjs",
+    "arch:report": "node scripts/arch-report.mjs",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "preview": "vite preview",
     "gen:barrels": "node scripts/gen-barrels.js",
     "fix:imports": "node scripts/update-imports.js",
     "gen:openapi": "openapi-typescript ./src/shared/api/openapi.json -o ./src/shared/api/openapi.d.ts",
-    "gen:openapi:sync": "node ./scripts/fetch-openapi.mjs && openapi-typescript ./src/shared/api/openapi.json -o ./src/shared/api/openapi.d.ts"
+    "gen:openapi:sync": "node ./scripts/fetch-openapi.mjs && openapi-typescript ./src/shared/api/openapi.json -o ./src/shared/api/openapi.d.ts",
+    "knip": "knip",
+    "knip:report": "knip --no-exit-code"
   },
   "dependencies": {
     "@mantine/core": "^9.1.1",
@@ -43,12 +48,16 @@
     "@types/react": "^19.2.9",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "dependency-cruiser": "^17.4.2",
     "eslint": "^9.39.1",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-boundaries": "^6.0.2",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^16.5.0",
     "jsdom": "^27.4.0",
+    "knip": "^6.14.2",
     "openapi-typescript": "^7.13.0",
     "rollup-plugin-visualizer": "^7.0.1",
     "typescript": "^5.9.3",
@@ -61,5 +70,24 @@
     "workerDirectory": [
       "public"
     ]
+  },
+  "knip": {
+    "entry": [
+      "index.html",
+      "src/app/main.tsx",
+      "src/app/mocks/browser.ts",
+      "src/tests/setup.ts"
+    ],
+    "project": ["src/**/*.{ts,tsx}"],
+    "ignore": [
+      "src/shared/api/openapi.d.ts",
+      "src/features/feedback/**"
+    ],
+    "ignoreDependencies": ["msw", "eslint-plugin-boundaries"],
+    "ignoreExportsUsedInFile": true,
+    "ignoreIssues": {
+      "src/entities/news/api/tanstack/newsQueries.ts": ["exports"],
+      "src/entities/news/api/index.ts": ["exports"]
+    }
   }
 }
