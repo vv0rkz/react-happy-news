@@ -20,7 +20,7 @@
     "@mantine/core": "^9.2.1",
     "@mantine/hooks": "^9.2.1",
     "@mantine/notifications": "^9.2.1",
-    "@tanstack/react-query": "^5.100.11",
+    "@tanstack/react-query": "^5.100.14",
     "axios": "^1.16.1",
     "classnames": "^2.5.1",
     "dompurify": "^3.4.5",
