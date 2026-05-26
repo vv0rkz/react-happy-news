@@ -1,5 +1,5 @@
-import { NewsBanner } from '@entities/news/components/NewsBanner'
-import { useGetNewsDetailQuery } from '@entities/news/api'
+import { NewsBanner } from '@model/news/components/NewsBanner'
+import { useGetNewsDetailQuery } from '@model/news/api'
 import { ReadersCount } from '../ReadersCount'
 import { ErrorComponent } from '@shared/components/ErrorComponent'
 import { Skeleton } from '@shared/components/Skeleton'

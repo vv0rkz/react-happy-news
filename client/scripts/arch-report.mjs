@@ -17,8 +17,8 @@ const ZONES = [
   { id: 'core', match: (p) => p.startsWith('src/shared/api/') },
   { id: 'shared_components', match: (p) => p.startsWith('src/shared/components/') },
   { id: 'shared_lib', match: (p) => p.startsWith('src/shared/lib/') },
-  { id: 'catalog_api', match: (p) => p.startsWith('src/entities/news/api/') },
-  { id: 'catalog_components', match: (p) => p.startsWith('src/entities/news/components/') },
+  { id: 'catalog_api', match: (p) => p.startsWith('src/model/news/api/') },
+  { id: 'catalog_components', match: (p) => p.startsWith('src/model/news/components/') },
   { id: 'engagement', match: (p) => p.startsWith('src/pages/Favorites/') || p.startsWith('src/pages/Dashboard/') },
   { id: 'app', match: (p) => p.startsWith('src/app/') },
   { id: 'features', match: (p) => p.startsWith('src/features/') },
@@ -117,7 +117,7 @@ function consumerZoneExtended(dep) {
   if (dep.startsWith('src/app/')) return 'app'
   const pk = pageKey(dep)
   if (pk) return `pages/${pk}`
-  if (dep.startsWith('src/entities/')) return 'entities'
+  if (dep.startsWith('src/model/')) return 'model'
   if (dep.startsWith('src/features/')) {
     const m = dep.match(/^src\/features\/([^/]+)/)
     return m ? `features/${m[1]}` : 'features'

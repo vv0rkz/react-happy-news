@@ -93,10 +93,10 @@
     ],
     "ignoreExportsUsedInFile": true,
     "ignoreIssues": {
-      "src/entities/news/api/tanstack/newsQueries.ts": [
+      "src/model/news/api/tanstack/newsQueries.ts": [
         "exports"
       ],
-      "src/entities/news/api/index.ts": [
+      "src/model/news/api/index.ts": [
         "exports"
       ]
     }

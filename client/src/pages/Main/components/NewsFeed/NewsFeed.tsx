@@ -1,4 +1,4 @@
-import { useGetNewsQuery } from '@entities/news/api'
+import { useGetNewsQuery } from '@model/news/api'
 import { ErrorComponent } from '@shared/components/ErrorComponent'
 import { useNewsFilterParams } from '../../lib/useNewsFilterParams'
 import { NewsFeedView } from '../NewsFeedView'

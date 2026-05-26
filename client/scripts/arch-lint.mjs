@@ -23,7 +23,7 @@ export const ALLOWED_SEGMENTS = {
 }
 
 const FORBIDDEN_SEGMENTS = new Set(['ui', 'hooks', 'helpers', 'widgets'])
-const TOP_LEVEL_SRC = new Set(['app', 'pages', 'features', 'entities', 'shared', 'assets', 'tests'])
+const TOP_LEVEL_SRC = new Set(['app', 'pages', 'features', 'model', 'shared', 'assets', 'tests'])
 
 /** @type {{ id: string; severity: 'error' | 'warn'; message: string; path: string }[]} */
 const violations = []
@@ -120,13 +120,13 @@ function checkComponentsSegment(dir, rel) {
   }
 }
 
-function checkEntityRoots() {
-  const entitiesDir = join(srcRoot, 'entities')
-  if (!existsSync(entitiesDir)) return
+function checkModelRoots() {
+  const modelDir = join(srcRoot, 'model')
+  if (!existsSync(modelDir)) return
 
-  for (const domain of listDirs(entitiesDir)) {
-    const domainDir = join(entitiesDir, domain)
-    const rel = `src/entities/${domain}`
+  for (const domain of listDirs(modelDir)) {
+    const domainDir = join(modelDir, domain)
+    const rel = `src/model/${domain}`
 
     for (const entry of listDirs(domainDir)) {
       if (!ALLOWED_SEGMENTS.entity.includes(entry)) {
@@ -231,7 +231,7 @@ function consumerZone(dep) {
   if (dep.startsWith('src/app/')) return 'app'
   const pk = pageKey(dep)
   if (pk) return `pages/${pk}`
-  if (dep.startsWith('src/entities/')) return 'entities'
+  if (dep.startsWith('src/model/')) return 'model'
   if (dep.startsWith('src/features/')) {
     const m = dep.match(/^src\/features\/([^/]+)/)
     return m ? `features/${m[1]}` : 'features'
@@ -336,7 +336,7 @@ function runFilesystemChecks() {
   checkTopLevelSrc()
   walkForbiddenSegments(srcRoot)
   checkPageRoots()
-  checkEntityRoots()
+  checkModelRoots()
   checkSharedRoot()
   checkAppStructure()
   checkFeatureRoots()
