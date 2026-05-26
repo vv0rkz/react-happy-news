@@ -232,28 +232,19 @@ function markdown({ generatedAt, summary, hubs, hints, misplaced, misplacedShare
     '## Colocation hints (2+ consumer areas)',
     '',
     ...(hints.length
-      ? hints.map(
-          (h) =>
-            `- \`${h.path}\` — consumers: ${h.consumers.join(', ')} → **${h.suggestion}**`,
-        )
+      ? hints.map((h) => `- \`${h.path}\` — consumers: ${h.consumers.join(', ')} → **${h.suggestion}**`)
       : ['- None']),
     '',
     '## Misplaced features (single consumer — colocate)',
     '',
     ...(misplaced.length
-      ? misplaced.map(
-          (h) =>
-            `- \`${h.path}\` — consumers: ${h.consumers.join(', ')} → **${h.suggestion}**`,
-        )
+      ? misplaced.map((h) => `- \`${h.path}\` — consumers: ${h.consumers.join(', ')} → **${h.suggestion}**`)
       : ['- None']),
     '',
     '## Misplaced shared (consumerZones < 2)',
     '',
     ...(misplacedShared.length
-      ? misplacedShared.map(
-          (h) =>
-            `- \`${h.path}\` — consumers: ${h.consumers.join(', ')} → **${h.suggestion}**`,
-        )
+      ? misplacedShared.map((h) => `- \`${h.path}\` — consumers: ${h.consumers.join(', ')} → **${h.suggestion}**`)
       : ['- None']),
     '',
     '> Re-run: `pnpm arch:report` / gate: `pnpm arch:lint`',

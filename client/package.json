@@ -79,16 +79,26 @@
       "src/app/mocks/browser.ts",
       "src/tests/setup.ts"
     ],
-    "project": ["src/**/*.{ts,tsx}", "src/assets/**"],
+    "project": [
+      "src/**/*.{ts,tsx}",
+      "src/assets/**"
+    ],
     "ignore": [
       "src/shared/api/openapi.d.ts",
       "src/features/feedback/**"
     ],
-    "ignoreDependencies": ["msw", "eslint-plugin-boundaries"],
+    "ignoreDependencies": [
+      "msw",
+      "eslint-plugin-boundaries"
+    ],
     "ignoreExportsUsedInFile": true,
     "ignoreIssues": {
-      "src/entities/news/api/tanstack/newsQueries.ts": ["exports"],
-      "src/entities/news/api/index.ts": ["exports"]
+      "src/entities/news/api/tanstack/newsQueries.ts": [
+        "exports"
+      ],
+      "src/entities/news/api/index.ts": [
+        "exports"
+      ]
     }
   }
 }

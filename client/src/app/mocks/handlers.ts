@@ -1,9 +1,9 @@
 import { http, HttpResponse } from 'msw'
 import { z } from 'zod'
-import mockNewsData from '@entities/news/api/apiNews/mocks/newsData.json'
-import mockNewsDetailsData from '@entities/news/api/apiNews/mocks/newsDetailsData.json'
-import { SourceName } from '@entities/news/api/apiNews/utils/transforms.types'
-import type { NewsItem } from '@entities/news/api/apiNews/utils/transforms.types'
+import mockNewsData from '@model/news/api/apiNews/mocks/newsData.json'
+import mockNewsDetailsData from '@model/news/api/apiNews/mocks/newsDetailsData.json'
+import { SourceName } from '@model/news/api/apiNews/utils/transforms.types'
+import type { NewsItem } from '@model/news/api/apiNews/utils/transforms.types'
 
 const BASE_URL: string = import.meta.env.VITE_API_BASE_URL
 

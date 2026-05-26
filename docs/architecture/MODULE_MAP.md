@@ -7,7 +7,9 @@
 
 **Module Map lite** — не strict flat FSD, не DDD. Четыре домена + `app` shell.
 
-**Colocation rule:** код живёт рядом с страницей (`pages/Feature/`). Extract в `features/` — только если используется из **2+** мест.
+**Colocation rule:** код живёт рядом со страницей (`pages/Feature/`). Extract в `features/` — только при **2+ consumer zones** (разные pages / app / model). Код в `shared/` — только при **2+ zones**; иначе colocate.
+
+Folder convention: [GOVERNANCE.md](./GOVERNANCE.md) + `pnpm arch:lint` (single source of truth: `client/scripts/arch-lint.mjs`).
 
 ## Модули
 
@@ -34,8 +36,8 @@ flowchart TB
   end
 
   subgraph catalog [catalog]
-    newsApi["entities/news/api/"]
-    newsUi["entities/news/ui/"]
+    newsApi["model/news/api/"]
+    newsComponents["model/news/components/"]
   end
 
   subgraph engagement [engagement]
@@ -44,8 +46,8 @@ flowchart TB
   end
 
   subgraph catalogPages [catalog pages]
-    mainFilters["pages/Main/lib + ui"]
-    newsDetail["pages/NewsDetail/"]
+    mainFilters["pages/Main/lib + components"]
+    newsDetail["pages/NewsDetail/components/"]
   end
 
   appShell --> auth
@@ -57,13 +59,13 @@ flowchart TB
   engagement --> auth
 ```
 
-| Модуль | Ответственность | Ключевые пути |
-| ------ | --------------- | ------------- |
-| **core** | HTTP, query client, shared Zod schemas | `shared/api/` |
-| **auth** | Сессия, forms, tokenMemory | `pages/Auth/`, `app/providers/AuthProvider.tsx` |
-| **catalog** | Новости, фильтры, деталь | `entities/news/api/`, `entities/news/ui/`, `pages/Main/` (lib + ui), `pages/NewsDetail/` |
-| **engagement** | Избранное, tracker, streak | `pages/Favorites/`, `pages/Dashboard/` |
-| **app** | Router, layout, health, providers, MSW boot | `app/`, `app/layout/Header/`, `app/lib/health-check/` |
+| Модуль         | Ответственность                             | Ключевые пути                                                                                      |
+| -------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **core**       | HTTP, query client, shared Zod schemas      | `shared/api/`                                                                                      |
+| **auth**       | Сессия, forms, tokenMemory                  | `pages/Auth/`, `app/providers/AuthProvider.tsx`                                                    |
+| **catalog**    | Новости, фильтры, деталь                    | `model/news/{api,components,lib}/`, `pages/Main/{lib,components}/`, `pages/NewsDetail/`          |
+| **engagement** | Избранное, tracker, streak                  | `pages/Favorites/`, `pages/Dashboard/`                                                             |
+| **app**        | Router, layout, health, providers, MSW boot | `app/`, `app/layout/Header/`, `app/lib/health-check/`                                              |
 
 ## Зависимости (правила)
 
@@ -73,25 +75,45 @@ flowchart TB
 4. `app` → все модули (wiring only)
 5. **Запрещено:** `core` → `auth` / `catalog` / `engagement`
 
+## Page layout (catalog)
+
+```
+pages/Main/
+├── Main.tsx
+├── lib/                    # useNewsFilterParams, categories
+└── components/
+    ├── SearchInput/
+    ├── NewsFilterBar/
+    ├── NewsFeed/
+    └── NewsFeedView/
+
+pages/NewsDetail/
+├── NewsDetail.tsx
+└── components/
+    ├── NewsDetailView/
+    └── ReadersCount/       # + useLiveReaders.ts (widget VM)
+```
+
+Page VM → `lib/`. Widget VM → рядом с tsx в `components/<Name>/`.
+
 ## Физическая раскладка `shared`
 
-| Подпапка | Назначение |
-| -------- | ---------- |
-| `shared/api/` | **core** — HTTP, QueryClient, OpenAPI |
-| `shared/config/` | routes и прочий config |
-| `shared/hooks/` | доменно-нейтральные хуки |
-| `shared/lib/` | чистые утилиты (`formatTimeAgo`) |
-| `shared/ui/` | UI-kit без бизнес-логики |
+| Подпапка              | Назначение                                      |
+| --------------------- | ----------------------------------------------- |
+| `shared/api/`         | **core** — HTTP, QueryClient, OpenAPI           |
+| `shared/config/`      | routes и прочий config                          |
+| `shared/components/`  | UI-kit (Skeleton, ErrorComponent) — 2+ zones    |
+| `shared/lib/`         | pure utils — 2+ zones                           |
 
-Слой `widgets/` **не используется** — shell в `app/layout/`.
+Запрещённые segments: `ui/`, `hooks/`, `helpers/`, `widgets/`. Слой FSD `widgets/` **не используется** — shell в `app/layout/`.
 
 ## FSD aliases (совместимость)
 
-Tsconfig aliases (`@app`, `@pages`, `@features`, `@entities`, `@shared`) остаются. Слои: `app → pages → features → entities → shared` (без `widgets`). Module Map — **логическая** группировка поверх физических папок.
+Tsconfig aliases: `@app`, `@pages`, `@features`, `@model`, `@shared`. Слои: `app → pages → features → model → shared`. Module Map — **логическая** группировка поверх физических папок.
 
 ## Enforcement
 
-Автопроверки: [GOVERNANCE.md](./GOVERNANCE.md) — `pnpm lint:arch`, `pnpm arch:validate`, `pnpm arch:report`.
+Автопроверки: [GOVERNANCE.md](./GOVERNANCE.md) — `pnpm lint:arch`, `pnpm arch:lint`, `pnpm arch:validate`, `pnpm arch:report`.
 
 ## Backend (кратко)
 
@@ -105,8 +127,12 @@ server/src/
 
 ## Changelog
 
-| Дата | Изменение |
-| ---- | --------- |
-| 2026-05 | Initial Module Map lite (Auth Foundation docs v5) |
+| Дата    | Изменение                                                                                               |
+| ------- | ------------------------------------------------------------------------------------------------------- |
+| 2026-05 | Initial Module Map lite (Auth Foundation docs v5)                                                       |
 | 2026-05 | Physical layout: `app/layout/Header`, `entities/news/ui`, `shared/{hooks,ui,lib}`; ESLint + dep-cruiser |
-| 2026-05 | Unified `components/` segment; `arch:lint` pre-push; colocation hooks/lib |
+| 2026-05 | Unified `components/` segment; `arch:lint` pre-push; colocation hooks/lib; docs → `model/`              |
+
+## Follow-up (code)
+
+Дубликаты `src/entities/`, mixed `@entities`/`@model` imports, eslint zones `entities` → отдельный PR (см. ADR-001).

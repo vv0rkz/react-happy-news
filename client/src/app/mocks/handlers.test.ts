@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SourceName } from '@entities/news/api/apiNews/utils/transforms.types'
+import { SourceName } from '@model/news/api/apiNews/utils/transforms.types'
 
 // Если хэндлер перехватывает неправильный URL, setup.ts бросит ошибку:
 // "onUnhandledRequest: 'error'" — запрос не перехвачен → тест упадёт автоматически

@@ -5,10 +5,9 @@
  * Usage: node scripts/arch-lint.mjs [--json]
  */
 import { execSync } from 'child_process'
-import { readdirSync, statSync, existsSync } from 'fs'
-import { join, relative } from 'path'
+import { existsSync, readdirSync, statSync } from 'fs'
+import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
-import { dirname } from 'path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const clientRoot = join(__dirname, '..')
@@ -52,10 +51,7 @@ function listFiles(dir) {
 }
 
 function hasComponentFile(dir, name) {
-  return (
-    existsSync(join(dir, name, `${name}.tsx`)) ||
-    existsSync(join(dir, name, `${name}.ts`))
-  )
+  return existsSync(join(dir, name, `${name}.tsx`)) || existsSync(join(dir, name, `${name}.ts`))
 }
 
 function walkForbiddenSegments(dir, relBase = '') {
@@ -95,7 +91,7 @@ function checkPageRoots() {
         entry === `${page}.tsx` ||
         entry === 'index.ts' ||
         entry === `${page}.module.css` ||
-        entry.endsWith('.module.css') && entry === `${page}.module.css`
+        (entry.endsWith('.module.css') && entry === `${page}.module.css`)
       if (!allowedFile && (entry.endsWith('.tsx') || entry.endsWith('.ts') || entry.endsWith('.css'))) {
         add('P1', 'error', `unexpected file "${entry}" in page root — move to components/ or lib/`, `${rel}/${entry}`)
       }
@@ -114,7 +110,12 @@ function checkComponentsSegment(dir, rel) {
         add('N2', 'error', `missing ${entry}/${entry}.tsx`, entryRel)
       }
     } else if (entry.endsWith('.tsx') && !entry.endsWith('.test.tsx')) {
-      add('P2', 'error', `flat component file not allowed — use ${entry.replace('.tsx', '')}/${entry}`, `${rel}/${entry}`)
+      add(
+        'P2',
+        'error',
+        `flat component file not allowed — use ${entry.replace('.tsx', '')}/${entry}`,
+        `${rel}/${entry}`,
+      )
     }
   }
 }

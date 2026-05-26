@@ -22,6 +22,7 @@ pnpm dev:server       # Express with tsx watch (3001)
 pnpm build:client
 pnpm lint             # eslint on client
 pnpm lint:arch        # eslint boundaries only (errors)
+pnpm arch:lint        # folder convention + colocation (client)
 pnpm arch:validate    # dependency-cruiser (client)
 pnpm arch:report      # docs/architecture/generated/report.md
 pnpm type-check       # tsc --noEmit on client
@@ -55,29 +56,29 @@ Server has no test runner configured; `pnpm --filter react-happy-news-server bui
 - `routes/news.routes.ts` — `GET /api/news` validates `?sources=` with a Zod enum, builds a sorted cache key, and calls `aggregateNews`. `GET /:id` is planned (TODOs in-file).
 - `services/newsAggregator.ts` — single `SOURCES` array is the extension point; `Promise.allSettled` means one failing provider yields `sources: { name: 'error' }` in the response but does not abort the request. After aggregation, `utils/positivityFilter.isPositiveNews` applies a keyword-based negative→positive filter (negative keywords short-circuit first).
 - `utils/cache.ts` — `node-cache` with 5min TTL, one shared instance. The news list and (planned) individual items both live here.
-- `types/news.types.ts` — `SourceName` enum is the single source of truth for source identifiers; the client re-declares a mirror in `entities/news/api/apiNews/utils/transforms.types.ts`. Keep them in sync.
+- `types/news.types.ts` — `SourceName` enum is the single source of truth for source identifiers; the client re-declares a mirror in `model/news/api/apiNews/utils/transforms.types.ts`. Keep them in sync.
 
 ## Frontend architecture (`client/src`)
 
 Feature-Sliced Design layers, imported via tsconfig path aliases (enforced; do not use deep relative paths):
 
 ```
-app → pages → features → entities → shared
+app → pages → features → model → shared
 ```
 
-Physical layout: `app/layout/Header` (shell), `app/lib/health-check`, `pages/Main/{lib,ui}` (catalog filters), `entities/news/{api,ui,helpers}`, `shared/{api,hooks,ui,lib,config}`. Details: `docs/architecture/MODULE_MAP.md`, enforcement: `docs/architecture/GOVERNANCE.md`.
+Physical layout: `app/layout/Header` (shell), `app/lib/health-check`, `pages/Main/{lib,components}` (catalog filters), `model/news/{api,components,lib}`, `shared/{api,config,components,lib}`. Details: `docs/architecture/MODULE_MAP.md`, enforcement: `docs/architecture/GOVERNANCE.md`.
 
-Aliases: `@app/*`, `@pages/*`, `@features/*`, `@entities/*`, `@shared/*`, plus `@/*`. Lower layers must not import higher ones. Enforced by ESLint `eslint-plugin-boundaries` + dependency-cruiser.
+Aliases: `@app/*`, `@pages/*`, `@features/*`, `@model/*`, `@shared/*`, plus `@/*`. Lower layers must not import higher ones. Enforced by ESLint `eslint-plugin-boundaries` + dependency-cruiser.
 
 Key wiring:
 
 - `app/main.tsx` boots MSW **only** when `import.meta.env.DEV` **and** `localStorage.happyNews_mockMode === 'true'`. Toggling the button in `app/layout/Header` writes localStorage synchronously and calls `window.location.reload()` — MSW only starts on boot.
 - `app/main.tsx` wraps the app in `QueryClientProvider` (`shared/api/queryClient.ts`). All server IO goes through TanStack Query hooks; auth session is **not** in the query cache (see `shared/api/apiFetch.ts` + `features/auth/tokenMemory.ts`).
-- `entities/news/api/tanstack/newsQueries.ts` — news list/detail/feedback hooks. Uses `shared/api/apiFetch.ts` for fetch + 401 refresh. `VITE_API_BASE_URL`; endpoints hit `/api/news` and `/api/news/:id`.
-- `app/mocks/handlers.ts` mirrors the server routes for MSW. The detail handler uses a wildcard because Guardian IDs contain slashes (`environment/2026/jan/14/...`) — see `entities/news/api/apiPaths.ts` for the `NEWS_MSW_PATTERNS` comment.
-- `pages/Main/lib/useNewsFilterParams.ts` — URL state for catalog filters (`sources`, `q`, `category`); UI in `pages/Main/ui/` (SearchInput, SourceFilter, CategoryFilter, NewsFilterBar). Header is shell only (no filters).
-- `app/lib/health-check/` — `useHealthCheck`, StatusBadge, OfflineBanner (used by App + Header).
-- `pages/NewsDetail/` — ReadersCount + useLiveReaders (live SSE counter).
+- `model/news/api/tanstack/newsQueries.ts` — news list/detail/feedback hooks. Uses `shared/api/apiFetch.ts` for fetch + 401 refresh. `VITE_API_BASE_URL`; endpoints hit `/api/news` and `/api/news/:id`.
+- `app/mocks/handlers.ts` mirrors the server routes for MSW. The detail handler uses a wildcard because Guardian IDs contain slashes (`environment/2026/jan/14/...`) — see `model/news/api/apiPaths.ts` for the `NEWS_MSW_PATTERNS` comment.
+- `pages/Main/lib/useNewsFilterParams.ts` — URL state for catalog filters (`sources`, `q`, `category`); widgets in `pages/Main/components/` (SearchInput, SourceFilter, CategoryFilter, NewsFilterBar). Header is shell only (no filters).
+- `app/lib/health-check/` — `useHealthCheck`; widgets in `components/StatusBadge`, `OfflineBanner` (used by App + Header).
+- `pages/NewsDetail/components/ReadersCount/` — ReadersCount + `useLiveReaders.ts` (live SSE counter).
 
 ## Barrels are auto-generated — do not edit them
 

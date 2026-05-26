@@ -63,12 +63,26 @@ export const architectureConfig = [
             },
             {
               from: { type: 'catalog_pages' },
-              allow: allowTypes(['catalog_pages', 'pages', 'features', 'entities', 'catalog_components', ...SHARED_AND_CORE]),
+              allow: allowTypes([
+                'catalog_pages',
+                'pages',
+                'features',
+                'entities',
+                'catalog_components',
+                ...SHARED_AND_CORE,
+              ]),
               disallow: allowTypes(['pages_auth']),
             },
             {
               from: { type: 'pages' },
-              allow: allowTypes(['pages', 'catalog_pages', 'features', 'entities', 'catalog_components', ...SHARED_AND_CORE]),
+              allow: allowTypes([
+                'pages',
+                'catalog_pages',
+                'features',
+                'entities',
+                'catalog_components',
+                ...SHARED_AND_CORE,
+              ]),
               disallow: allowTypes(['pages_auth']),
             },
             {

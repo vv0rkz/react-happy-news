@@ -1,5 +1,5 @@
 // scripts/update-imports.js — заменяет дублирующиеся импорты на короткий путь
-// Пример: '@entities/news/NewsBanner/NewsBanner' → '@entities/news/NewsBanner'
+// Пример: '@model/news/NewsBanner/NewsBanner' → '@model/news/NewsBanner'
 // Сокращает ТОЛЬКО если в папке уже есть index.ts / index.tsx
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs'
 import { dirname, join, resolve } from 'path'
@@ -8,7 +8,7 @@ const ALIAS_MAP = {
   '@app': 'src/app',
   '@pages': 'src/pages',
   '@features': 'src/features',
-  '@entities': 'src/entities',
+  '@model': 'src/model',
   '@shared': 'src/shared',
 }
 

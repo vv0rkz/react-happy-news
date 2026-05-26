@@ -152,6 +152,7 @@ sequenceDiagram
 | 1 | **Module Map lite** (core / auth / catalog / engagement) | 8.5 | **✅** см. [MODULE_MAP.md](../architecture/MODULE_MAP.md) |
 | 2 | Colocation в `pages/` | 8.0 | ✅ правило по умолчанию |
 | 3 | Flat FSD (features/* для всего) | 6.5 | ❌ boilerplate |
+| 4 | **Unified `components/` + arch:lint** | — | **✅** commit ab66f61 |
 
 **Итог Research:** **Context (UI) + tokenMemory (HTTP) + apiFetch (interceptor) + JWT/httpOnly** — #1 client auth; **Module Map lite** — #1 architecture. См. [ADR-001](./ADR-001-frontend-module-map.md).
 
@@ -232,7 +233,7 @@ flowchart TB
     LoginForm["pages/Auth/LoginForm.tsx"]
   end
   subgraph catalogMod [catalog]
-    newsQueries["entities/news/api/tanstack/newsQueries.ts"]
+    newsQueries["model/news/api/tanstack/newsQueries.ts"]
   end
   subgraph engagementMod [engagement]
     favorites["pages/Favorites/ — US 2.2.2"]
@@ -341,8 +342,13 @@ client/src/
 │   ├── apiFetch.ts            ← НОВЫЙ (→ core/http/ при рефакторе)
 │   ├── queryClient.ts         ✅ уже есть
 │   └── authSchemas.ts         ← НОВЫЙ (Zod)
-├── entities/news/api/tanstack/
+├── model/news/api/tanstack/
 │   └── newsQueries.ts         ← ИЗМЕНИТЬ: import apiFetch
+├── pages/Main/
+│   ├── lib/useNewsFilterParams.ts
+│   └── components/            ← SearchInput, NewsFeed, NewsFeedView, …
+├── pages/NewsDetail/
+│   └── components/            ← NewsDetailView, ReadersCount (+ useLiveReaders)
 ├── pages/Auth/
 │   ├── lib/tokenMemory.ts     ← НОВЫЙ
 │   ├── LoginForm.tsx          ← НОВЫЙ
@@ -451,7 +457,7 @@ git commit -m "feat: #N authenticate middleware (JWT verify)"
 - [ ] `apiFetch.test.ts` — MSW: 401 → refresh → retry
 
 ```bash
-git add client/src/pages/Auth/ client/src/app/providers/ client/src/shared/api/ client/src/entities/news/api/tanstack/
+git add client/src/pages/Auth/ client/src/app/providers/ client/src/shared/api/ client/src/model/news/api/tanstack/
 git commit -m "feat: #N tokenMemory + AuthProvider + apiFetch interceptor"
 ```
 
@@ -568,7 +574,7 @@ pnpm gen:openapi:sync   # нужен запущенный server
 gh issue close N --comment "Auth Foundation завершён: JWT, forms, ProtectedRoute, OAuth"
 
 # CURRENT_RELEASE: US 2.2.1, 2.2.4, 2.2.5, 2.2.6, 2.2.10 → ✅ DONE
-# Обновить MODULE_MAP.md
+# MODULE_MAP.md — ✅ unified components/ + arch:lint (ab66f61)
 # Cursor → Plan mode → новый plan для US 2.2.2 — Избранное
 # CURRENT_INCREMENT из template → US 2.2.2
 

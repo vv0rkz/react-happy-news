@@ -1,4 +1,4 @@
-import { allSourceNames, SourceName } from '@entities/news/api/apiNews/utils/transforms.types'
+import { allSourceNames, SourceName } from '@model/news/api/apiNews/utils/transforms.types'
 import { useSearchParams } from 'react-router-dom'
 
 function parseSourcesParam(raw: string | null): SourceName[] {

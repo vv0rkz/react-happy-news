@@ -135,12 +135,16 @@ server/src/
 └── ...
 
 client/src/
-├── core/http/              ← apiFetch
-├── pages/FeatureName/      ← colocation
-└── app/providers/
+├── pages/FeatureName/
+│   ├── FeatureName.tsx
+│   ├── lib/                 ← page-level VM
+│   └── components/          ← widgets; hook colocated in components/<Name>/
+├── model/news/{api,components,lib}/
+├── shared/{api,config,components,lib}/
+└── app/{layout,lib,mocks,providers}/
 ```
 
-**Colocation rule:** extract to `features/` only when used from 2+ places.
+**Colocation rule:** extract to `features/` при 2+ consumer zones; `shared/` — только при 2+ zones.
 
 ---
 

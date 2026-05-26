@@ -9,7 +9,7 @@
 | Область         | Детали                                                              |
 | --------------- | ------------------------------------------------------------------- |
 | **Frontend**    | React 19 + Vite 7 + TypeScript (strict)                             |
-| **Архитектура** | FSD (app → pages → widgets → features → entities → shared)          |
+| **Архитектура** | FSD (app → pages → widgets → features → model → shared)          |
 | **State**       | RTK Query (newsApi)                                                 |
 | **CSS**         | CSS Modules + classnames                                            |
 | **Роутинг**     | React Router 7 (createBrowserRouter, Outlet)                        |
@@ -137,7 +137,7 @@ Backend уже агрегирует новости из 3 источников, 
 
 **Что нужно сделать:**
 
-- Компонент `SourceBadge` в `entities/news/`
+- Компонент `SourceBadge` в `model/news/`
 - Обновить `NewsItem` и `NewsBanner` — добавить badge
 - Маппинг `source → { label, color }`
 
@@ -309,7 +309,7 @@ client/src/
 │   │   ├── FeedbackForm.tsx
 │   │   └── index.ts
 │   └── paginate-news/        ✅
-├── entities/news/
+├── model/news/
 │   ├── SourceBadge/          ← НОВЫЙ КОМПОНЕНТ
 │   ├── NewsBanner/           ✅ (+ badge)
 │   ├── NewsItem/             ✅ (+ badge)
@@ -386,7 +386,7 @@ client/src/
 | ---- | ------------------------ | ---------------------------------------------- |
 | FQ1  | SOLID                    | SRP в компонентах, OCP в API-адаптерах         |
 | FQ2  | Design Patterns          | Module (FSD), Observer (SSE/WS), Factory (API) |
-| FQ4  | FSD                      | app → pages → widgets → features → entities    |
+| FQ4  | FSD                      | app → pages → widgets → features → model    |
 | FQ5  | FSD vs альтернативы      | Почему FSD, а не Atomic Design                 |
 | FQ6  | Container/Presentational | NewsFeedContainer + NewsFeedView               |
 | FQ9  | Render Props             | Pagination: `children: (data) => ReactNode`    |
@@ -686,7 +686,7 @@ client/src/
 │   ├── live-readers/          ✅ DONE
 │   ├── health-check/          ✅ DONE (упрощается в US 2.1.5)
 │   └── news-filter/           ✅ DONE
-└── entities/news/
+└── model/news/
     └── api/
         └── tanstack/          ← НОВЫЙ (US 2.1.5): заменяет rtk/
             └── newsQueries.ts

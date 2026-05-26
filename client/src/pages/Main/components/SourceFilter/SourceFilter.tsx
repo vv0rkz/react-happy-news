@@ -1,4 +1,4 @@
-import { SourceName, allSourceNames } from '@entities/news/api/apiNews/utils/transforms.types'
+import { SourceName, allSourceNames } from '@model/news/api/apiNews/utils/transforms.types'
 import { Chip, Group } from '@mantine/core'
 
 const SOURCE_LABELS: Record<SourceName, string> = {
