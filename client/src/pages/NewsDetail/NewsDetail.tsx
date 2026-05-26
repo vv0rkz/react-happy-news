@@ -1,8 +1,8 @@
 import { useParams } from 'react-router-dom'
 import { ErrorBoundary } from 'react-error-boundary'
-import { ErrorComponent } from '@shared/ui/ErrorComponent'
-import styles from './styles.module.css'
-import { NewsDetailView } from './NewsDetailView'
+import { ErrorComponent } from '@shared/components/ErrorComponent'
+import styles from './NewsDetail.module.css'
+import { NewsDetailView } from './components/NewsDetailView'
 
 export const NewsDetail = (): React.ReactNode => {
   const { id } = useParams<{ id: string }>()

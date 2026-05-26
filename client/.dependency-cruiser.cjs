@@ -30,16 +30,10 @@ module.exports = {
       to: { path: '^src/app/' },
     },
     {
-      name: 'no-shared-ui-to-entities',
-      comment: 'shared/ui is domain-agnostic',
+      name: 'no-shared-components-to-entities',
+      comment: 'shared/components is domain-agnostic',
       severity: 'error',
-      from: { path: '^src/shared/ui/' },
-      to: { path: '^src/entities/' },
-    },
-    {
-      name: 'no-shared-hooks-to-entities',
-      severity: 'error',
-      from: { path: '^src/shared/hooks/' },
+      from: { path: '^src/shared/components/' },
       to: { path: '^src/entities/' },
     },
     {

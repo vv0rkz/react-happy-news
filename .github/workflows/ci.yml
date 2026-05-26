@@ -1,6 +1,6 @@
 name: CI
 
-# Local pre-push mirrors this job (type-check, lint:arch, arch:validate, test).
+# Local pre-push mirrors this job (type-check, lint:arch, arch:lint, arch:validate, test).
 # Add `pnpm knip` (strict) after dead-code baseline — see docs/architecture/DEAD_CODE.md
 
 on:
@@ -30,6 +30,9 @@ jobs:
 
       - name: Architecture (ESLint boundaries)
         run: pnpm --filter react-happy-news-client lint:arch
+
+      - name: Architecture (folder convention + colocation)
+        run: pnpm --filter react-happy-news-client arch:lint
 
       - name: Architecture (dependency-cruiser)
         run: pnpm --filter react-happy-news-client arch:validate

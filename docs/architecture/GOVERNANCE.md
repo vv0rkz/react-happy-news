@@ -1,76 +1,48 @@
 # Architecture governance (client)
 
-Инструменты и команды для соблюдения [Module Map](./MODULE_MAP.md) и FSD без слоя `widgets`.
+Инструменты и команды для соблюдения [Module Map](./MODULE_MAP.md).
 
-## Структура папок
+## Folder convention
 
-```
-client/src/
-├── app/
-│   ├── layout/Header/       # shell (title, health badge, theme, mock)
-│   └── lib/health-check/    # server health UI
-├── pages/
-│   ├── Main/
-│   │   ├── lib/             # useNewsFilterParams, categories
-│   │   └── ui/              # SearchInput, SourceFilter, CategoryFilter, NewsFilterBar
-│   └── NewsDetail/          # ReadersCount, useLiveReaders
-├── features/                # extract only when 2+ consumers (см. ADR-001)
-├── entities/news/
-│   ├── api/
-│   ├── helpers/
-│   └── ui/
-└── shared/
-    ├── api/                 # core (Module Map)
-    ├── config/
-    ├── hooks/
-    ├── lib/
-    └── ui/
-```
+**Single source of truth:** [`client/scripts/arch-lint.mjs`](../../client/scripts/arch-lint.mjs) → `ALLOWED_SEGMENTS`.
 
-## Git hooks (solo-dev — основная линия обороны)
+| Правило | Смысл |
+| ------- | ----- |
+| `^[a-z]` folder | infrastructure segment — только из whitelist контекста |
+| `^[A-Z]` folder | component folder — `<Name>/<Name>.tsx` + `index.ts` |
+| `components/` | page / entity / shared widgets (view + local hook + css) |
+| `lib/` | page-level VM, entity utils, shared pure helpers (2+ zones) |
 
-| Hook | Проверки | ~время |
-| ---- | -------- | ------ |
-| **pre-commit** | gen:barrels, fix:imports, lint-staged (eslint на staged ts/tsx) | 5–12 с |
-| **pre-push** | type-check → lint:arch → arch:validate → test run → validate-branch | 30–60 с |
+**Запрещённые segments:** `ui/`, `hooks/`, `helpers/`, `widgets/`.
 
-**Не в hooks:** knip (аудит по запросу), arch:report (advisory), full `pnpm lint` (warnings).
+Colocation (ADR-001): код в `shared/` только при **2+ consumer zones**; иначе colocate. Extract в `features/` — 2+ pages.
 
-### Pre-push = будущий CI contract
+## Git hooks
 
-Когда подключишь GitHub Actions — те же команды, что pre-push, плюс опционально `pnpm knip` (strict). См. комментарий в [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+| Hook | Проверки |
+| ---- | -------- |
+| **pre-commit** | gen:barrels, fix:imports, lint-staged |
+| **pre-push** | type-check → lint:arch → **arch:lint** → arch:validate → test |
 
 ## Команды
 
-Из корня монорепо:
-
 ```bash
-pnpm lint                              # ESLint (client)
-pnpm lint:arch                         # boundaries, errors only
-pnpm arch:validate                     # dependency-cruiser
-pnpm arch:report                       # markdown + colocation hints
-pnpm type-check
-pnpm test run
-pnpm knip:report                       # dead code audit, exit 0
-pnpm knip                              # strict (CI позже)
+pnpm lint:arch          # ESLint boundaries
+pnpm arch:lint          # folder convention + colocation (exit 1)
+pnpm arch:validate      # dependency-cruiser
+pnpm arch:report        # markdown advisory (generated/)
+pnpm knip:report        # dead code audit
 ```
 
-`arch:report` → `docs/architecture/generated/report.md` (в `.gitignore`).
+## Инструменты
 
-## Что проверяется
+| Инструмент | Gate? |
+| ---------- | ----- |
+| ESLint boundaries | pre-push |
+| arch-lint | pre-push |
+| dependency-cruiser | pre-push |
+| vitest | pre-push |
+| knip | audit → [DEAD_CODE.md](./DEAD_CODE.md) |
+| arch-report | advisory |
 
-| Инструмент | Файл | Gate? |
-| ---------- | ---- | ----- |
-| ESLint boundaries | [architecture.config.js](../../client/eslint/architecture.config.js) | pre-push (`lint:arch`) |
-| dependency-cruiser | [.dependency-cruiser.cjs](../../client/.dependency-cruiser.cjs) | pre-push |
-| vitest | `client/` | pre-push |
-| knip | [client/package.json](../../client/package.json) (`knip`) | audit only → [DEAD_CODE.md](./DEAD_CODE.md) |
-| arch-report | [arch-report.mjs](../../client/scripts/arch-report.mjs) | advisory (colocation + misplaced features) |
-
-Colocation rule (ADR-001): extract to `features/` only at **2+ consumers**. Не enforced ESLint; hints в arch-report.
-
-## CI
-
-[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml): lint → lint:arch → arch:validate → type-check → test.
-
-`knip` — добавить в CI после clean baseline (US 2.5.6).
+Структура папок и hints — в выводе `pnpm arch:report`, не дублировать вручную в этом файле.

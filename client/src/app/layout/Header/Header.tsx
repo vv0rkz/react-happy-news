@@ -1,7 +1,7 @@
 import type { HealthStatus } from '@app/lib/health-check'
 import { StatusBadge } from '@app/lib/health-check'
 import { ActionIcon, Badge, Button, Container, Group, Stack, Text, Tooltip, useMantineColorScheme } from '@mantine/core'
-import { useLocalStorage } from '@shared/hooks/useLocalStorage'
+import { useLocalStorage } from './useLocalStorage'
 import { useNavigate } from 'react-router-dom'
 import styles from './styles.module.css'
 

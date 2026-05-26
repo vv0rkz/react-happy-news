@@ -2,6 +2,7 @@
 
 pnpm type-check || exit 1
 pnpm lint:arch || exit 1
+pnpm arch:lint || exit 1
 pnpm arch:validate || exit 1
 pnpm test run || exit 1
 node ./node_modules/@vv0rkz/js-template/tools-gh/validate-branch.js

@@ -109,4 +109,4 @@ server/src/
 | ---- | --------- |
 | 2026-05 | Initial Module Map lite (Auth Foundation docs v5) |
 | 2026-05 | Physical layout: `app/layout/Header`, `entities/news/ui`, `shared/{hooks,ui,lib}`; ESLint + dep-cruiser |
-| 2026-05 | Colocation: catalog filters → `pages/Main/`; health → `app/lib/health-check/`; live-readers → `pages/NewsDetail/` |
+| 2026-05 | Unified `components/` segment; `arch:lint` pre-push; colocation hooks/lib |

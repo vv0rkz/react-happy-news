@@ -1,0 +1,1 @@
+export { NewsFeedView } from './NewsFeedView'

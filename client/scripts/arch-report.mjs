@@ -15,11 +15,10 @@ const outFile = join(outDir, 'report.md')
 
 const ZONES = [
   { id: 'core', match: (p) => p.startsWith('src/shared/api/') },
-  { id: 'shared_ui', match: (p) => p.startsWith('src/shared/ui/') },
-  { id: 'shared_hooks', match: (p) => p.startsWith('src/shared/hooks/') },
+  { id: 'shared_components', match: (p) => p.startsWith('src/shared/components/') },
   { id: 'shared_lib', match: (p) => p.startsWith('src/shared/lib/') },
   { id: 'catalog_api', match: (p) => p.startsWith('src/entities/news/api/') },
-  { id: 'catalog_ui', match: (p) => p.startsWith('src/entities/news/ui/') },
+  { id: 'catalog_components', match: (p) => p.startsWith('src/entities/news/components/') },
   { id: 'engagement', match: (p) => p.startsWith('src/pages/Favorites/') || p.startsWith('src/pages/Dashboard/') },
   { id: 'app', match: (p) => p.startsWith('src/app/') },
   { id: 'features', match: (p) => p.startsWith('src/features/') },
@@ -113,6 +112,42 @@ function pageKey(path) {
   return m ? m[1] : null
 }
 
+function consumerZoneExtended(dep) {
+  if (dep.startsWith('src/app/layout/')) return 'app/layout'
+  if (dep.startsWith('src/app/')) return 'app'
+  const pk = pageKey(dep)
+  if (pk) return `pages/${pk}`
+  if (dep.startsWith('src/entities/')) return 'entities'
+  if (dep.startsWith('src/features/')) {
+    const m = dep.match(/^src\/features\/([^/]+)/)
+    return m ? `features/${m[1]}` : 'features'
+  }
+  return null
+}
+
+function misplacedSharedHints(stats) {
+  const hints = []
+  for (const s of stats) {
+    if (!s.path.startsWith('src/shared/components/') && !s.path.startsWith('src/shared/lib/')) continue
+    if (s.path.endsWith('/index.ts')) continue
+    const zones = new Set()
+    for (const dep of s.dependents) {
+      const zone = consumerZoneExtended(dep)
+      if (zone) zones.add(zone)
+    }
+    if (zones.size === 0) {
+      hints.push({ path: s.path, consumers: ['none'], suggestion: 'knip triage — delete or ignore' })
+    } else if (zones.size < 2) {
+      hints.push({
+        path: s.path,
+        consumers: [...zones].sort(),
+        suggestion: 'colocate to sole consumer',
+      })
+    }
+  }
+  return hints
+}
+
 function consumerZone(dep) {
   if (dep.startsWith('src/app/layout/')) return 'app/layout'
   if (dep.startsWith('src/app/')) return 'app'
@@ -133,7 +168,6 @@ function colocationHints(stats) {
       const pk = pageKey(dep)
       if (pk) owners.add(`pages/${pk}`)
       if (dep.startsWith('src/features/')) owners.add('features')
-      if (dep.startsWith('src/widgets/')) owners.add('widgets')
     }
     if (owners.size >= 2) {
       hints.push({
@@ -167,13 +201,19 @@ function misplacedFeaturesHints(stats) {
   return hints
 }
 
-function markdown({ generatedAt, summary, hubs, hints, misplaced, moduleCount }) {
+function markdown({ generatedAt, summary, hubs, hints, misplaced, misplacedShared, moduleCount }) {
   const lines = [
     '# Architecture report (generated)',
     '',
     `Generated: ${generatedAt}`,
     '',
     `Modules analyzed: ${moduleCount}`,
+    '',
+    '## Folder convention',
+    '',
+    'Lowercase = infrastructure segments (whitelist). PascalCase = component folders.',
+    'Source of truth: `client/scripts/arch-lint.mjs` → `ALLOWED_SEGMENTS`.',
+    'Gate: `pnpm arch:lint`.',
     '',
     '## Zone summary',
     '',
@@ -207,7 +247,16 @@ function markdown({ generatedAt, summary, hubs, hints, misplaced, moduleCount })
         )
       : ['- None']),
     '',
-    '> Re-run: `pnpm --filter react-happy-news-client arch:report`',
+    '## Misplaced shared (consumerZones < 2)',
+    '',
+    ...(misplacedShared.length
+      ? misplacedShared.map(
+          (h) =>
+            `- \`${h.path}\` — consumers: ${h.consumers.join(', ')} → **${h.suggestion}**`,
+        )
+      : ['- None']),
+    '',
+    '> Re-run: `pnpm arch:report` / gate: `pnpm arch:lint`',
     '',
   ]
   return lines.join('\n')
@@ -221,12 +270,14 @@ function main() {
   const hubs = topHubs(stats)
   const hints = colocationHints(stats)
   const misplaced = misplacedFeaturesHints(stats)
+  const misplacedShared = misplacedSharedHints(stats)
   const md = markdown({
     generatedAt: new Date().toISOString(),
     summary,
     hubs,
     hints,
     misplaced,
+    misplacedShared,
     moduleCount: stats.length,
   })
 
@@ -240,6 +291,9 @@ function main() {
   }
   if (misplaced.length) {
     console.log(`Misplaced features hints: ${misplaced.length}`)
+  }
+  if (misplacedShared.length) {
+    console.log(`Misplaced shared hints: ${misplacedShared.length}`)
   }
 }
 

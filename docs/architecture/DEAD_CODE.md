@@ -33,7 +33,7 @@ git log -S "SymbolName" --oneline -- client/src
 | `src/features/feedback/**` | US feedback — форма не подключена к роуту |
 | `usePostFeedbackMutation` export | задел FeedbackForm — см. `knip.ignoreIssues` в `client/package.json` |
 
-**Pre-existing (triage C — не удалять без review):** `apiPaths.ts`, `Toast/` — проверить `git log` перед решением.
+**Pre-existing (triage C — не удалять без review):** `apiPaths.ts` — проверить `git log` перед решением.
 
 Обновляй таблицу при triage после `pnpm knip:report`.
 

@@ -10,6 +10,7 @@
     "lint": "pnpm --filter react-happy-news-client lint",
     "lint:arch": "pnpm --filter react-happy-news-client lint:arch",
     "arch:validate": "pnpm --filter react-happy-news-client arch:validate",
+    "arch:lint": "pnpm --filter react-happy-news-client arch:lint",
     "arch:report": "pnpm --filter react-happy-news-client arch:report",
     "test": "pnpm --filter react-happy-news-client test",
     "type-check": "pnpm --filter react-happy-news-client type-check",

@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "lint:arch": "eslint . --quiet",
     "arch:validate": "depcruise src --config .dependency-cruiser.cjs",
+    "arch:lint": "node scripts/arch-lint.mjs",
     "arch:report": "node scripts/arch-report.mjs",
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -78,7 +79,7 @@
       "src/app/mocks/browser.ts",
       "src/tests/setup.ts"
     ],
-    "project": ["src/**/*.{ts,tsx}"],
+    "project": ["src/**/*.{ts,tsx}", "src/assets/**"],
     "ignore": [
       "src/shared/api/openapi.d.ts",
       "src/features/feedback/**"

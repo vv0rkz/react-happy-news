@@ -1,7 +1,7 @@
-import { ErrorComponent } from '@shared/ui/ErrorComponent'
+import { ErrorComponent } from '@shared/components/ErrorComponent'
 import { Container } from '@mantine/core'
 import { ErrorBoundary } from 'react-error-boundary'
-import { NewsFeed } from './NewsFeed'
+import { NewsFeed } from './components/NewsFeed'
 
 export const Main = (): React.ReactNode => {
   return (
