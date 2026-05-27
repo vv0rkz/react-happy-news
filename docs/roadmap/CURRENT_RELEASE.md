@@ -21,7 +21,7 @@
 
 ### US 2.2.1: Auth Foundation — 🔄 ACTIVE
 
-**Текущий инкремент:** [CURRENT_INCREMENT.md](./CURRENT_INCREMENT.md) — **Backend Auth** (#1)  
+**Текущий инкремент:** [CURRENT_INCREMENT.md](./CURRENT_INCREMENT.md) — **Client Session** (#2)  
 **Полная спека:** [ROADMAP.md](./ROADMAP.md) — § US 2.2.1 (под-инкременты #1–#6)  
 **Справочник:** [auth/AUTH_REFERENCE.md](./auth/AUTH_REFERENCE.md)
 
@@ -30,7 +30,7 @@ Auth split на 6 инкрементов (1 US = 1 `CURRENT_INCREMENT`):
 | # | US | Содержание | Статус |
 | - | -- | ---------- | ------ |
 | 1 | 2.2.1 | Backend: schema, authService, routes | **done** |
-| 2 | 2.2.1 | Client: authenticate + tokenMemory + apiFetch + AuthProvider | pending |
+| 2 | 2.2.1 | Client: authenticate + tokenMemory + apiFetch + AuthProvider | **active** |
 | 3 | 2.2.4 | RHF + Zod forms | pending |
 | 4 | 2.2.5 | ProtectedRoute + lazy Auth | pending |
 | 5 | 2.2.6 | SameSite, abort on logout | pending |

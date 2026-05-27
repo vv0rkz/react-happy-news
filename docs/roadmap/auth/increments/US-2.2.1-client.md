@@ -1,13 +1,11 @@
 # US 2.2.1 — Client Session
 
-**Статус:** `active`  
-**Релиз:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md) — v2.2 Персонализация  
-**Релиз-трекер:** таблица #1–#6 в [CURRENT_RELEASE.md](./CURRENT_RELEASE.md)  
-**Полная спека:** [ROADMAP.md](./ROADMAP.md) — § US 2.2.1, под-инкремент 2  
-**Справочник:** [auth/AUTH_REFERENCE.md](./auth/AUTH_REFERENCE.md) — §C  
-**Practice:** [guides/PRACTICE_MODE.md](./guides/PRACTICE_MODE.md)  
+**Статус:** `pending`  
+**Релиз:** [CURRENT_RELEASE.md](../../CURRENT_RELEASE.md)  
+**Справочник:** [AUTH_REFERENCE.md](../AUTH_REFERENCE.md) — §C  
+**Practice:** [PRACTICE_MODE.md](../../guides/PRACTICE_MODE.md)  
 **Issue:** TBD — `npm run _ create-task "US 2.2.1: Client Session"`  
-**Предусловие:** US 2.2.1 Backend ✅ (#73)
+**Предусловие:** US 2.2.1 Backend ✅
 
 **Acceptance Criteria:**
 
@@ -21,7 +19,7 @@
 
 ## На схеме
 
-**Мастер-схема:** A + §C ([AUTH_REFERENCE §C](./auth/AUTH_REFERENCE.md))
+**Мастер-схема:** A + §C ([AUTH_REFERENCE](../AUTH_REFERENCE.md))
 
 **В этом US:**
 
@@ -36,7 +34,7 @@
 
 **После US:** F5 → auto-login; GET `/api/news` через apiFetch с Bearer  
 **Сцена timeline:** «Есть cookie?» → POST /refresh; GET /news → 401 → /refresh → retry  
-**Полная карта:** [AUTH_REFERENCE §C](./auth/AUTH_REFERENCE.md)
+**Полная карта:** [AUTH_REFERENCE §C](../AUTH_REFERENCE.md)
 
 | Статус | Фон | Обводка | Текст |
 | ------ | --- | ------- | ----- |
@@ -255,10 +253,10 @@ git commit -m "feat: #N tokenMemory + AuthProvider + apiFetch + authenticate"
 
 ## Самопроверка US
 
-1. Зачем Context **и** tokenMemory? → [AUTH_REFERENCE §C](./auth/AUTH_REFERENCE.md)
+1. Зачем Context **и** tokenMemory? → [AUTH_REFERENCE §C](../AUTH_REFERENCE.md)
 2. Почему `useLayoutEffect`? → нет FOUC «гость»
 3. apiFetch при 401? → single-flight refresh + retry
 
 ## Следующий US
 
-[ROADMAP.md](./ROADMAP.md) — § US 2.2.4 Auth Forms
+[US-2.2.4-forms.md](./US-2.2.4-forms.md)
