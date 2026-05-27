@@ -67,7 +67,7 @@ Backend уже агрегирует новости из 3 источников, 
 
 **Killer Feature — "Positivity Stream":** живой трекер позитивности. Пользователь видит сколько людей читает ту же статью (SSE), выражает реакцию 😊❤️🌟 и видит реакции других в реальном времени (WebSocket). Счётчик "сегодня X% новостей — позитивные" обновляется в реальном времени (GraphQL).
 
-**Monetization Layer (v2.6 → v2.7):** на базе аккаунта (v2.3) выстраивается Premium-tier с двумя провайдерами (Stripe для международной аудитории, ЮKassa для РФ). Premium-фичи: AI-перевод англоязычных статей на русский без лимитов, расширенные AI-резюме, "похожие позитивные новости" через embeddings. Архитектура: `PaymentProvider` (Strategy pattern) + webhooks с HMAC-проверкой + entitlements middleware.
+**Monetization Layer (v2.6 → v2.7):** на базе аккаунта (v2.2) выстраивается Premium-tier с двумя провайдерами (Stripe для международной аудитории, ЮKassa для РФ). Premium-фичи: AI-перевод англоязычных статей на русский без лимитов, расширенные AI-резюме, "похожие позитивные новости" через embeddings. Архитектура: `PaymentProvider` (Strategy pattern) + webhooks с HMAC-проверкой + entitlements middleware.
 
 ---
 
@@ -77,8 +77,8 @@ Backend уже агрегирует новости из 3 источников, 
 | --------- | ---------------------- | ----------------------------------------------------------------------------- | -------------- |
 | **v2.0**  | Multi-Source News      | Выбор источников, source badges, детальная страница, feedback                 | 4–5 дн.        |
 | **v2.1**  | Positivity Stream      | Счётчик читателей (SSE), health-индикатор, продвинутый поиск                  | 3–4 дн.        |
-| **v2.2**  | Social & Engagement    | Live-реакции (WS), топ реакций, share                                         | 3–4 дн.        |
-| **v2.3**  | Персонализация         | Аккаунт, избранное, Positivity Tracker, streak, тёмная тема                   | 4–5 дн.        |
+| **v2.2**  | Персонализация         | Аккаунт, избранное, Positivity Tracker, OAuth                                 | 4–5 дн.        |
+| **v2.3**  | Social & Engagement    | Live-реакции (WS), топ реакций, share                                         | 3–4 дн.        |
 | **v2.4**  | Analytics              | Дашборд позитивности, графики, Protocol Comparison                            | 3–4 дн.        |
 | **v2.5**  | Production             | Accessibility, Docker, CI/CD, performance audit                               | 3–4 дн.        |
 | **v2.6**  | Monetization           | Stripe + ЮKassa, Premium-подписка, pay-per-action, billing portal             | 5–7 дн.        |
@@ -756,179 +756,16 @@ client/src/
 
 ---
 
-# RELEASE v2.2 — Social & Engagement
+# RELEASE v2.2 — Персонализация
 
-> Пользователь выражает эмоцию от статьи — 😊 ❤️ 🌟 — и видит реакции других читателей в реальном времени. Реакции приходят быстро и часто, поэтому открытый WebSocket-канал дешевле HTTP на каждый клик.
+> **Порядок:** Auth (v2.2) реализуется **раньше** WebSocket-реакций (v2.3), чтобы избранное и WS были привязаны к `userId`.
+>
+> Пользователь создаёт аккаунт. Сохраняет любимые новости. Видит свою статистику позитивности и streak.
+
 
 ## Фичи v2.2
 
-### F2.2.1: Live-реакции на статью (WebSocket)
-
-**Что видит пользователь:**
-
-- На странице статьи — панель реакций: 😊 ❤️ 🌟 🙏
-- При нажатии — реакция мгновенно уходит на сервер через WS
-- Реакции других читателей появляются в реальном времени
-- При закрытии вкладки — WS закрывается корректно
-
-**Что нужно сделать:**
-
-| Сторона  | Задача                                                               |
-| -------- | -------------------------------------------------------------------- |
-| Backend  | WebSocket-сервер на том же порту                                     |
-| Backend  | `reactionsTracker`: `Map<articleId, Record<emoji, count>>`           |
-| Backend  | Heartbeat (ping/pong) для проверки живых соединений                  |
-| Backend  | При получении реакции → обновить счётчик → broadcast в room          |
-| Frontend | `features/live-reactions/`: `useWebSocket.ts`, `useReactions.ts`     |
-| Frontend | Клиент → `{ type: "react", articleId, emoji }` при нажатии          |
-| Frontend | Reconnect при разрыве (exponential backoff, max 3 попытки)           |
-
-### F2.2.2: Топ реакций по статьям
-
-**Что видит пользователь:**
-
-- На главной странице — карточки с бейджем самой популярной реакции
-- "🌟 142" рядом с заголовком самой вдохновляющей новости
-
-**Что нужно сделать:**
-
-- Backend: `GET /api/news/reactions/top` — топ реакций по articleId
-- Frontend: бейдж на `NewsItem`, данные из RTK Query (polling или ручной refetch)
-
-### F2.2.3: Поделиться новостью (Share)
-
-**Что видит пользователь:**
-
-- На карточке новости — кнопка "Поделиться"
-- Копирует ссылку в буфер обмена (или Web Share API на мобильных)
-- Уведомление "Ссылка скопирована!"
-
-## User Stories v2.2
-
-### US 2.2.1: Live-реакции через WebSocket
-
-**Как** читатель
-**Я хочу** выразить эмоцию от статьи и видеть реакции других
-**Чтобы** чувствовать связь с другими читателями позитивных новостей
-
-**Acceptance Criteria:**
-
-- [ ] WebSocket-сервер обрабатывает `{ type: "react", articleId, emoji }`
-- [ ] `reactionsTracker` хранит счётчики реакций per-article
-- [ ] Broadcast обновлённых счётчиков всем в комнате статьи
-- [ ] Heartbeat (ping/pong): сервер пингует каждые 30с
-- [ ] Reconnect при разрыве (exponential backoff, max 3 попытки)
-- [ ] Max 3 попытки → fallback (реакции недоступны, UI degrade gracefully)
-
-### US 2.2.2: Нагрузочное тестирование WS
-
-**Как** разработчик
-**Я хочу** проверить лимиты WS-сервера
-**Чтобы** настроить reconnect и throttle
-
-**Acceptance Criteria:**
-
-- [ ] Скрипт `simulate-reactions.ts`: N ботов, случайные реакции
-- [ ] Мониторинг: соединения, latency, memory
-- [ ] Тест: throttle → reconnect
-- [ ] Тест: kill server → клиент переживает
-
-### US 2.2.3: React Patterns на практике
-
-**Как** разработчик
-**Я хочу** реализовать паттерны в контексте live-реакций
-**Чтобы** уметь выбирать паттерн под задачу
-
-**Acceptance Criteria:**
-
-- [ ] **Provider**: `<WebSocketProvider>` — Context с WS-соединением
-- [ ] **Compound**: `<ReactionsPanel>` + `<ReactionsPanel.Button />` + `<ReactionsPanel.Count />`
-- [ ] **Observer**: WS = Subject, компоненты = Observers
-- [ ] **HOC**: `withReactions(Component)` — сравнить с hook-подходом
-- [ ] **Factory**: `createApiAdapter(source)` — фабрика для API-адаптеров
-- [ ] **useSyncExternalStore**: WS store → React rendering
-
-## Архитектура v2.2
-
-```
-server/src/
-├── ws/
-│   ├── wsServer.ts              ← WebSocket-сервер
-│   ├── reactionsTracker.ts      ← Map<articleId, Record<emoji, count>>
-│   └── heartbeat.ts             ← ping/pong
-└── scripts/
-    └── simulate-reactions.ts    ← нагрузочный скрипт
-
-client/src/
-├── features/
-│   ├── live-reactions/          ← НОВАЯ ФИЧА
-│   │   ├── useWebSocket.ts      ← generic: connect, send, reconnect
-│   │   ├── useReactions.ts      ← реакции per-article
-│   │   ├── ReactionsPanel.tsx   ← кнопки + счётчики
-│   │   ├── ShareButton.tsx
-│   │   └── index.ts
-```
-
-## Стек v2.2
-
-| Компонент                | Технология               |
-| ------------------------ | ------------------------ |
-| WS (сервер)              | ws (нативный)            |
-| WS (клиент)              | WebSocket API (нативный) |
-| State management         | useReducer + Context     |
-| Нагрузочное тестирование | Кастомный скрипт         |
-
-## Закрываемые темы v2.2
-
-<details>
-<summary>Backend: 8 вопросов</summary>
-
-| #   | Тема                    | Как закрывается                          |
-| --- | ----------------------- | ---------------------------------------- |
-| Q14 | WS-библиотека           | ws (нативный)                            |
-| Q41 | WebSocket vs REST       | REST для данных, WS для live-реакций     |
-| Q42 | Полный переход на WS    | Нет кэша, статусов, сложнее дебаг        |
-| Q43 | Риски persistent WS     | Память, scaling                          |
-| Q44 | Нестабильное соединение | heartbeat → reconnect                    |
-| Q60 | Когда WebSocket         | Двусторонняя связь, частые быстрые клики |
-| Q71 | WS vs HTTP              | Persistent vs request-response           |
-| Q89 | Reconnect WS            | Detect → backoff → reconnect → re-sub    |
-
-</details>
-
-<details>
-<summary>Frontend: 14 вопросов</summary>
-
-| #    | Тема                 | Как закрывается                          |
-| ---- | -------------------- | ---------------------------------------- |
-| FQ7  | HOC Pattern          | withReactions — сравнение с хуком        |
-| FQ8  | Compound Pattern     | ReactionsPanel.Button + ReactionsPanel.Count |
-| FQ10 | Provider Pattern     | WebSocketProvider                        |
-| FQ11 | Observer Pattern     | WS = Subject, компоненты = Observers     |
-| FQ12 | Factory Pattern      | createApiAdapter(source)                 |
-| FQ24 | Основные хуки        | Обзор всех используемых                  |
-| FQ26 | Custom hooks         | useWebSocket, useReactions               |
-| FQ27 | useReducer           | WS-состояние: status, reactions, error   |
-| FQ28 | Rules of Hooks       | Linked list — почему нельзя в условиях   |
-| FQ29 | Cleanup useEffect    | Закрытие WS при unmount                  |
-| FQ30 | Deps useEffect       | Stale closure, бесконечный цикл          |
-| FQ31 | useRef               | WS instance, interval ID                 |
-| FQ32 | useSyncExternalStore | WS store → React                         |
-| FQ33 | Lifecycle → hooks    | componentDidMount → useEffect            |
-
-</details>
-
-**Оценка: 3–4 дня**
-
----
-
-# RELEASE v2.3 — Персонализация
-
-> Пользователь создаёт аккаунт. Сохраняет любимые новости. Видит свою статистику позитивности и streak.
-
-## Фичи v2.3
-
-### F2.3.1: Регистрация и логин
+### F2.2.1: Регистрация и логин
 
 **Что видит пользователь:**
 
@@ -938,7 +775,7 @@ client/src/
 - Серверные ошибки: "email уже занят"
 - После логина — имя пользователя в header
 
-### F2.3.2: Избранное
+### F2.2.2: Избранное
 
 **Что видит пользователь:**
 
@@ -946,7 +783,7 @@ client/src/
 - Страница "Избранное" (`/favorites`)
 - Избранное синхронизировано между устройствами (привязано к аккаунту)
 
-### F2.3.3: Positivity Tracker
+### F2.2.3: Positivity Tracker
 
 **Что видит пользователь:**
 
@@ -955,15 +792,7 @@ client/src/
 - Какие темы больше всего вдохновляют
 - **Streak**: "7 дней подряд читаешь позитив!"
 
-### F2.3.4: Тёмная / светлая тема
-
-**Что видит пользователь:**
-
-- Переключатель темы в header
-- Тёмный / светлый режим
-- Сохраняется в localStorage
-
-### F2.3.5: Protected Routes
+### F2.2.5: Protected Routes
 
 **Что видит пользователь:**
 
@@ -971,26 +800,1520 @@ client/src/
 - Без авторизации — редирект на `/login`
 - После логина — возврат на ту страницу, откуда был редирект
 
-## User Stories v2.3
 
-### US 2.3.1: Регистрация и логин
+## User Stories v2.2
 
-**Как** читатель
-**Я хочу** создать аккаунт и войти
-**Чтобы** мой прогресс сохранялся
+### US 2.2.1: Auth Foundation
+
+Auth split на **6 под-инкрементов** (1 под-шаг = 1 `CURRENT_INCREMENT.md`). Трекер статуса: [CURRENT_RELEASE.md](./CURRENT_RELEASE.md). Справочник: [AUTH_REFERENCE.md](./auth/AUTH_REFERENCE.md).
+
+| # | US | Содержание |
+| - | -- | ---------- |
+| 1 | 2.2.1 | Backend: schema, authService, routes |
+| 2 | 2.2.1 | Client: authenticate + tokenMemory + apiFetch + AuthProvider |
+| 3 | 2.2.4 | RHF + Zod forms |
+| 4 | 2.2.5 | ProtectedRoute + lazy Auth |
+| 5 | 2.2.6 | SameSite, abort on logout |
+| 6 | 2.2.10 | OAuth Google |
+
+#### Под-инкремент 1: Backend Auth
+
+# US 2.2.1 — Backend Auth
+
+**Статус:** `active`  
+**Релиз:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md) — v2.2 Персонализация  
+**Справочник:** [auth/AUTH_REFERENCE.md](./auth/AUTH_REFERENCE.md)  
+**Practice:** [guides/PRACTICE_MODE.md](./guides/PRACTICE_MODE.md)  
+**Токены/JWT:** [guides/TOKENS_AND_JWT.md](./guides/TOKENS_AND_JWT.md)  
+**Issue:** TBD — `npm run _ create-task "US 2.2.1: Backend Auth"`
+
+**Acceptance Criteria (только этот US):**
+
+- [ ] `POST /api/auth/register` — email + password → аккаунт + tokens
+- [ ] `POST /api/auth/login` → access + refresh tokens
+- [ ] `POST /api/auth/refresh` → новый access (+ rotation refresh)
+- [ ] `POST /api/auth/logout` → очистка refresh cookie + удаление из БД
+- [ ] Пароль: bcrypt cost 12
+- [ ] Refresh: httpOnly cookie (7 дней, SameSite=Strict)
+- [ ] Rate-limit 5 req/min per IP на `/api/auth/*`
+
+> **Не в этом US:** `authenticate.ts`, React, tokenMemory — см. **Под-инкремент 2: Client Session** ниже
+
+---
+
+##### На схеме
+
+**Мастер-схема:** D — Backend SOLID ([AUTH_REFERENCE §D](./auth/AUTH_REFERENCE.md))
+
+**В этом US:**
+
+| Файл | Действие |
+| ---- | -------- |
+| `schema.ts` | изменить |
+| `authService.ts` | новый |
+| `auth.routes.ts` | новый |
+| `app.ts` | изменить |
+
+**Не в этом US:** `authenticate.ts` (middleware — позже)
+
+**После US:** curl register → login → refresh → logout → 401  
+**Сцена timeline:** — (server-only; UI в US #3 Forms)  
+**Полная карта:** [AUTH_REFERENCE.md](./auth/AUTH_REFERENCE.md)
+
+| Статус | Фон | Обводка | Текст |
+| ------ | --- | ------- | ----- |
+| done | нет (default) | тонкая `#64748b` | default |
+| **active (WIP)** | `#dce4ef` | жирная `#334155` | `#0f172a` |
+| later | `#94a3b8` | тонкая `#64748b` | `#0f172a` |
+
+```mermaid
+flowchart TB
+  app["app.ts"]
+  routes["auth.routes.ts"]
+  service["authService.ts"]
+  db["schema.ts"]
+  mw["authenticate.ts"]
+
+  app --> routes
+  routes --> service
+  service --> db
+  mw -.-> service
+
+  class app,routes,service,db phaseActive
+  class mw phaseLater
+
+  classDef phaseDone stroke:#64748b,stroke-width:1px
+  classDef phaseActive fill:#dce4ef,stroke:#334155,stroke-width:3px,color:#0f172a
+  classDef phaseLater fill:#94a3b8,stroke:#64748b,stroke-width:1px,color:#0f172a
+```
+
+---
+
+##### Зачем этот US
+
+Стойка check-in на server: register/login/refresh/logout. Без этих endpoints client некуда слать credentials. Это **#1 из 6** auth-трека — фундамент для tokenMemory и форм в следующих US.
+
+---
+
+##### Git
+
+**Ветка:** `v2.2.0-auth`  
+**Issue:** TBD
+
+---
+
+##### Практика
+
+### Шаг 0: deps
+
+```bash
+pnpm --filter react-happy-news-server add bcrypt jsonwebtoken cookie-parser express-rate-limit
+pnpm --filter react-happy-news-server add -D @types/bcrypt @types/jsonwebtoken @types/cookie-parser
+```
+
+Добавить в `server/.env.example`: `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` (или один `JWT_SECRET`).
+
+---
+
+#### Схема БД (до / после)
+
+##### Before (baseline в репо)
+
+```mermaid
+erDiagram
+  news_items {
+    TEXT id PK
+    TEXT source
+    TEXT data
+    INTEGER fetched_at
+  }
+```
+
+Индекс: `idx_fetched_at` на `news_items(fetched_at)`.  
+PRAGMA: только `journal_mode = WAL`.
+
+##### After (после реализации US 2.2.1)
+
+```mermaid
+erDiagram
+  news_items {
+    TEXT id PK
+    TEXT source
+    TEXT data
+    INTEGER fetched_at
+  }
+
+  users {
+    TEXT id PK
+    TEXT email UK
+    TEXT password_hash
+    INTEGER email_verified
+    INTEGER created_at
+  }
+
+  refresh_tokens {
+    TEXT token PK
+    TEXT user_id FK
+    INTEGER expires_at
+  }
+
+  users ||--o{ refresh_tokens : user_id
+```
+
+##### Таблица diff
+
+| | До | После US 2.2.1 |
+| --- | --- | --- |
+| Таблицы | `news_items` | + `users`, `refresh_tokens` |
+| `news_items` | без изменений | без изменений |
+| PRAGMA | `journal_mode = WAL` | + `foreign_keys = ON` (до `CREATE` с `REFERENCES`) |
+| Связи | — | `refresh_tokens.user_id` → `users.id` |
+
+**Подводный камень:** без `db.pragma('foreign_keys = ON')` SQLite **не проверяет** `REFERENCES` — FK только «на бумаге».
+
+##### Проверка визуально
+
+1. Реализуй `schema.ts` по Practice-блоку ниже.
+2. Запусти `pnpm dev:server` (создаст/обновит `server/news.db`).
+3. Открой `server/news.db` в [DB Browser for SQLite](https://sqlitebrowser.org/) или расширении SQLite в VS Code.
+4. Вкладка **Browse Data** — таблицы; **Database Structure** — ER-подобный список.
+5. В CLI (если установлен `sqlite3`):
+
+```bash
+sqlite3 server/news.db ".schema"
+```
+
+Ожидаешь `CREATE TABLE users`, `CREATE TABLE refresh_tokens` и прежний `news_items`.
+
+Общие правила ER и шаблон для следующих US: [guides/DB_SCHEMA_DIFF.md](./guides/DB_SCHEMA_DIFF.md).
+
+### `server/src/db/schema.ts`
+
+```typescript
+// ====== КОД ИЗ baseline (без изменений) ======
+// import Database from 'better-sqlite3'
+// export const db = new Database(DB_PATH)
+// db.pragma('journal_mode = WAL')
+// CREATE TABLE news_items ...
+// CREATE INDEX idx_fetched_at ...
+
+// ====== НОВЫЙ/ИЗМЕНЁННЫЙ БЛОК US 2.2.1 Backend ======
+// db.pragma('foreign_keys = ON')  — ДО CREATE с FK
+
+// CREATE TABLE users (
+//   id TEXT PRIMARY KEY,
+//   email TEXT UNIQUE NOT NULL,
+//   password_hash TEXT NOT NULL,
+//   email_verified INTEGER DEFAULT 0,
+//   created_at INTEGER NOT NULL
+// )
+
+// CREATE TABLE refresh_tokens (
+//   token TEXT PRIMARY KEY,
+//   user_id TEXT NOT NULL REFERENCES users(id),
+//   expires_at INTEGER NOT NULL
+// )
+```
+
+---
+
+### `server/src/services/authService.ts` (НОВЫЙ)
+
+```typescript
+// ====== НОВЫЙ/ИЗМЕНЁННЫЙ БЛОК US 2.2.1 Backend ======
+
+export function register(email: string, password: string) {
+  // Шаг 1: bcrypt.hash(password, 12) → password_hash
+  // Шаг 2: INSERT INTO users
+  // Шаг 3: создать access JWT (15m) + refresh token (7d, random string)
+  // Шаг 4: INSERT refresh_tokens; вернуть { accessToken, refreshToken }
+}
+
+export function login(email: string, password: string) {
+  // Шаг 1: find user by email
+  // Шаг 2: bcrypt.compare — даже если user null, compare с dummy hash (anti-enumeration)
+  // Шаг 3: при успехе — те же tokens что register; иначе throw 401 "Invalid credentials"
+}
+
+export function refresh(oldRefreshToken: string) {
+  // Шаг 1: найти token в refresh_tokens, проверить expires_at
+  // Шаг 2: rotation — DELETE старый, INSERT новый refresh
+  // Шаг 3: новый access JWT + новый refresh
+}
+
+export function logout(refreshToken: string) {
+  // Шаг 1: DELETE FROM refresh_tokens WHERE token = ?
+}
+```
+
+**Подводный камень (login):** одинаковый 401 и ~время при неверном email и пароле.
+
+---
+
+### `server/src/routes/auth.routes.ts` (НОВЫЙ)
+
+Образец структуры: [`server/src/routes/feedback.routes.ts`](../../server/src/routes/feedback.routes.ts).
+
+```typescript
+// ====== КОД ИЗ baseline (паттерн feedback.routes) ======
+// registry.registerPath({ method, path, tags, request, responses })
+// export const feedbackRouter = Router()
+// safeParse → 400
+
+// ====== НОВЫЙ/ИЗМЕНЁННЫЙ БЛОК US 2.2.1 Backend ======
+// export const authRouter = Router()
+// rateLimit: 5 req/min per IP
+
+authRouter.post('/register', (req, res) => {
+  // Шаг 1: Zod safeParse { email, password }
+  // Шаг 2: authService.register → 201 { accessToken } + Set-Cookie refresh
+  // Шаг 3: duplicate email → 409; invalid body → 400
+})
+
+authRouter.post('/login', (req, res) => {
+  // Шаг 1: Zod + authService.login
+  // Шаг 2: 200 { accessToken } + Set-Cookie (httpOnly, sameSite strict, maxAge 7d)
+})
+
+authRouter.post('/refresh', (req, res) => {
+  // Шаг 1: refresh token из req.cookies
+  // Шаг 2: authService.refresh → 200 + rotation cookie
+})
+
+authRouter.post('/logout', (req, res) => {
+  // Шаг 1: authService.logout + clearCookie
+  // Шаг 2: 200 { ok: true }
+})
+```
+
+---
+
+### `server/src/app.ts`
+
+```typescript
+// ====== КОД ИЗ baseline (без изменений) ======
+// export function createApp() { morgan, cors, express.json, /api/news, /api/feedback, errorHandler }
+
+// ====== НОВЫЙ/ИЗМЕНЁННЫЙ БЛОК US 2.2.1 Backend ======
+export function createApp() {
+  // Шаг 1: cors({ origin: allowedOrigins, credentials: true })
+  // Шаг 2: app.use(cookieParser()) — до auth routes
+  // Шаг 3: app.use('/api/auth', authRouter)
+}
+```
+
+---
+
+##### Проверка и тесты
+
+> US **не закрывается** без `- [ ]` ниже.
+
+### Ручная (обязательно)
+
+| # | Input | Output |
+| - | ----- | ------ |
+| 1 | POST `/api/auth/register` `{email, password}` | 201 + `{accessToken}` + Set-Cookie refresh |
+| 2 | POST `/api/auth/login` | 200 + tokens |
+| 3 | POST `/api/auth/refresh` с cookie | новый `accessToken` |
+| 4 | POST `/api/auth/logout` | cookie cleared |
+| 5 | POST `/api/auth/refresh` после logout | **401** |
+
+- [ ] register — `-v` показывает Set-Cookie httpOnly
+- [ ] login
+- [ ] refresh
+- [ ] logout
+- [ ] refresh после logout → 401
+- [ ] duplicate register → 409
+- [ ] неверный login → 401 «Invalid credentials»
+
+### Автотесты (по ситуации)
+
+Server test runner **пока нет** — curl достаточен для закрытия US #1. Рекомендуется unit на service:
+
+- [ ] `server/src/services/authService.test.ts` — register/login/refresh/logout (mock db)
+
+```typescript
+describe('authService.register', () => {
+  it('returns accessToken and stores refresh in db', () => {
+    // Arrange: in-memory sqlite или mock prepare()
+    // Act: register(validEmail, validPassword)
+    // Assert: accessToken defined; row in users; row in refresh_tokens
+  })
+})
+
+describe('authService.login', () => {
+  it('returns same 401 for unknown email and wrong password', () => {
+    // Assert: anti-enumeration — один message, ~similar timing
+  })
+})
+```
+
+`server/src/routes/auth.routes.test.ts` + supertest — **только если** добавишь vitest на server; иначе пропустить.
+
+---
+
+##### Запуск
+
+```bash
+# Терминал 1
+pnpm dev:server
+
+# Терминал 2 — после реализации всех файлов Практики
+curl -X POST http://localhost:3001/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"Secret1pass"}' -c cookies.txt -v
+
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"Secret1pass"}' -c cookies.txt
+
+curl -X POST http://localhost:3001/api/auth/refresh -b cookies.txt -c cookies.txt
+
+curl -X POST http://localhost:3001/api/auth/logout -b cookies.txt
+
+curl -X POST http://localhost:3001/api/auth/refresh -b cookies.txt   # ожидаем 401
+
+# type-check server
+pnpm --filter react-happy-news-server build
+
+# Swagger (после OpenAPI registry)
+# http://localhost:3001/api/docs
+```
+
+```bash
+git add server/src/ server/.env.example
+git commit -m "feat: #N auth backend — schema, authService, routes, rate-limit"
+```
+
+---
+
+##### Самопроверка US
+
+| # | Вопрос | Где в коде |
+| - | ------ | ---------- |
+| 4.1 | bcrypt cost 12? | `authService.ts` |
+| 4.2 | Одинаковый ответ при неверном email/пароле? | `authService.login` |
+| 4.4 | rate-limit на /auth? | `auth.routes.ts` |
+| 4.5 | foreign_keys ON? | `schema.ts` |
+| 4.6 | Register 409? | `auth.routes.ts` |
+
+<details>
+<summary>Эталоны</summary>
+
+**4.1** — cost 12 баланс security/CPU.  
+**4.2** — anti-enumeration: всегда 401 «Invalid credentials».  
+**4.4** — защита brute-force.  
+**4.5** — без PRAGMA orphan refresh_tokens.  
+**4.6** — 409 Conflict если email занят.
+
+</details>
+
+
+
+#### Под-инкремент 2: Client Session
+
+# US 2.2.1 — Client Session
+
+**Статус:** `pending`  
+**Релиз:** [CURRENT_RELEASE.md](../CURRENT_RELEASE.md)  
+**Справочник:** [AUTH_REFERENCE.md](../AUTH_REFERENCE.md) — §C  
+**Practice:** [PRACTICE_MODE.md](../guides/PRACTICE_MODE.md)  
+**Issue:** TBD  
+**Предусловие:** US 2.2.1 Backend ✅
 
 **Acceptance Criteria:**
 
-- [ ] `POST /api/auth/register` — email + password → аккаунт
-- [ ] `POST /api/auth/login` → access + refresh tokens
-- [ ] `POST /api/auth/refresh` → новый access token
-- [ ] `POST /api/auth/logout` → очистка refresh cookie
-- [ ] Пароль: bcrypt-хеш
-- [ ] Access token: в памяти приложения
-- [ ] Refresh token: httpOnly secure cookie (7 дней)
-- [ ] При 401: auto refresh + retry
+- [ ] `authenticate` middleware — Bearer JWT → `req.user`
+- [ ] Access token в `tokenMemory` (RAM)
+- [ ] F5 → bootstrap через `POST /api/auth/refresh`
+- [ ] `apiFetch`: credentials, Bearer, 401 → refresh → retry
+- [ ] `newsQueries.ts` → `apiFetch`
 
-### US 2.3.2: Избранное
+---
+
+##### На схеме
+
+**Мастер-схема:** A + §C ([AUTH_REFERENCE](./AUTH_REFERENCE.md))
+
+**В этом US:**
+
+| Файл | Действие |
+| ---- | -------- |
+| `authenticate.ts` | новый |
+| `apiFetch.ts` | изменить |
+| `AuthProvider.tsx` | новый |
+| `tokenMemory.ts` | новый |
+
+**Не в этом US:** `LoginForm.tsx`, `ProtectedRoute.tsx`, `router.tsx`, `queryClient.ts`
+
+**После US:** F5 → auto-login; GET `/api/news` через apiFetch с Bearer  
+**Сцена timeline:** «Есть cookie?» → POST /refresh; GET /news → 401 → /refresh → retry  
+**Полная карта:** [AUTH_REFERENCE §C](./AUTH_REFERENCE.md)
+
+| Статус | Фон | Обводка | Текст |
+| ------ | --- | ------- | ----- |
+| done | нет (default) | тонкая `#64748b` | default |
+| **active (WIP)** | `#dce4ef` | жирная `#334155` | `#0f172a` |
+| later | `#94a3b8` | тонкая `#64748b` | `#0f172a` |
+
+```mermaid
+flowchart TB
+  subgraph serverDone [server]
+    srvCore["routes, service, db"]
+    authenticate["authenticate.ts"]
+  end
+  subgraph coreMod [core]
+    apiFetch["apiFetch.ts"]
+    queryClient["queryClient.ts"]
+  end
+  subgraph authMod [auth]
+    AuthProvider["AuthProvider.tsx"]
+    tokenMemory["tokenMemory.ts"]
+    LoginForm["LoginForm.tsx"]
+  end
+  subgraph appMod [app shell]
+    ProtectedRoute["ProtectedRoute.tsx"]
+    router["router.tsx"]
+  end
+  authMod --> coreMod
+  authenticate --> srvCore
+  appMod -.-> authMod
+
+  class srvCore phaseDone
+  class authenticate,apiFetch,AuthProvider,tokenMemory phaseActive
+  class queryClient,LoginForm,ProtectedRoute,router phaseLater
+
+  classDef phaseDone stroke:#64748b,stroke-width:1px
+  classDef phaseActive fill:#dce4ef,stroke:#334155,stroke-width:3px,color:#0f172a
+  classDef phaseLater fill:#94a3b8,stroke:#64748b,stroke-width:1px,color:#0f172a
+```
+
+---
+
+##### Зачем этот US
+
+Server умеет выдавать tokens (#1). Здесь client **хранит access в RAM**, **bootstrap по cookie** после F5 и **единый apiFetch** с interceptor — чтобы catalog (news) и позже engagement ходили через один gate.
+
+---
+
+##### Git
+
+**Ветка:** `v2.2.0-auth`  
+**Issue:** TBD
+
+---
+
+##### Практика
+
+### `server/src/middleware/authenticate.ts` (НОВЫЙ)
+
+```typescript
+export function authenticate(req, res, next) {
+  // Шаг 1: Authorization: Bearer <token>
+  // Шаг 2: jwt.verify → req.user = { id, email }
+  // Шаг 3: valid → next(); иначе 401
+}
+```
+
+**Подводный камень:** не вешать на `/api/auth/login`, `/register`.
+
+---
+
+### `client/src/pages/Auth/lib/tokenMemory.ts` (НОВЫЙ)
+
+```typescript
+// module-level variable — без subscribe
+
+export function getAccessToken() {
+  // вернуть текущий access или null
+}
+
+export function setAccessToken(token: string) {
+  // записать в module variable
+}
+
+export function clearAccessToken() {
+  // null
+}
+```
+
+---
+
+### `client/src/pages/Auth/lib/useAuth.ts` (НОВЫЙ)
+
+```typescript
+export function useAuth() {
+  // return useContext(AuthContext)
+}
+```
+
+---
+
+### `client/src/shared/api/apiFetch.ts` (НОВЫЙ)
+
+```typescript
+export async function apiFetch(input, init?) {
+  // Шаг 1: credentials: 'include'
+  // Шаг 2: Authorization: Bearer getAccessToken()
+  // Шаг 3: fetch → если 401: single-flight POST /api/auth/refresh
+  // Шаг 4: setAccessToken → retry original once
+  // Шаг 5: refresh fail → clearAccessToken → throw
+}
+```
+
+---
+
+### `client/src/app/providers/AuthProvider.tsx` (НОВЫЙ)
+
+```typescript
+export function AuthProvider({ children }) {
+  // useState: user, isLoading
+
+  // useLayoutEffect (не useEffect!):
+  //   POST /api/auth/refresh
+  //   200 → setAccessToken + setUser
+  //   401 → isLoading=false, user=null
+
+  // login / logout methods для следующих US
+
+  // render: AuthContext.Provider
+}
+```
+
+---
+
+### `client/src/app/main.tsx` — ИЗМЕНИТЬ
+
+```typescript
+// ====== ИЗМЕНЁННЫЙ БЛОК US 2.2.1 Client ======
+// обернуть дерево в <AuthProvider>
+```
+
+---
+
+### `client/src/model/news/api/tanstack/newsQueries.ts` — ИЗМЕНИТЬ
+
+```typescript
+// ====== ИЗМЕНЁННЫЙ БЛОК ======
+// заменить inline fetch на apiFetch
+```
+
+---
+
+##### Проверка и тесты
+
+### Ручная (обязательно)
+
+| # | Input | Output |
+| - | ----- | ------ |
+| 1 | Login через curl → открыть app с cookie | F5 → user восстановлен, не «гость» |
+| 2 | GET `/api/news` в Network | Request с `Authorization: Bearer` |
+| 3 | curl protected route + Bearer | 200; без Bearer → 401 |
+
+- [ ] F5 bootstrap
+- [ ] news через apiFetch с Bearer
+- [ ] authenticate middleware на test protected route
+
+### Автотесты (обязательно)
+
+- [ ] `client/src/pages/Auth/lib/tokenMemory.test.ts`
+
+```typescript
+describe('tokenMemory', () => {
+  it('set/get/clear access token', () => {
+    // setAccessToken('x') → getAccessToken() === 'x'
+    // clearAccessToken() → null
+  })
+})
+```
+
+- [ ] `client/src/shared/api/apiFetch.test.ts` — MSW: 401 → refresh → retry
+
+```typescript
+describe('apiFetch', () => {
+  it('retries after refresh on 401', () => {
+    // MSW: first GET /api/news → 401; POST /refresh → 200 + token; retry → 200
+  })
+})
+```
+
+- [ ] `client/src/app/providers/AuthProvider.test.tsx` — bootstrap 200/401
+
+- [ ] MSW handlers `/api/auth/*` в `handlers.ts`
+
+```bash
+pnpm --filter react-happy-news-client exec vitest run src/pages/Auth/lib/tokenMemory.test.ts
+pnpm --filter react-happy-news-client exec vitest run src/shared/api/apiFetch.test.ts
+pnpm --filter react-happy-news-client exec vitest run src/app/providers/AuthProvider.test.tsx
+```
+
+---
+
+##### Запуск
+
+```bash
+pnpm dev:server   # терминал 1
+pnpm dev:client   # терминал 2
+# login через curl или временный fetch в console → F5
+pnpm --filter react-happy-news-client exec vitest run src/pages/Auth/lib/tokenMemory.test.ts
+```
+
+```bash
+git add server/src/middleware/ client/src/pages/Auth/ client/src/app/providers/ client/src/shared/api/ client/src/model/news/api/tanstack/ client/src/app/mocks/
+git commit -m "feat: #N tokenMemory + AuthProvider + apiFetch + authenticate"
+```
+
+---
+
+##### Самопроверка US
+
+1. Зачем Context **и** tokenMemory? → [AUTH_REFERENCE §C](../AUTH_REFERENCE.md)
+2. Почему `useLayoutEffect`? → нет FOUC «гость»
+3. apiFetch при 401? → single-flight refresh + retry
+
+
+
+
+# US 2.2.4 — Auth Forms (RHF + Zod)
+
+**Статус:** `pending`  
+**Релиз:** [CURRENT_RELEASE.md](../CURRENT_RELEASE.md)  
+**Справочник:** [AUTH_REFERENCE.md](../AUTH_REFERENCE.md)  
+**Practice:** [PRACTICE_MODE.md](../guides/PRACTICE_MODE.md)  
+**Issue:** TBD  
+**Предусловие:** US 2.2.1 Client Session ✅
+
+**Acceptance Criteria:**
+
+- [ ] RHF + Zod на Login/Register
+- [ ] `/login`, `/register` с валидацией
+- [ ] Submit → POST `/api/auth/*`
+- [ ] 409 → field error на register
+- [ ] native `<form>` + autocomplete
+
+---
+
+#### На схеме
+
+**Мастер-схема:** A — Module Map
+
+**В этом US:**
+
+| Файл | Действие |
+| ---- | -------- |
+| `LoginForm.tsx` | новый |
+| `RegisterForm.tsx` | новый |
+| `authSchemas.ts` | новый |
+
+**Не в этом US:** `ProtectedRoute.tsx`, `router.tsx`
+
+**После US:** UI login/register; submit → POST /api/auth/*  
+**Сцена timeline:** Check-in login — POST /login → boarding pass + Set-Cookie  
+**Полная карта:** [AUTH_REFERENCE](./AUTH_REFERENCE.md)
+
+| Статус | Фон | Обводка | Текст |
+| ------ | --- | ------- | ----- |
+| done | нет (default) | тонкая `#64748b` | default |
+| **active (WIP)** | `#dce4ef` | жирная `#334155` | `#0f172a` |
+| later | `#94a3b8` | тонкая `#64748b` | `#0f172a` |
+
+```mermaid
+flowchart TB
+  subgraph serverDone [server]
+    srvNote["routes, service, authenticate"]
+  end
+  subgraph coreMod [core]
+    apiFetch["apiFetch.ts"]
+    authSchemas["authSchemas.ts"]
+    queryClient["queryClient.ts"]
+  end
+  subgraph authMod [auth]
+    AuthProvider["AuthProvider.tsx"]
+    tokenMemory["tokenMemory.ts"]
+    LoginForm["LoginForm.tsx"]
+    RegisterForm["RegisterForm.tsx"]
+  end
+  subgraph appMod [app shell]
+    ProtectedRoute["ProtectedRoute.tsx"]
+    router["router.tsx"]
+  end
+  authMod --> coreMod
+  appMod -.-> authMod
+
+  class srvNote,apiFetch,AuthProvider,tokenMemory,queryClient phaseDone
+  class LoginForm,RegisterForm,authSchemas phaseActive
+  class ProtectedRoute,router phaseLater
+
+  classDef phaseDone stroke:#64748b,stroke-width:1px
+  classDef phaseActive fill:#dce4ef,stroke:#334155,stroke-width:3px,color:#0f172a
+  classDef phaseLater fill:#94a3b8,stroke:#64748b,stroke-width:1px,color:#0f172a
+```
+
+---
+
+#### Зачем этот US
+
+#1–#2 дали API и session layer. Здесь **UI check-in**: пользователь вводит email/password, RHF+Zod валидируют до запроса, submit идёт через AuthProvider/apiFetch.
+
+---
+
+#### Git
+
+**Ветка:** `v2.2.0-auth`  
+**Issue:** TBD
+
+---
+
+#### Практика
+
+### Шаг 0: deps
+
+```bash
+pnpm --filter react-happy-news-client add react-hook-form @hookform/resolvers
+```
+
+---
+
+### `client/src/shared/api/authSchemas.ts` (НОВЫЙ)
+
+```typescript
+// loginSchema: email, password
+// registerSchema: email, password min 8 + uppercase + digit
+```
+
+---
+
+### `client/src/pages/Auth/LoginForm.tsx` (НОВЫЙ)
+
+```typescript
+export function LoginForm() {
+  // Шаг 1: useForm({ resolver: zodResolver(loginSchema) })
+  // Шаг 2: onSubmit → AuthProvider.login или apiFetch POST /login
+  // Шаг 3: native form; autocomplete email + current-password
+
+  // render: form + email + password + submit
+}
+```
+
+---
+
+### `client/src/pages/Auth/RegisterForm.tsx` (НОВЫЙ)
+
+```typescript
+export function RegisterForm() {
+  // Шаг 1: useForm + registerSchema
+  // Шаг 2: server 409 → setError('email', { message: '...' })
+  // Шаг 3: autocomplete new-password
+
+  // render: form + fields + submit
+}
+```
+
+---
+
+### `client/src/pages/Auth/LoginPage.tsx` / `RegisterPage.tsx` (НОВЫЙ)
+
+```typescript
+export function LoginPage() {
+  // render: LoginForm
+}
+
+export function RegisterPage() {
+  // render: RegisterForm
+}
+```
+
+---
+
+### `client/src/app/router.tsx` — ИЗМЕНИТЬ
+
+```typescript
+// ====== ИЗМЕНЁННЫЙ БЛОК US 2.2.4 ======
+// routes /login → LoginPage, /register → RegisterPage
+// (React.lazy — в US 2.2.5)
+```
+
+**Подводный камень:** без `<form>` password manager не работает.
+
+---
+
+#### Проверка и тесты
+
+### Ручная (обязательно)
+
+| # | Input | Output |
+| - | ----- | ------ |
+| 1 | `/login` invalid email | validation errors, no request |
+| 2 | `/login` valid credentials | logged in, token in memory |
+| 3 | `/register` duplicate email | field error 409 |
+| 4 | `/register` weak password | Zod error before submit |
+
+- [ ] validation на login/register
+- [ ] successful login
+- [ ] 409 на register
+- [ ] autocomplete attributes в DOM
+
+### Автотесты (обязательно)
+
+- [ ] `LoginForm.test.tsx` — validation + submit
+
+```typescript
+describe('LoginForm', () => {
+  it('shows validation error for short password', () => {
+    // render + userEvent → expect error text
+  })
+  it('calls login on valid submit', () => {
+    // MSW POST /api/auth/login → 200
+  })
+})
+```
+
+- [ ] `RegisterForm.test.tsx` — 409 → field error
+
+- [ ] MSW handlers `/api/auth/login`, `/register` в `handlers.ts`
+
+```bash
+pnpm --filter react-happy-news-client exec vitest run src/pages/Auth/LoginForm.test.tsx
+pnpm --filter react-happy-news-client exec vitest run src/pages/Auth/RegisterForm.test.tsx
+```
+
+---
+
+#### Запуск
+
+```bash
+pnpm dev
+# браузер: http://localhost:5173/login , /register
+pnpm --filter react-happy-news-client exec vitest run src/pages/Auth/LoginForm.test.tsx
+```
+
+```bash
+git add client/src/pages/Auth/ client/src/shared/api/authSchemas.ts client/src/app/mocks/
+git commit -m "feat: #N Auth forms — RHF + Zod + autocomplete"
+```
+
+---
+
+#### Самопроверка US
+
+1. RHF + Zod при двух полях? → FQ66, FQ67  
+2. current-password vs new-password?  
+3. Shared schema почему в `shared/api`?
+
+
+# US 2.2.5 — Protected Routes + Lazy Loading
+
+**Статус:** `pending`  
+**Релиз:** [CURRENT_RELEASE.md](../CURRENT_RELEASE.md)  
+**Справочник:** [AUTH_REFERENCE.md](../AUTH_REFERENCE.md)  
+**Practice:** [PRACTICE_MODE.md](../guides/PRACTICE_MODE.md)  
+**Issue:** TBD  
+**Предусловие:** US 2.2.4 Forms ✅
+
+**Acceptance Criteria:**
+
+- [ ] `<ProtectedRoute>` для `/favorites`
+- [ ] Гость → redirect `/login` с `state.from`
+- [ ] После login → `navigate(from.pathname ?? '/')`
+- [ ] React.lazy для Auth pages + Suspense
+
+---
+
+#### На схеме
+
+**Мастер-схема:** A — Module Map
+
+**В этом US:**
+
+| Файл | Действие |
+| ---- | -------- |
+| `ProtectedRoute.tsx` | новый |
+| `router.tsx` | изменить |
+
+**Не в этом US:** `pages/Favorites/` (engagement — позже)
+
+**После US:** gate `/favorites`; post-login return  
+**Сцена timeline:** gate VIP-зал — без talon → стойка check-in  
+**Полная карта:** [AUTH_REFERENCE](./AUTH_REFERENCE.md)
+
+| Статус | Фон | Обводка | Текст |
+| ------ | --- | ------- | ----- |
+| done | нет (default) | тонкая `#64748b` | default |
+| **active (WIP)** | `#dce4ef` | жирная `#334155` | `#0f172a` |
+| later | `#94a3b8` | тонкая `#64748b` | `#0f172a` |
+
+```mermaid
+flowchart TB
+  subgraph coreMod [core]
+    apiFetch["apiFetch.ts"]
+    authSchemas["authSchemas.ts"]
+  end
+  subgraph authMod [auth]
+    AuthProvider["AuthProvider.tsx"]
+    tokenMemory["tokenMemory.ts"]
+    LoginForm["LoginForm.tsx"]
+    RegisterForm["RegisterForm.tsx"]
+  end
+  subgraph appMod [app shell]
+    ProtectedRoute["ProtectedRoute.tsx"]
+    router["router.tsx"]
+  end
+  subgraph engagementMod [engagement]
+    favorites["pages/Favorites/"]
+  end
+  authMod --> coreMod
+  appMod --> authMod
+  ProtectedRoute --> AuthProvider
+  engagementMod -.-> appMod
+
+  class apiFetch,authSchemas,AuthProvider,tokenMemory,LoginForm,RegisterForm phaseDone
+  class ProtectedRoute,router phaseActive
+  class favorites phaseLater
+
+  classDef phaseDone stroke:#64748b,stroke-width:1px
+  classDef phaseActive fill:#dce4ef,stroke:#334155,stroke-width:3px,color:#0f172a
+  classDef phaseLater fill:#94a3b8,stroke:#64748b,stroke-width:1px,color:#0f172a
+```
+
+---
+
+#### Зачем этот US
+
+Forms дают check-in. **Authorization** — gate: гость не видит `/favorites`. Lazy — не грузить RHF chunk гостям на главной.
+
+---
+
+#### Git
+
+**Ветка:** `v2.2.0-auth`  
+**Issue:** TBD
+
+---
+
+#### Практика
+
+### `client/src/app/router/ProtectedRoute.tsx` (НОВЫЙ)
+
+```typescript
+export function ProtectedRoute() {
+  // const { isAuthenticated, isLoading } = useAuth()
+  // const location = useLocation()
+
+  // if (!isLoading && !isAuthenticated)
+  //   return Navigate to="/login" state={{ from: location }}
+
+  // return Outlet
+}
+```
+
+---
+
+### `client/src/app/router.tsx` — ИЗМЕНИТЬ
+
+```typescript
+// ====== КОД ИЗ US 2.2.4 (без изменений) ======
+// routes /login, /register
+
+// ====== ИЗМЕНЁННЫЙ БЛОК US 2.2.5 ======
+// React.lazy(() => import LoginPage, RegisterPage)
+// Suspense fallback
+// nested route: element ProtectedRoute → children /favorites
+```
+
+---
+
+### `client/src/shared/config/routes.ts` — ИЗМЕНИТЬ
+
+```typescript
+// константы: LOGIN, REGISTER, FAVORITES
+```
+
+---
+
+### `client/src/pages/Auth/LoginPage.tsx` — ИЗМЕНИТЬ
+
+```typescript
+export function LoginPage() {
+  // после успешного login:
+  // navigate(location.state?.from?.pathname ?? '/')
+}
+```
+
+---
+
+#### Проверка и тесты
+
+### Ручная (обязательно)
+
+| # | Input | Output |
+| - | ----- | ------ |
+| 1 | Гость открывает `/favorites` | redirect `/login`, URL state.from |
+| 2 | Login после redirect | возврат на `/favorites` |
+| 3 | Гость на `/` | Auth chunk не в initial bundle (Network) |
+
+- [ ] redirect гостя
+- [ ] post-login return
+- [ ] lazy Auth pages
+
+### Автотесты (обязательно)
+
+- [ ] `ProtectedRoute.test.tsx`
+
+```typescript
+describe('ProtectedRoute', () => {
+  it('redirects guest to /login with from state', () => {
+    // mock useAuth → not authenticated → expect Navigate
+  })
+  it('renders Outlet when authenticated', () => {
+    // mock useAuth → authenticated → Outlet visible
+  })
+})
+```
+
+```bash
+pnpm --filter react-happy-news-client exec vitest run src/app/router/ProtectedRoute.test.tsx
+```
+
+---
+
+#### Запуск
+
+```bash
+pnpm dev
+# logout → /favorites → /login → login → /favorites
+pnpm --filter react-happy-news-client exec vitest run src/app/router/ProtectedRoute.test.tsx
+```
+
+```bash
+git add client/src/app/router/ client/src/shared/config/ client/src/pages/Auth/
+git commit -m "feat: #N ProtectedRoute + lazy Auth pages"
+```
+
+---
+
+#### Самопроверка US
+
+1. Auth vs authz на `/favorites`?  
+2. Зачем React.lazy?  
+3. Где хранится `from`?
+
+
+# US 2.2.6 — Frontend Security
+
+**Статус:** `pending`  
+**Релиз:** [CURRENT_RELEASE.md](../CURRENT_RELEASE.md)  
+**Справочник:** [AUTH_REFERENCE.md](../AUTH_REFERENCE.md) — §F  
+**Practice:** [PRACTICE_MODE.md](../guides/PRACTICE_MODE.md)  
+**Issue:** TBD  
+**Предусловие:** US 2.2.5 Protected Routes ✅
+
+**Acceptance Criteria:**
+
+- [ ] Refresh cookie: `SameSite=Strict` (server)
+- [ ] Logout during in-flight → abort, no refresh retry
+- [ ] `queryClient.cancelQueries()` on logout
+- [ ] AbortController on logout
+
+---
+
+#### На схеме
+
+**Мастер-схема:** A + §F
+
+**В этом US:**
+
+| Файл | Действие |
+| ---- | -------- |
+| `apiFetch.ts` | изменить — isLoggingOut, abort |
+| `AuthProvider.tsx` | изменить — abort on logout |
+
+**После US:** logout прерывает in-flight; token cleared  
+**Сцена timeline:** logout прерывает gate-запрос  
+**Полная карта:** [AUTH_REFERENCE §F](./AUTH_REFERENCE.md)
+
+| Статус | Фон | Обводка | Текст |
+| ------ | --- | ------- | ----- |
+| done | нет (default) | тонкая `#64748b` | default |
+| **active (WIP)** | `#dce4ef` | жирная `#334155` | `#0f172a` |
+| later | `#94a3b8` | тонкая `#64748b` | `#0f172a` |
+
+```mermaid
+flowchart TB
+  subgraph coreMod [core]
+    apiFetch["apiFetch.ts + isLoggingOut"]
+    queryClient["queryClient.ts + cancelQueries"]
+  end
+  subgraph authMod [auth]
+    AuthProvider["AuthProvider.tsx + abort"]
+    tokenMemory["tokenMemory.ts"]
+  end
+  subgraph appMod [app shell]
+    ProtectedRoute["ProtectedRoute.tsx"]
+    router["router.tsx"]
+  end
+  authMod --> coreMod
+  appMod --> authMod
+  ProtectedRoute --> AuthProvider
+
+  class tokenMemory,ProtectedRoute,router,queryClient phaseDone
+  class apiFetch,AuthProvider phaseActive
+
+  classDef phaseDone stroke:#64748b,stroke-width:1px
+  classDef phaseActive fill:#dce4ef,stroke:#334155,stroke-width:3px,color:#0f172a
+  classDef phaseLater fill:#94a3b8,stroke:#64748b,stroke-width:1px,color:#0f172a
+```
+
+---
+
+#### Зачем этот US
+
+Session работает (#1–#5). Здесь **закрываем дыры**: logout не должен trigger refresh retry; in-flight запросы abort; SameSite на cookie.
+
+---
+
+#### Git
+
+**Ветка:** `v2.2.0-auth`  
+**Issue:** TBD
+
+---
+
+#### Практика
+
+### `server/src/routes/auth.routes.ts` — ИЗМЕНИТЬ
+
+```typescript
+// ====== ИЗМЕНЁННЫЙ БЛОК US 2.2.6 ======
+// Set-Cookie: sameSite: 'strict' на refresh
+```
+
+---
+
+### `client/src/shared/api/apiFetch.ts` — ИЗМЕНИТЬ
+
+```typescript
+// ====== КОД ИЗ US 2.2.1 Client (без изменений) ======
+// export async function apiFetch(...) { credentials, Bearer, 401 refresh }
+
+// ====== ИЗМЕНЁННЫЙ БЛОК US 2.2.6 ======
+// module flag isLoggingOut
+// if isLoggingOut → не вызывать refresh retry
+// поддержка AbortSignal в init
+```
+
+---
+
+### `client/src/app/providers/AuthProvider.tsx` — ИЗМЕНИТЬ
+
+```typescript
+// ====== ИЗМЕНЁННЫЙ БЛОК US 2.2.6 ======
+export function logout() {
+  // Шаг 1: set isLoggingOut = true
+  // Шаг 2: queryClient.cancelQueries()
+  // Шаг 3: AbortController.abort() на in-flight
+  // Шаг 4: clearAccessToken + POST /logout
+  // Шаг 5: setUser(null); isLoggingOut = false
+}
+```
+
+---
+
+#### Проверка и тесты
+
+### Ручная (обязательно)
+
+| # | Input | Output |
+| - | ----- | ------ |
+| 1 | Logout во время медленного GET /api/news | запрос aborted; token cleared; нет refresh retry |
+| 2 | Cookie flags в DevTools | SameSite=Strict |
+
+- [ ] logout during in-flight
+- [ ] SameSite=Strict на refresh cookie
+- [ ] DOMPurify в NewsDetail — уже есть
+
+### Автотесты (обязательно)
+
+- [ ] дополнить `apiFetch.test.ts`:
+
+```typescript
+describe('apiFetch logout', () => {
+  it('does not retry refresh when isLoggingOut', () => {
+    // set isLoggingOut → 401 → expect no POST /refresh
+  })
+  it('aborts fetch when signal aborted', () => {
+    // AbortController.abort → rejected
+  })
+})
+```
+
+```bash
+pnpm --filter react-happy-news-client exec vitest run src/shared/api/apiFetch.test.ts
+```
+
+---
+
+#### Запуск
+
+```bash
+pnpm dev
+# DevTools: Throttling Slow 3G → login → trigger news fetch → logout immediately
+pnpm --filter react-happy-news-client exec vitest run src/shared/api/apiFetch.test.ts
+```
+
+```bash
+git add server/src/routes/auth.routes.ts client/src/shared/api/ client/src/app/providers/
+git commit -m "feat: #N auth security — SameSite, abort on logout"
+```
+
+---
+
+#### Самопроверка US
+
+1. SameSite=Strict зачем?  
+2. Что без isLoggingOut?  
+3. credentials + CORS оба side?
+
+
+# US 2.2.10 — OAuth Google
+
+**Статус:** `pending`  
+**Релиз:** [CURRENT_RELEASE.md](../CURRENT_RELEASE.md)  
+**Справочник:** [AUTH_REFERENCE.md](../AUTH_REFERENCE.md) — Уровень 7  
+**Practice:** [PRACTICE_MODE.md](../guides/PRACTICE_MODE.md)  
+**Issue:** TBD  
+**Предусловие:** US 2.2.6 Frontend Security ✅
+
+**Acceptance Criteria:**
+
+- [ ] `GET /api/auth/google` + callback
+- [ ] Google login → те же access + refresh что password login
+- [ ] `google_id`, `password_hash` nullable
+- [ ] Email login для OAuth-only user → 401
+
+---
+
+#### На схеме
+
+**Мастер-схема:** D + A
+
+**В этом US (backend):**
+
+| Файл | Действие |
+| ---- | -------- |
+| `oauthService.ts` | новый |
+
+**В этом US (frontend):**
+
+| Файл | Действие |
+| ---- | -------- |
+| `GoogleButton.tsx` | новый |
+
+**После US:** Sign in with Google → tokens  
+**Сцена timeline:** альтернативный check-in через Google  
+**Полная карта:** [AUTH_REFERENCE](./AUTH_REFERENCE.md)
+
+| Статус | Фон | Обводка | Текст |
+| ------ | --- | ------- | ----- |
+| done | нет (default) | тонкая `#64748b` | default |
+| **active (WIP)** | `#dce4ef` | жирная `#334155` | `#0f172a` |
+| later | `#94a3b8` | тонкая `#64748b` | `#0f172a` |
+
+**Backend:**
+
+```mermaid
+flowchart TB
+  routes["auth.routes.ts"]
+  service["authService.ts"]
+  oauth["oauthService.ts"]
+  db["schema + SQL"]
+  mw["authenticate.ts"]
+  routes --> service
+  routes --> oauth
+  service --> db
+  oauth --> db
+  mw --> service
+
+  class routes,service,db,mw phaseDone
+  class oauth phaseActive
+
+  classDef phaseDone stroke:#64748b,stroke-width:1px
+  classDef phaseActive fill:#dce4ef,stroke:#334155,stroke-width:3px,color:#0f172a
+  classDef phaseLater fill:#94a3b8,stroke:#64748b,stroke-width:1px,color:#0f172a
+```
+
+**Frontend (auth):**
+
+```mermaid
+flowchart TB
+  subgraph authMod [auth]
+    LoginForm["LoginForm.tsx"]
+    GoogleButton["GoogleButton.tsx"]
+    AuthProvider["AuthProvider.tsx"]
+  end
+  LoginForm --> AuthProvider
+  GoogleButton --> AuthProvider
+
+  class LoginForm,AuthProvider phaseDone
+  class GoogleButton phaseActive
+
+  classDef phaseDone stroke:#64748b,stroke-width:1px
+  classDef phaseActive fill:#dce4ef,stroke:#334155,stroke-width:3px,color:#0f172a
+  classDef phaseLater fill:#94a3b8,stroke:#64748b,stroke-width:1px,color:#0f172a
+```
+
+---
+
+#### Зачем этот US
+
+Password check-in есть. OAuth — **второй способ authentication** с той же token-инфраструктурой (#1).
+
+---
+
+#### Git
+
+**Ветка:** `v2.2.0-auth`  
+**Issue:** TBD
+
+---
+
+#### Практика
+
+### Шаг 0: deps + ENV
+
+```bash
+pnpm --filter react-happy-news-server add passport passport-google-oauth20
+pnpm --filter react-happy-news-server add -D @types/passport @types/passport-google-oauth20
+```
+
+`server/.env.example`: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`
+
+---
+
+### `server/src/db/schema.ts` — ИЗМЕНИТЬ
+
+```typescript
+// ====== ИЗМЕНЁННЫЙ БЛОК US 2.2.10 ======
+// users: google_id UNIQUE, avatar_url, password_hash nullable
+```
+
+---
+
+### `server/src/services/oauthService.ts` (НОВЫЙ)
+
+```typescript
+// passport Google strategy
+// findOrCreateUser(profile) → user row
+// issueTokens(user) — reuse authService token logic
+```
+
+---
+
+### `server/src/routes/auth.routes.ts` — ИЗМЕНИТЬ
+
+```typescript
+authRouter.get('/google', ...) {
+  // redirect to Google OAuth
+}
+
+authRouter.get('/google/callback', ...) {
+  // passport callback → find/create user → Set-Cookie + redirect frontend with access or cookie-only
+}
+```
+
+**Подводный камень:** callback URL = byte-for-byte как в Google Cloud Console.
+
+---
+
+### `client/src/pages/Auth/GoogleButton.tsx` (НОВЫЙ)
+
+```typescript
+export function GoogleButton() {
+  // link or window.location to GET /api/auth/google
+}
+```
+
+---
+
+### `client/src/pages/Auth/LoginForm.tsx` — ИЗМЕНИТЬ
+
+```typescript
+// render: GoogleButton рядом с form
+```
+
+---
+
+#### Проверка и тесты
+
+### Ручная (обязательно)
+
+| # | Input | Output |
+| - | ----- | ------ |
+| 1 | Click «Google» → Google consent → callback | logged in; refresh cookie; access in memory |
+| 2 | OAuth user tries email/password login | 401 «use Google» |
+| 3 | Callback URL mismatch | Google error page (negative test) |
+
+- [ ] full OAuth flow (dev credentials)
+- [ ] password login blocked for OAuth-only user
+- [ ] tokens same shape as password login
+
+### Автотесты
+
+- [ ] unit: oauth callback handler mock — user created, tokens issued
+
+```typescript
+describe('oauthService.findOrCreateUser', () => {
+  it('creates user with google_id and null password_hash', () => {
+    // mock profile → assert INSERT
+  })
+})
+```
+
+- [ ] `authService.login` — password_hash null → 401
+
+E2E Google — **ручной** (sandbox credentials).
+
+```bash
+# unit only if implemented:
+pnpm --filter react-happy-news-server build
+pnpm --filter react-happy-news-client exec vitest run path/to/oauth.test.ts
+```
+
+---
+
+#### Запуск
+
+```bash
+# Google Cloud Console: OAuth client, redirect = GOOGLE_CALLBACK_URL
+pnpm dev:server
+pnpm dev:client
+# /login → Google → callback
+```
+
+```bash
+git add server/src/ client/src/pages/Auth/ server/.env.example
+git commit -m "feat: #N OAuth — Google"
+```
+
+---
+
+#### Закрытие auth-трека (#1–#6)
+
+```bash
+pnpm test && pnpm type-check && pnpm lint
+pnpm gen:openapi:sync   # server running
+# Самопроверка ≥80% AUTH_REFERENCE
+```
+
+---
+
+#### Самопроверка US
+
+1. OAuth vs password — общее в tokens?  
+2. password_hash nullable?  
+3. Callback URL mismatch?
+
+
+### US 2.2.2: Избранное
 
 **Как** авторизованный пользователь
 **Я хочу** сохранять понравившиеся новости в избранное
@@ -1018,7 +2341,8 @@ client/src/
 >
 > React Profiler: зафиксировать разницу до/после (было 10 рендеров → стало 1).
 
-### US 2.3.3: Positivity Tracker
+
+### US 2.2.3: Positivity Tracker
 
 **Как** авторизованный пользователь
 **Я хочу** видеть статистику чтения
@@ -1031,7 +2355,34 @@ client/src/
 - [ ] Streak: "5 дней подряд позитивных новостей"
 - [ ] Топ тем, которые вдохновляют
 
-### US 2.3.4: Сравнение хранилищ
+
+### US 2.2.7: Email verification
+
+**Acceptance Criteria:**
+
+- [ ] `users.email_verified` + `users.verify_token` (TTL 24ч)
+- [ ] При регистрации — отправка письма (dev: лог в консоль)
+- [ ] `GET /api/auth/verify-email?token=...`
+- [ ] `POST /api/auth/resend-verification` — rate-limit 1 req/60s
+- [ ] Банер "Подтвердите email" в Header
+
+### US 2.2.8: Password reset
+
+**Acceptance Criteria:**
+
+- [ ] `POST /api/auth/forgot-password` — всегда 200 (anti-enumeration)
+- [ ] `POST /api/auth/reset-password` — валидация токена + bcrypt
+- [ ] Страницы `/auth/forgot-password` и `/auth/reset-password`
+
+### US 2.2.9: GDPR / Right to delete
+
+**Acceptance Criteria:**
+
+- [ ] `DELETE /api/account` — каскадное удаление данных пользователя
+- [ ] Подтверждение через пароль в UI
+
+
+### US 2.2.11: Сравнение хранилищ *(optional, после auth-трека #1–#6)*
 
 **Как** разработчик
 **Я хочу** использовать разные хранилища для разных целей
@@ -1044,55 +2395,25 @@ client/src/
 - [ ] Refresh token → httpOnly cookie
 - [ ] Кэш статей (offline) → IndexedDB
 
-### US 2.3.5: Формы авторизации
 
-**Как** пользователь
-**Я хочу** удобные формы логина и регистрации
+### US 2.2.12: Тёмная / светлая тема *(optional)*
 
-**Acceptance Criteria:**
+: Тёмная / светлая тема
 
-- [ ] React Hook Form для Login и Register
-- [ ] Zod-схемы: email, password (min 8, uppercase, digit) — shared фронт + бэк
-- [ ] Real-time валидация
-- [ ] Серверные ошибки отображаются в форме
-- [ ] useLayoutEffect: проверка auth до первого рендера (без мерцания)
+**Что видит пользователь:**
 
-### US 2.3.6: Protected Routes + Navigation
+- Переключатель темы в header
+- Тёмный / светлый режим
+- Сохраняется в localStorage
 
-**Как** разработчик
-**Я хочу** разграничить доступ к страницам
 
 **Acceptance Criteria:**
 
-- [ ] `<ProtectedRoute>` → проверка auth → redirect `/login`
-- [ ] Nested Routes: `/dashboard/*`
-- [ ] Lazy loading: Dashboard, Auth — по требованию
-- [ ] errorElement: кастомная 404
-- [ ] useNavigate: программная навигация после логина
-- [ ] useLocation: сохранение пути для redirect
+- [ ] Переключатель темы в header
+- [ ] Тёмный / светлый режим
+- [ ] Сохраняется в localStorage
 
-> **React.lazy + code splitting (перенесено из US 2.1.4):**
-> Здесь `React.lazy` даёт реальный эффект — в отличие от `NewsDetail` (1.47 kB, 0.07%):
-> - `Dashboard` тянет **recharts** (~200–300 kB) — не нужен на главной
-> - `Auth` тянет **React Hook Form + Zod resolvers** (~50–80 kB) — не нужен без логина
-> - `Favorites` — отдельная страница, нужна только авторизованным
->
-> Замерить в `rollup-plugin-visualizer`: `index.js` до/после добавления lazy для этих страниц.
-> Ожидаемый выигрыш: 200–400 kB из `index.js` → отдельные чанки.
-
-### US 2.3.7: Frontend Security
-
-**Как** пользователь
-**Я хочу** чтобы мои данные были защищены
-
-**Acceptance Criteria:**
-
-- [ ] XSS: DOMPurify для HTML в описаниях новостей
-- [ ] CSRF: SameSite=Strict на refresh cookie
-- [ ] Race conditions: cleanup при logout во время запроса
-- [ ] AbortController: отмена запросов при logout
-
-## Архитектура v2.3
+## Архитектура v2.2
 
 ```
 server/src/
@@ -1141,7 +2462,7 @@ client/src/
 │       └── Dashboard.tsx
 ```
 
-## Стек v2.3
+## Стек v2.2
 
 | Компонент      | Технология                |
 | -------------- | ------------------------- |
@@ -1153,7 +2474,7 @@ client/src/
 | Валидация форм | @hookform/resolvers + Zod |
 | Санитизация    | DOMPurify                 |
 
-## Закрываемые темы v2.3
+## Закрываемые темы v2.2
 
 <details>
 <summary>Backend: 19 вопросов</summary>
@@ -1212,6 +2533,175 @@ client/src/
 </details>
 
 **Оценка: 4–5 дней**
+
+---
+
+
+---
+
+# RELEASE v2.3 — Social & Engagement
+
+> Live-реакции для **авторизованных** пользователей (после v2.2 Auth). Пользователь выражает эмоцию от статьи — 😊 ❤️ 🌟 — и видит реакции других читателей в реальном времени. Реакции приходят быстро и часто, поэтому открытый WebSocket-канал дешевле HTTP на каждый клик.
+
+## Фичи v2.3
+
+### F2.3.1: Live-реакции на статью (WebSocket)
+
+**Что видит пользователь:**
+
+- На странице статьи — панель реакций: 😊 ❤️ 🌟 🙏
+- При нажатии — реакция мгновенно уходит на сервер через WS
+- Реакции других читателей появляются в реальном времени
+- При закрытии вкладки — WS закрывается корректно
+
+**Что нужно сделать:**
+
+| Сторона  | Задача                                                               |
+| -------- | -------------------------------------------------------------------- |
+| Backend  | WebSocket-сервер на том же порту                                     |
+| Backend  | `reactionsTracker`: `Map<articleId, Record<emoji, count>>`           |
+| Backend  | Heartbeat (ping/pong) для проверки живых соединений                  |
+| Backend  | При получении реакции → обновить счётчик → broadcast в room          |
+| Frontend | `features/live-reactions/`: `useWebSocket.ts`, `useReactions.ts`     |
+| Frontend | Клиент → `{ type: "react", articleId, emoji }` при нажатии          |
+| Frontend | Reconnect при разрыве (exponential backoff, max 3 попытки)           |
+
+### F2.3.2: Топ реакций по статьям
+
+**Что видит пользователь:**
+
+- На главной странице — карточки с бейджем самой популярной реакции
+- "🌟 142" рядом с заголовком самой вдохновляющей новости
+
+**Что нужно сделать:**
+
+- Backend: `GET /api/news/reactions/top` — топ реакций по articleId
+- Frontend: бейдж на `NewsItem`, данные из RTK Query (polling или ручной refetch)
+
+### F2.3.3: Поделиться новостью (Share)
+
+**Что видит пользователь:**
+
+- На карточке новости — кнопка "Поделиться"
+- Копирует ссылку в буфер обмена (или Web Share API на мобильных)
+- Уведомление "Ссылка скопирована!"
+
+## User Stories v2.3
+
+### US 2.3.1: Live-реакции через WebSocket
+
+**Как** читатель
+**Я хочу** выразить эмоцию от статьи и видеть реакции других
+**Чтобы** чувствовать связь с другими читателями позитивных новостей
+
+**Acceptance Criteria:**
+
+- [ ] WebSocket-сервер обрабатывает `{ type: "react", articleId, emoji }`
+- [ ] `reactionsTracker` хранит счётчики реакций per-article
+- [ ] Broadcast обновлённых счётчиков всем в комнате статьи
+- [ ] Heartbeat (ping/pong): сервер пингует каждые 30с
+- [ ] Reconnect при разрыве (exponential backoff, max 3 попытки)
+- [ ] Max 3 попытки → fallback (реакции недоступны, UI degrade gracefully)
+
+### US 2.3.2: Нагрузочное тестирование WS
+
+**Как** разработчик
+**Я хочу** проверить лимиты WS-сервера
+**Чтобы** настроить reconnect и throttle
+
+**Acceptance Criteria:**
+
+- [ ] Скрипт `simulate-reactions.ts`: N ботов, случайные реакции
+- [ ] Мониторинг: соединения, latency, memory
+- [ ] Тест: throttle → reconnect
+- [ ] Тест: kill server → клиент переживает
+
+### US 2.3.3: React Patterns на практике
+
+**Как** разработчик
+**Я хочу** реализовать паттерны в контексте live-реакций
+**Чтобы** уметь выбирать паттерн под задачу
+
+**Acceptance Criteria:**
+
+- [ ] **Provider**: `<WebSocketProvider>` — Context с WS-соединением
+- [ ] **Compound**: `<ReactionsPanel>` + `<ReactionsPanel.Button />` + `<ReactionsPanel.Count />`
+- [ ] **Observer**: WS = Subject, компоненты = Observers
+- [ ] **HOC**: `withReactions(Component)` — сравнить с hook-подходом
+- [ ] **Factory**: `createApiAdapter(source)` — фабрика для API-адаптеров
+- [ ] **useSyncExternalStore**: WS store → React rendering
+
+## Архитектура v2.3
+
+```
+server/src/
+├── ws/
+│   ├── wsServer.ts              ← WebSocket-сервер
+│   ├── reactionsTracker.ts      ← Map<articleId, Record<emoji, count>>
+│   └── heartbeat.ts             ← ping/pong
+└── scripts/
+    └── simulate-reactions.ts    ← нагрузочный скрипт
+
+client/src/
+├── features/
+│   ├── live-reactions/          ← НОВАЯ ФИЧА
+│   │   ├── useWebSocket.ts      ← generic: connect, send, reconnect
+│   │   ├── useReactions.ts      ← реакции per-article
+│   │   ├── ReactionsPanel.tsx   ← кнопки + счётчики
+│   │   ├── ShareButton.tsx
+│   │   └── index.ts
+```
+
+## Стек v2.3
+
+| Компонент                | Технология               |
+| ------------------------ | ------------------------ |
+| WS (сервер)              | ws (нативный)            |
+| WS (клиент)              | WebSocket API (нативный) |
+| State management         | useReducer + Context     |
+| Нагрузочное тестирование | Кастомный скрипт         |
+
+## Закрываемые темы v2.3
+
+<details>
+<summary>Backend: 8 вопросов</summary>
+
+| #   | Тема                    | Как закрывается                          |
+| --- | ----------------------- | ---------------------------------------- |
+| Q14 | WS-библиотека           | ws (нативный)                            |
+| Q41 | WebSocket vs REST       | REST для данных, WS для live-реакций     |
+| Q42 | Полный переход на WS    | Нет кэша, статусов, сложнее дебаг        |
+| Q43 | Риски persistent WS     | Память, scaling                          |
+| Q44 | Нестабильное соединение | heartbeat → reconnect                    |
+| Q60 | Когда WebSocket         | Двусторонняя связь, частые быстрые клики |
+| Q71 | WS vs HTTP              | Persistent vs request-response           |
+| Q89 | Reconnect WS            | Detect → backoff → reconnect → re-sub    |
+
+</details>
+
+<details>
+<summary>Frontend: 14 вопросов</summary>
+
+| #    | Тема                 | Как закрывается                          |
+| ---- | -------------------- | ---------------------------------------- |
+| FQ7  | HOC Pattern          | withReactions — сравнение с хуком        |
+| FQ8  | Compound Pattern     | ReactionsPanel.Button + ReactionsPanel.Count |
+| FQ10 | Provider Pattern     | WebSocketProvider                        |
+| FQ11 | Observer Pattern     | WS = Subject, компоненты = Observers     |
+| FQ12 | Factory Pattern      | createApiAdapter(source)                 |
+| FQ24 | Основные хуки        | Обзор всех используемых                  |
+| FQ26 | Custom hooks         | useWebSocket, useReactions               |
+| FQ27 | useReducer           | WS-состояние: status, reactions, error   |
+| FQ28 | Rules of Hooks       | Linked list — почему нельзя в условиях   |
+| FQ29 | Cleanup useEffect    | Закрытие WS при unmount                  |
+| FQ30 | Deps useEffect       | Stale closure, бесконечный цикл          |
+| FQ31 | useRef               | WS instance, interval ID                 |
+| FQ32 | useSyncExternalStore | WS store → React                         |
+| FQ33 | Lifecycle → hooks    | componentDidMount → useEffect            |
+
+</details>
+
+**Оценка: 3–4 дня**
 
 ---
 
@@ -1593,7 +3083,7 @@ react-happy-news/
 
 ## Зависит от
 
-- **v2.3 Auth** — нужен `userId` для привязки подписок и транзакций
+- **v2.2 Auth** — нужен `userId` для привязки подписок и транзакций
 - **v2.1.6 SQLite** — таблицы `subscriptions`, `transactions`, `payment_events`, `entitlements`
 - **v2.5 Production** — webhook callback требует HTTPS-домена в проде (в dev — Stripe CLI tunnel)
 - **v2.4.4 AI Summary** — становится первой реальной Premium-фичей
@@ -2203,21 +3693,21 @@ client/src/
 | **Health-индикатор**                     | v2.1  | v2.0              |
 | **Расширенный поиск + сортировка**       | v2.1  | v2.0              |
 | **Виртуализация ленты**                  | v2.1  | —                 |
-| **Live-реакции (WS)**                    | v2.2  | v2.0              |
-| **Топ реакций по статьям**               | v2.2  | v2.2/WS           |
-| **Поделиться новостью**                  | v2.2  | —                 |
-| **Регистрация / Логин**                  | v2.3  | v2.0              |
-| **Избранное**                            | v2.3  | v2.3/Auth         |
-| **Positivity Tracker + Streak**          | v2.3  | v2.3/Auth         |
-| **Тёмная / светлая тема**                | v2.3  | —                 |
-| **Protected Routes**                     | v2.3  | v2.3/Auth         |
-| **Дашборд позитивности (GraphQL)**       | v2.4  | v2.3/Auth         |
-| **Protocol Comparison**                  | v2.4  | v2.2/WS, v2.1/SSE |
+| **Live-реакции (WS)**                    | v2.3  | v2.0              |
+| **Топ реакций по статьям**               | v2.3  | v2.3/WS           |
+| **Поделиться новостью**                  | v2.3  | —                 |
+| **Регистрация / Логин**                  | v2.2  | v2.0              |
+| **Избранное**                            | v2.2  | v2.2/Auth         |
+| **Positivity Tracker + Streak**          | v2.2  | v2.2/Auth         |
+| **Тёмная / светлая тема**                | v2.2  | —                 |
+| **Protected Routes**                     | v2.2  | v2.2/Auth         |
+| **Дашборд позитивности (GraphQL)**       | v2.4  | v2.2/Auth         |
+| **Protocol Comparison**                  | v2.4  | v2.3/WS, v2.1/SSE |
 | **Storybook**                            | v2.4  | —                 |
 | **Accessibility**                        | v2.5  | —                 |
 | **Docker + CI/CD**                       | v2.5  | —                 |
 | **HTTPS + DNS + Nginx**                  | v2.5  | —                 |
-| **PaymentProvider абстракция**           | v2.6  | v2.3/Auth         |
+| **PaymentProvider абстракция**           | v2.6  | v2.2/Auth         |
 | **ЮKassa интеграция (RU)**               | v2.6  | v2.6/Provider     |
 | **Stripe интеграция (intl)**             | v2.6  | v2.6/Provider     |
 | **Webhooks + HMAC + Idempotency**        | v2.6  | v2.6/Provider     |
@@ -2273,8 +3763,8 @@ client/src/
 | --------- | ----------- | ------------- | ------- | ------------- |
 | **v2.0**  | 34          | 16            | 50      | 25.8%         |
 | **v2.1**  | 12          | 15            | 27      | 39.7%         |
-| **v2.2**  | 8           | 14            | 22      | 51.0%         |
-| **v2.3**  | 19          | 21            | 40      | 71.6%         |
+| **v2.2**  | 19          | 21            | 40      | 51.0%         |
+| **v2.3**  | 8           | 14            | 22      | 71.6%         |
 | **v2.4**  | 7           | 9             | 16      | 79.9%         |
 | **v2.5**  | 9           | 6             | 15      | 87.6%         |
 | **v2.6**  | 9           | 6             | 15      | 95.4%         |
@@ -2290,8 +3780,8 @@ client/src/
 | --------- | --------------------------------------------- | ---------- | --- | --- | ----- |
 | **v2.0**  | Source Filter, Badges, Detail, Feedback       | 4–5 дн.    | 34  | 16  | 25.8% |
 | **v2.1**  | Readers Counter, Health, Поиск, Виртуализация | 3–4 дн.    | 12  | 15  | 39.7% |
-| **v2.2**  | Live Reactions, Топ реакций, Share            | 3–4 дн.    | 8   | 14  | 51.0% |
-| **v2.3**  | Auth, Избранное, Tracker, Streak, Тема      | 4–5 дн.    | 19  | 21  | 71.6% |
+| **v2.2**  | Auth, Избранное, Tracker, Streak, OAuth       | 4–5 дн.    | 19  | 21  | 51.0% |
+| **v2.3**  | Live Reactions, Топ реакций, Share            | 3–4 дн.    | 8   | 14  | 71.6% |
 | **v2.4**  | Analytics, Protocols, Storybook               | 3–4 дн.    | 7   | 9   | 79.9% |
 | **v2.5**  | A11y, Docker, CI/CD, HTTPS                    | 3–4 дн.    | 9   | 6   | 87.6% |
 | **v2.6**  | Stripe + ЮKassa, Premium, Pay-per-action, Billing | 5–7 дн. | 9   | 6   | 95.4% |
@@ -2305,12 +3795,12 @@ client/src/
 Релизы v2.1–v2.4 можно перемещать:
 
 - Хочешь live-фичи → начни с v2.1 (SSE)
-- Хочешь персонализацию → начни с v2.3 (Auth)
-- Хочешь React-паттерны + WS → начни с v2.2 (live-реакции)
+- Хочешь персонализацию → начни с v2.2 (Auth)
+- Хочешь React-паттерны + WS → начни с v2.3 (live-реакции)
 
 Релизы v2.6 и v2.7 — пост-Production:
 
-- v2.6 (Monetization) технически возможна сразу после v2.3 (Auth), но webhook callback требует HTTPS — поэтому удобнее после v2.5 (Production)
+- v2.6 (Monetization) технически возможна сразу после v2.2 (Auth), но webhook callback требует HTTPS — поэтому удобнее после v2.5 (Production)
 - v2.7 (Translation + AI Premium) **обязательно после v2.6** — все Premium-фичи опираются на entitlements middleware
 - Если запускаешь только для русскоязычной аудитории → начни v2.6 с ЮKassa, Stripe можно отложить
 

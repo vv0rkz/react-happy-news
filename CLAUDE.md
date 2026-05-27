@@ -111,21 +111,26 @@ npm run _ push-release
 
 ## Frontend Module Map (lite)
 
-Logical modules (not strict flat FSD): `core` / `auth` / `catalog` / `engagement`. Living diagram: `docs/architecture/MODULE_MAP.md`, ADR: `docs/roadmap/ADR-001-frontend-module-map.md`.
+Logical modules (not strict flat FSD): `core` / `auth` / `catalog` / `engagement`. Living diagram: `docs/architecture/MODULE_MAP.md`, ADR: `docs/architecture/ADR-001-frontend-module-map.md`.
 
 - **Colocation:** code lives in `pages/Feature/`; extract to `features/` only when used from 2+ places.
 - **Auth:** `pages/Auth/lib/tokenMemory.ts`, `app/providers/AuthProvider.tsx`, `shared/api/apiFetch.ts`.
 - **Terminology:** UI/docs — **избранное**; code/API — **favorites** (not bookmarks).
-- **Docs analogies:** airport domain only in increment «На пальцах» — see `docs/roadmap/ANALOGY_GUIDE.md`.
+- **Docs analogies:** airport domain only in increment «На пальцах» — see `docs/roadmap/guides/ANALOGY_GUIDE.md`.
 
 ## Docs to read during a task
 
-- `docs/roadmap/CURRENT_INCREMENT.md` — **read first when starting work**. Contains the active User Story, step-by-step plan, exact git commands, and known pitfalls. Often has TODO comments in code files that mirror the steps here.
-- `docs/roadmap/CURRENT_RELEASE.md` — overall status of the in-progress release (which US are done / active).
-- `docs/roadmap/ROADMAP.md` — long-term plan (v2.0–v2.5).
-- `docs/roadmap/ANALOGY_GUIDE.md` — checklist + glossary for «На пальцах» sections (when writing/reviewing docs).
+1. `docs/roadmap/CURRENT_INCREMENT.md` — **read first**. Active US: **На схеме**, **Практика** (Practice-скелеты), **Проверка и тесты**, **Запуск**.
+2. `docs/roadmap/guides/PRACTICE_MODE.md` — правила Practice (код + тесты); US не done без пройденной проверки.
+3. `docs/roadmap/CURRENT_RELEASE.md` — статус релиза + auth-трек #1–#6.
+4. `docs/roadmap/auth/AUTH_REFERENCE.md` — **один раз** при старте auth (анalogии, research, архитектура).
+5. `docs/roadmap/ROADMAP.md` — long-term plan; **Практика/Проверка** по US — § US 2.2.x.
+6. `docs/roadmap/guides/ANALOGY_GUIDE.md` — checklist «На пальцах».
+7. `docs/roadmap/guides/TOKENS_AND_JWT.md` — при путанице access / refresh / JWT (не обязателен каждый US).
 
-When `CURRENT_INCREMENT.md` exists with a pending step and the corresponding file has matching `// TODO:` comments, those comments **are** the spec — follow them rather than inventing an alternative approach.
+**Правило:** 1 US = 1 `CURRENT_INCREMENT` (~200–280 строк). **Проверка и тесты обязательны** — минимум ручной чеклист; client auto с US #2.
+
+When `CURRENT_INCREMENT.md` has Practice blocks and matching `// TODO(increment-...):` in code, those **are** the spec. **Do not mark US complete** until «Проверка и тесты» checklists are done. In teaching mode, help write tests — do not skip verification.
 
 ## Teaching Mode (default behaviour)
 

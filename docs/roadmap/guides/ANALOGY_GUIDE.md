@@ -46,6 +46,8 @@
 
 > **Где ломается аналогия:** в жизни часто один boarding pass на весь рейс; в JWT два документа **специально** для безопасности.
 
+Подробно (access, refresh, RAM, cookie, FAQ): [TOKENS_AND_JWT.md](./TOKENS_AND_JWT.md).
+
 ---
 
 ## Prompt-snippet для будущих increment
@@ -61,6 +63,7 @@ UI: «избранное»; code/API: favorites (not bookmarks).
 
 ## Связанные документы
 
-- [CURRENT_INCREMENT.md](./CURRENT_INCREMENT.md) — секция «На пальцах»
-- [INCREMENT_TEMPLATE.md](./templates/INCREMENT_TEMPLATE.md) — структура секций
-- [MODULE_MAP.md](../architecture/MODULE_MAP.md) — архитектура без метафор
+- [TOKENS_AND_JWT.md](./TOKENS_AND_JWT.md) — развёрнутый разбор access / refresh / JWT
+- [CURRENT_INCREMENT.md](../CURRENT_INCREMENT.md) — секция «На пальцах»
+- [INCREMENT_TEMPLATE.md](../templates/INCREMENT_TEMPLATE.md) — структура секций
+- [MODULE_MAP.md](../../architecture/MODULE_MAP.md) — архитектура без метафор

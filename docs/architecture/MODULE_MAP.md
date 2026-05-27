@@ -1,7 +1,7 @@
 # Module Map — React Happy News (frontend)
 
 > Living diagram. Без аналогий — только модули и зависимости.
-> Решение зафиксировано в [ADR-001](../roadmap/ADR-001-frontend-module-map.md).
+> Решение зафиксировано в [ADR-001](./ADR-001-frontend-module-map.md).
 
 ## Принцип
 

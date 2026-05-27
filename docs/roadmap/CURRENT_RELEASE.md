@@ -19,23 +19,22 @@
 
 ## User Stories
 
-### US 2.2.1: Auth Foundation (mega) — 🔄 ACTIVE
+### US 2.2.1: Auth Foundation — 🔄 ACTIVE
 
-**Текущий инкремент:** [CURRENT_INCREMENT.md](./CURRENT_INCREMENT.md)
+**Текущий инкремент:** [CURRENT_INCREMENT.md](./CURRENT_INCREMENT.md) — **Backend Auth** (#1)  
+**Полная спека:** [ROADMAP.md](./ROADMAP.md) — § US 2.2.1 (под-инкременты #1–#6)  
+**Справочник:** [auth/AUTH_REFERENCE.md](./auth/AUTH_REFERENCE.md)
 
-Mega-инкремент: backend JWT + client auth + forms + routes + security + OAuth.
-Детальный чеклист, фазы и AC — в CURRENT_INCREMENT.md.
+Auth split на 6 инкрементов (1 US = 1 `CURRENT_INCREMENT`):
 
-**Фазы инкремента:**
-
-| Фаза | US | Содержание |
-| ---- | -- | ---------- |
-| 1–2 | 2.2.1 | Backend: schema, authService, routes, middleware |
-| 3 | 2.2.1 | tokenMemory + AuthProvider + apiFetch |
-| 4 | 2.2.4 | RHF + Zod forms |
-| 5 | 2.2.5 | ProtectedRoute + lazy Auth |
-| 6 | 2.2.6 | SameSite, abort on logout |
-| 7 | 2.2.10 | OAuth Google |
+| # | US | Содержание | Статус |
+| - | -- | ---------- | ------ |
+| 1 | 2.2.1 | Backend: schema, authService, routes | **done** |
+| 2 | 2.2.1 | Client: authenticate + tokenMemory + apiFetch + AuthProvider | pending |
+| 3 | 2.2.4 | RHF + Zod forms | pending |
+| 4 | 2.2.5 | ProtectedRoute + lazy Auth | pending |
+| 5 | 2.2.6 | SameSite, abort on logout | pending |
+| 6 | 2.2.10 | OAuth Google | pending |
 
 ### US 2.2.2: Избранное — ⏳ PENDING
 
@@ -52,17 +51,17 @@ Mega-инкремент: backend JWT + client auth + forms + routes + security +
 - [ ] Streak: "5 дней подряд позитивных новостей"
 - [ ] Топ тем, которые вдохновляют
 
-### US 2.2.4: Формы авторизации (RHF + Zod) — 🔗 часть mega 2.2.1
+### US 2.2.4: Формы авторизации (RHF + Zod) — ⏳ PENDING
 
-> Реализуется в **Фазе 4** [CURRENT_INCREMENT.md](./CURRENT_INCREMENT.md). AC — там.
+> Инкремент #3. Детали: [ROADMAP.md](./ROADMAP.md) — § US 2.2.4
 
-### US 2.2.5: Protected Routes + Lazy Loading — 🔗 часть mega 2.2.1
+### US 2.2.5: Protected Routes + Lazy Loading — ⏳ PENDING
 
-> **Фаза 5** инкремента.
+> Инкремент #4. Детали: [ROADMAP.md](./ROADMAP.md) — § US 2.2.5
 
-### US 2.2.6: Frontend Security — 🔗 часть mega 2.2.1
+### US 2.2.6: Frontend Security — ⏳ PENDING
 
-> **Фаза 6** инкремента.
+> Инкремент #5. Детали: [ROADMAP.md](./ROADMAP.md) — § US 2.2.6
 
 ### US 2.2.7: Email verification — ⏳ PENDING
 
@@ -83,9 +82,9 @@ Mega-инкремент: backend JWT + client auth + forms + routes + security +
 - [ ] `DELETE /api/account` — каскадное удаление данных пользователя
 - [ ] Подтверждение через пароль в UI
 
-### US 2.2.10: OAuth — Войти через Google `[CORE]` — 🔗 часть mega 2.2.1
+### US 2.2.10: OAuth — Войти через Google `[CORE]` — ⏳ PENDING
 
-> **Фаза 7** инкремента. AC — в CURRENT_INCREMENT.md.
+> Инкремент #6. Детали: [ROADMAP.md](./ROADMAP.md) — § US 2.2.10
 
 ---
 

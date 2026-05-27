@@ -5,8 +5,10 @@ import morgan from 'morgan'
 import swaggerUi from 'swagger-ui-express'
 import { OpenApiGeneratorV3 } from '@asteasolutions/zod-to-openapi'
 import { registry } from './swagger/registry'
+import cookieParser from 'cookie-parser'
 import { newsRouter } from './routes/news/routes'
 import { feedbackRouter } from './routes/feedback.routes'
+import { authRouter } from './routes/auth.routes'
 import { sseManager } from './utils/sseManager'
 import { errorHandler } from './middleware/errorHandler'
 import { packageVersion } from './packageInfo'
@@ -27,7 +29,8 @@ export function createApp() {
 
   app.use(morgan('dev'))
   const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173,http://127.0.0.1:5173').split(',')
-  app.use(cors({ origin: allowedOrigins }))
+  app.use(cors({ origin: allowedOrigins, credentials: true }))
+  app.use(cookieParser())
   app.use(express.json())
 
   app.get('/api/health', (_req, res) => {
@@ -39,6 +42,7 @@ export function createApp() {
 
   app.use('/api/news', newsRouter)
   app.use('/api/feedback', feedbackRouter)
+  app.use('/api/auth', authRouter)
 
   sseManager.startHeartbeat()
 

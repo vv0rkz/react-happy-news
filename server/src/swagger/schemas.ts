@@ -46,3 +46,25 @@ export const FeedbackResponseSchema = registry.register(
     message: z.string().openapi({ example: 'Спасибо за отзыв!' }),
   }),
 )
+
+export const AuthPayloadSchema = registry.register(
+  'AuthPayload',
+  z.object({
+    email:    z.string().email().openapi({ example: 'user@example.com' }),
+    password: z.string().min(8).openapi({ example: 'Secret1pass' }),
+  }),
+)
+
+export const AuthLoginResponseSchema = registry.register(
+  'AuthLoginResponse',
+  z.object({
+    accessToken: z.string().openapi({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' }),
+  }),
+)
+
+export const AuthLogoutResponseSchema = registry.register(
+  'AuthLogoutResponse',
+  z.object({
+    ok: z.boolean().openapi({ example: true }),
+  }),
+)

@@ -1,244 +1,210 @@
 # ШАБЛОН: CURRENT_INCREMENT.md
 
-> Скопируй этот файл в CURRENT_INCREMENT.md, заполни по инструкции ниже.
-> Удали все строки с `>` перед коммитом.
-> Аналогии — по [ANALOGY_GUIDE.md](../ANALOGY_GUIDE.md) (checklist + glossary).
+> Скопируй в `CURRENT_INCREMENT.md`. Удали строки с `>` перед коммитом.  
+> Формат: [PRACTICE_MODE.md](../guides/PRACTICE_MODE.md). Аналогии: [ANALOGY_GUIDE.md](../guides/ANALOGY_GUIDE.md).
 
 ---
 
-# US X.X.X — [Название User Story]
+# US X.X.X — [Название]
 
-**Статус:** `active`
-**Релиз:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md)
-**Issue:** `#N`  ← создать через: npm run _ create-task "US X.X.X: Название"
-**Покрывает US:** X.X.1, … ← для mega-инкремента; иначе одна US
-**Покрывает вопросы:** QN (тема), FQN (тема), …
+**Статус:** `active`  
+**Релиз:** [CURRENT_RELEASE.md](../CURRENT_RELEASE.md)  
+**Полная спека:** [ROADMAP.md](../ROADMAP.md) — § US X.X.X *(скопируй Практику/Проверку отсюда)*  
+**Справочник:** [auth/AUTH_REFERENCE.md](../auth/AUTH_REFERENCE.md) *(если auth)*  
+**Issue:** `#N` — `npm run _ create-task "US X.X.X: …"`
 
-> Вопросы берутся из ROADMAP.md раздела соответствующего релиза
+**Acceptance Criteria (только этот US):**
 
-**Acceptance Criteria:**
+- [ ] …
 
-- [ ] ...
+> **Не в этом US:** …
 
 ---
 
-## На пальцах
+## На схеме
 
-> Бытовые аналогии **до** технических терминов. Читается за 3 минуты. Без кода.
-> **Один домен** на инкремент (Auth — аэропорт; см. ANALOGY_GUIDE).
-> Для mega — обязательно: timeline (mermaid sequence) + glossary + «где ломается».
+**Мастер-схема:** … (§A / §D в AUTH_REFERENCE)
 
-### 1. Timeline — один день пользователя (главная diagram)
+**В этом US:**
 
-> Ось = **время**, не слои. Один узел = одна идея.
+| Файл | Действие |
+| ---- | -------- |
+| `file.ts` | новый / изменить |
+
+**Не в этом US:** …
+
+**После US:** …  
+**Сцена timeline:** …  
+**Полная карта:** [AUTH_REFERENCE.md](./auth/AUTH_REFERENCE.md)
+
+| Статус | Фон | Обводка | Текст |
+| ------ | --- | ------- | ----- |
+| done | нет (default) | тонкая `#64748b` | default |
+| **active (WIP)** | `#dce4ef` | жирная `#334155` | `#0f172a` |
+| later | `#94a3b8` | тонкая `#64748b` | `#0f172a` |
+
+> `classDef` — только внутри полного `flowchart` блока; не выносить отдельным mermaid-блоком.
 
 ```mermaid
-sequenceDiagram
-  actor User as Пользователь
-  participant App as Приложение
-  participant Server as Сервер
-
-  User->>App: ...
-  App->>Server: ...
+flowchart TB
+  nodeA["file.ts"]
+  class nodeA phaseActive
+  classDef phaseDone stroke:#64748b,stroke-width:1px
+  classDef phaseActive fill:#dce4ef,stroke:#334155,stroke-width:3px,color:#0f172a
+  classDef phaseLater fill:#94a3b8,stroke:#64748b,stroke-width:1px,color:#0f172a
 ```
-
-### 2. Глоссарий (таблица)
-
-| Технический термин | В аналогии | В коде | Где ломается |
-| ------------------ | ---------- | ------ | ------------ |
-| … | … | `path/to/file` | … |
-
-### 3. Компоненты — отдельные строки
-
-| Компонент | В аналогии | Когда в timeline |
-| --------- | ---------- | ---------------- |
-| … | … | … |
-
-### 4. Хранилища (если применимо)
-
-| | В аналогии | Технически |
-| --- | ---------- | ---------- |
-| … | … | … |
 
 ---
 
-## Research: сравнение подходов
+## Зачем этот US
 
-> Таблица **до** реализации. **Топ-N + weighted score** для mega-инкрементов.
-> Колонка «В аналогии» — опционально, только client-facing решения, один домен.
-
-**Критерии (вес):** Fit 30%, Industry 20%, Portfolio 20%, Learning 15%, Cost 15%.
-
-| # | Подход | Плюсы | Минусы | В аналогии (опц.) | Σ | Вердикт |
-| - | ------ | ----- | ------ | ----------------- | - | ------- |
-| 1 | … | … | … | … | ~X.X | ✅ / ❌ |
-
-**Итог Research:**
-
-> Одна строка: что выбрано и почему (без метафор).
-
----
-
-## Концепция
-
-> Технический flow: что происходит с точки зрения системы.
-> Ссылка на timeline в «На пальцах». Plain language, без новых метафор.
-
-```
-Событие
-  → следствие
-  → следствие
-```
-
-**Перевод на код:** см. timeline + glossary.
-
-**Почему [технология X], а не [альтернатива Y]:**
-
-> Одно-два предложения.
-
----
-
-## Решения и паттерны
-
-| Решение | KISS / DRY / SOLID | Почему не альтернатива |
-| ------- | ------------------ | ---------------------- |
-| … | … | … |
+2–3 предложения: место в auth-треке / релизе.
 
 ---
 
 ## Git
 
-**Ветка:** `vX.X.X-branch-name`
+**Ветка:** `vX.X.X-*`  
 **Issue:** `#N`
 
 ---
 
-## Архитектура
+## Практика
 
-> **Module Map** (C4-lite) — без аналогий. См. [MODULE_MAP.md](../../architecture/MODULE_MAP.md).
-> Минимум: 1 module diagram + 1 sequence (ключевой flow) + дерево файлов.
-> Помечай: ← НОВЫЙ, ← ИЗМЕНИТЬ, ✅ уже есть
+### Шаг 0: deps *(если нужны)*
 
-```mermaid
-flowchart TB
-  subgraph core [core]
-    apiFetch
-  end
-  subgraph authMod [auth]
-    AuthProvider
-  end
-  placeholder[Диаграмма модулей]
+```bash
+pnpm --filter … add …
 ```
 
-```
-server/src/
-└── ...
+> #### Схема БД (до / после) *(перед `schema.ts`, если меняется SQLite)*
+>
+> ##### Before (baseline …)
+>
+> ```mermaid
+> erDiagram
+>   table_name {
+>     TEXT id PK
+>   }
+> ```
+>
+> ##### After (после US X.X.X)
+>
+> ```mermaid
+> erDiagram
+>   table_name {
+>     TEXT id PK
+>   }
+> ```
+>
+> ##### Таблица diff
+>
+> | | До | После US X.X.X |
+> | --- | --- | --- |
+> | Таблицы | … | … |
+> | PRAGMA | … | … |
+> | Связи | … | … |
+>
+> **Подводный камень:** …
+>
+> ##### Проверка визуально
+>
+> 1. … (шаги — [DB_SCHEMA_DIFF.md](../guides/DB_SCHEMA_DIFF.md))
+>
+> ### `server/src/db/schema.ts`
+>
+> ```typescript
+> // ====== КОД ИЗ baseline … ======
+> // ====== НОВЫЙ БЛОК US X.X.X ======
+> ```
 
-client/src/
-├── pages/FeatureName/
-│   ├── FeatureName.tsx
-│   ├── lib/                 ← page-level VM
-│   └── components/          ← widgets; hook colocated in components/<Name>/
-├── model/news/{api,components,lib}/
-├── shared/{api,config,components,lib}/
-└── app/{layout,lib,mocks,providers}/
-```
-
-**Colocation rule:** extract to `features/` при 2+ consumer zones; `shared/` — только при 2+ zones.
-
----
-
-## Фаза N: Название
-
-> Для простых US — «## Шаг N». Для mega-инкрементов — «## Фаза N».
-
-**Файлы:** `path/to/file.ts`
+### `path/to/file.ts`
 
 ```typescript
-// Сигнатуры и псевдокод:
-// 1. Что принимает
-// 2. Что возвращает
-// 3. Ключевая логика (шаги, не код)
+// ====== КОД ИЗ baseline (без изменений) ======
+// …
+
+// ====== НОВЫЙ/ИЗМЕНЁННЫЙ БЛОК US X.X.X ======
+export function example() {
+  // Шаг 1: …
+  // Кратко: …
+}
 ```
 
 **Подводный камень:** …
 
-**Тесты:**
+---
 
-- [ ] `path/to/file.test.ts` — что проверяет
+## Проверка и тесты
 
-```bash
-git add <файлы фазы>
-git commit -m "feat: #N <что сделано>"
+> US **не закрывается** без отмеченных `- [ ]` ниже. См. [PRACTICE_MODE.md](../guides/PRACTICE_MODE.md).
+
+### Ручная (обязательно)
+
+| # | Input | Output |
+| - | ----- | ------ |
+| 1 | … | … |
+
+- [ ] сценарий 1
+- [ ] сценарий 2
+
+### Автотесты
+
+- [ ] `path/file.test.ts` — что assert'ит
+
+```typescript
+describe('…', () => {
+  it('…', () => {
+    // Arrange / Act / Assert — комментариями
+  })
+})
 ```
 
-> Повтори блок «## Фаза N» для каждой фазы
-
----
-
-## Фаза ФИНАЛЬНАЯ: Закрыть инкремент
-
 ```bash
-# 1. pnpm test && pnpm type-check && pnpm lint
-# 2. (optional) pnpm gen:openapi:sync
-# 3. Закрыть GitHub issue
-gh issue close N --comment "US X.X.X завершён: <краткое описание>"
-
-# 4. Обновить MODULE_MAP.md
-# 5. Cursor → Plan mode → новый plan для следующего US
-# 6. CURRENT_INCREMENT из этого шаблона
-# 7. CURRENT_RELEASE.md + ROADMAP.md
-# 8. Grep bookmark|закладк в docs → избранное/favorites (если применимо)
-
-git add docs/
-git commit -m "docs: US X.X.X DONE → US X.X.Y active (#N)"
+pnpm --filter react-happy-news-client exec vitest run path/to/file.test.ts
 ```
 
-### Самопроверка перед закрытием
+---
 
-- [ ] Ответил на ≥80% вопросов из «Самопроверка» без подглядывания в код
-- [ ] Могу объяснить ключевые концепции **одной историей** из «На пальцах»
-- [ ] Знаю, в каких файлах лежит основная логика
-- [ ] (mega auth) Могу объяснить два токена через check-in → gate → kiosk
+## Запуск
+
+```bash
+# терминал 1
+pnpm dev:server
+
+# терминал 2 — curl / browser
+…
+
+pnpm --filter react-happy-news-server build   # type-check server (если backend)
+pnpm test                                      # финал трека
+```
+
+```bash
+git add …
+git commit -m "feat: #N …"
+```
 
 ---
 
-## Подводные камни
+## Самопроверка US
 
-> Cross-cutting edge-cases для всего инкремента (не дублировать то, что уже в фазах):
+| # | Вопрос | Где в коде |
+| - | ------ | ---------- |
+| 1 | … | `file.ts` |
 
-- …
+<details>
+<summary>Эталоны</summary>
+…
+</details>
+
+## Следующий US
+
+Отметить шаг в [CURRENT_RELEASE.md](../CURRENT_RELEASE.md) → скопировать этот шаблон в `CURRENT_INCREMENT.md` → заполнить из [ROADMAP.md](../ROADMAP.md) (следующий US / под-инкремент).
 
 ---
 
-## Самопроверка: вопросы инкремента
+## Справочник (не в каждый CURRENT_INCREMENT)
 
-> Пройди после всех фаз. Хороший ответ = **своими словами** + **где в коде**.
-> Уровни 1–2 (mega auth): колонка **«В аналогии»** — 1 фраза + технический ответ.
-> У простых US — 5–10 вопросов; у mega — полный банк (~25–30).
+Выноси в `AUTH_REFERENCE.md`: «На пальцах», Research, полная архитектура, банк самопроверки 20+.
 
-### Уровень 1 — Концепции
-
-| # | Вопрос | В аналогии | Где в коде | ROADMAP |
-| --- | ------ | ---------- | ---------- | ------- |
-| 1 | … | … | `path/to/file` | QN |
-
-<details>
-<summary>Эталонный ответ (не открывать с первого раза)</summary>
-
-…
-
-</details>
-
-### Уровень 2 — …
-
-| # | Вопрос | В аналогии | Где в коде | ROADMAP |
-| --- | ------ | ---------- | ---------- | ------- |
-| … | … | … | … | … |
-
-<details>
-<summary>Эталонный ответ</summary>
-
-…
-
-</details>
+**Mega запрещён** без `AUTH_REFERENCE.md` + разбивки US в `ROADMAP.md` (§ 2.2.1 под-инкременты).
