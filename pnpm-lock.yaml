@@ -30,14 +30,14 @@ importers:
   client:
     dependencies:
       '@mantine/core':
-        specifier: ^9.2.1
-        version: 9.2.1(@mantine/hooks@9.3.0(react@19.2.7))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: ^9.3.0
+        version: 9.3.0(@mantine/hooks@9.3.0(react@19.2.7))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@mantine/hooks':
         specifier: ^9.3.0
         version: 9.3.0(react@19.2.7)
       '@mantine/notifications':
         specifier: ^9.3.0
-        version: 9.3.0(@mantine/core@9.2.1(@mantine/hooks@9.3.0(react@19.2.7))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@mantine/hooks@9.3.0(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 9.3.0(@mantine/core@9.3.0(@mantine/hooks@9.3.0(react@19.2.7))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@mantine/hooks@9.3.0(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tanstack/react-query':
         specifier: ^5.101.0
         version: 5.101.0(react@19.2.7)
@@ -1036,10 +1036,10 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@mantine/core@9.2.1':
-    resolution: {integrity: sha512-CicPg9i2dM2pGp1jj+dMiR/63OFDsPjgJke4v5+0nbfJ+C7gn4C+7ltrp4RIETDMZHcj0fFuDRG0qtbiyBxvWA==}
+  '@mantine/core@9.3.0':
+    resolution: {integrity: sha512-mHVCm61YVW9ipy9eHiKMqsRUm3TkOErbdw7zHs0HRw5g403nf7tSTqNGvaYE+aX1Py874qMkrUzeQfj4bjiiBA==}
     peerDependencies:
-      '@mantine/hooks': 9.2.1
+      '@mantine/hooks': 9.3.0
       react: ^19.2.0
       react-dom: ^19.2.0
 
@@ -3512,6 +3512,10 @@ packages:
     resolution: {integrity: sha512-8ZiHFm91orbSAe2PSAiSVBVko18pbhbiB3U9GglSzF/zCGkR+rxpHx6sEMCUm4kxY4LjDIUGgCfUMtwfZfjfUA==}
     engines: {node: '>=20'}
 
+  type-fest@5.7.0:
+    resolution: {integrity: sha512-1URUxUqfHFM1c+zfSPsa3gnkO7Aq21qyH75SIduNYz4SzY964rn1X2vCMQaHSHhktiw+0kPa2iyb6PUpXqB6Vg==}
+    engines: {node: '>=20'}
+
   type-is@1.6.18:
     resolution: {integrity: sha512-TkRKr9sUTxEH8MdfuCSP7VizJyzRNMjj2J2do2Jr3Kym598JVdEksuzPQCnlFPW4ky9Q+iA+ma9BGm06XQBy8g==}
     engines: {node: '>= 0.6'}
@@ -4522,7 +4526,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@mantine/core@9.2.1(@mantine/hooks@9.3.0(react@19.2.7))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@mantine/core@9.3.0(@mantine/hooks@9.3.0(react@19.2.7))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@floating-ui/react': 0.27.19(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@mantine/hooks': 9.3.0(react@19.2.7)
@@ -4531,7 +4535,7 @@ snapshots:
       react-dom: 19.2.7(react@19.2.7)
       react-number-format: 5.4.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-remove-scroll: 2.7.2(@types/react@19.2.16)(react@19.2.7)
-      type-fest: 5.6.0
+      type-fest: 5.7.0
     transitivePeerDependencies:
       - '@types/react'
 
@@ -4539,9 +4543,9 @@ snapshots:
     dependencies:
       react: 19.2.7
 
-  '@mantine/notifications@9.3.0(@mantine/core@9.2.1(@mantine/hooks@9.3.0(react@19.2.7))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@mantine/hooks@9.3.0(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@mantine/notifications@9.3.0(@mantine/core@9.3.0(@mantine/hooks@9.3.0(react@19.2.7))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@mantine/hooks@9.3.0(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
-      '@mantine/core': 9.2.1(@mantine/hooks@9.3.0(react@19.2.7))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@mantine/core': 9.3.0(@mantine/hooks@9.3.0(react@19.2.7))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@mantine/hooks': 9.3.0(react@19.2.7)
       '@mantine/store': 9.3.0(react@19.2.7)
       react: 19.2.7
@@ -7282,6 +7286,10 @@ snapshots:
   type-fest@4.41.0: {}
 
   type-fest@5.6.0:
+    dependencies:
+      tagged-tag: 1.0.0
+
+  type-fest@5.7.0:
     dependencies:
       tagged-tag: 1.0.0
 
