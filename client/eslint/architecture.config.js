@@ -87,7 +87,7 @@ export const architectureConfig = [
             },
             {
               from: { type: 'pages_auth' },
-              allow: allowTypes(['pages_auth', 'pages', ...SHARED_AND_CORE, 'model', 'catalog_components']),
+              allow: allowTypes(['pages_auth', 'pages', 'app', ...SHARED_AND_CORE, 'model', 'catalog_components']),
               disallow: allowTypes(['catalog_pages']),
             },
             {
@@ -95,6 +95,7 @@ export const architectureConfig = [
               allow: allowTypes([
                 'app',
                 'pages',
+                'pages_auth',
                 'catalog_pages',
                 'features',
                 'model',
