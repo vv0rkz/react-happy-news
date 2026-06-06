@@ -9,15 +9,22 @@
 
 **Статус:** `active`  
 **Релиз:** [CURRENT_RELEASE.md](../CURRENT_RELEASE.md)  
-**Полная спека:** [ROADMAP.md](../ROADMAP.md) — § US X.X.X *(скопируй Практику/Проверку отсюда)*  
+**Полная спека:** [CURRENT_RELEASE.md](../CURRENT_RELEASE.md) — § US X.X.X *(скопируй секцию в INCREMENT + добавь WIP-прогресс)*  
 **Справочник:** [auth/AUTH_REFERENCE.md](../auth/AUTH_REFERENCE.md) *(если auth)*  
 **Issue:** `#N` — `npm run _ create-task "US X.X.X: …"`
 
-**Acceptance Criteria (только этот US):**
-
-- [ ] …
+> **Сейчас:** …  
+> **Готово:** …
 
 > **Не в этом US:** …
+
+---
+
+## Прогресс
+
+| Файл | Статус |
+| ---- | ------ |
+| `path/to/file.ts` | ⏳ / ✅ |
 
 ---
 
@@ -56,9 +63,33 @@ flowchart TB
 
 ---
 
+## Контракты
+
+> Сигнатуры, типы и HTTP-контракты **без реализации**. Детали сборки — в «Практика».
+
+```typescript
+export type Example = { id: string }
+
+export function example(input: string): Promise<Example>
+```
+
+| Endpoint | Body response | Кто вызывает |
+| -------- | ------------- | ------------ |
+| `GET /api/example` | `{ id }` | … |
+
+**Подводные камни:** …
+
+---
+
 ## Зачем этот US
 
 2–3 предложения: место в auth-треке / релизе.
+
+---
+
+## Acceptance Criteria
+
+- [ ] …
 
 ---
 
@@ -70,6 +101,13 @@ flowchart TB
 ---
 
 ## Практика
+
+> Формат: [PRACTICE_MODE.md](../guides/PRACTICE_MODE.md) — только сигнатуры и `//` комментарии внутри `{ }`.
+
+### Порядок сборки
+
+1. `file-a.ts` — …
+2. `file-b.ts` — …
 
 ### Шаг 0: deps *(если нужны)*
 
@@ -199,7 +237,7 @@ git commit -m "feat: #N …"
 
 ## Следующий US
 
-Отметить шаг в [CURRENT_RELEASE.md](../CURRENT_RELEASE.md) → скопировать этот шаблон в `CURRENT_INCREMENT.md` → заполнить из [ROADMAP.md](../ROADMAP.md) (следующий US / под-инкремент).
+Отметить шаг в [CURRENT_RELEASE.md](../CURRENT_RELEASE.md) → скопировать секцию следующего US из RELEASE в `CURRENT_INCREMENT.md` → добавить WIP-прогресс.
 
 ---
 
@@ -207,4 +245,4 @@ git commit -m "feat: #N …"
 
 Выноси в `AUTH_REFERENCE.md`: «На пальцах», Research, полная архитектура, банк самопроверки 20+.
 
-**Mega запрещён** без `AUTH_REFERENCE.md` + разбивки US в `ROADMAP.md` (§ 2.2.1 под-инкременты).
+**Mega запрещён** без `AUTH_REFERENCE.md` + разбивки US в `CURRENT_RELEASE.md` (auth-трек #1–#6).

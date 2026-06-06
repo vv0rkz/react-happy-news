@@ -120,11 +120,11 @@ Logical modules (not strict flat FSD): `core` / `auth` / `catalog` / `engagement
 
 ## Docs to read during a task
 
-1. `docs/roadmap/CURRENT_INCREMENT.md` — **read first**. Active US: **На схеме**, **Практика** (Practice-скелеты), **Проверка и тесты**, **Запуск**.
-2. `docs/roadmap/guides/PRACTICE_MODE.md` — правила Practice (код + тесты); US не done без пройденной проверки.
-3. `docs/roadmap/CURRENT_RELEASE.md` — статус релиза + auth-трек #1–#6.
-4. `docs/roadmap/auth/AUTH_REFERENCE.md` — **один раз** при старте auth (анalogии, research, архитектура).
-5. `docs/roadmap/ROADMAP.md` — long-term plan; **Практика/Проверка** по US — § US 2.2.x.
+1. `docs/roadmap/CURRENT_INCREMENT.md` — **read first**. Active US: WIP-прогресс + **На схеме**, **Практика**, **Проверка и тесты**, **Запуск**.
+2. `docs/roadmap/CURRENT_RELEASE.md` — **полная спека релиза**: AC, типы, Практика, проверки для всех US v2.2.
+3. `docs/roadmap/guides/PRACTICE_MODE.md` — правила Practice (код + тесты); US не done без пройденной проверки.
+4. `docs/roadmap/auth/AUTH_REFERENCE.md` — **один раз** при старте auth (аналогии, research, архитектура).
+5. `docs/roadmap/ROADMAP.md` — long-term plan only (обзор релизов, без Practice-блоков).
 6. `docs/roadmap/guides/ANALOGY_GUIDE.md` — checklist «На пальцах».
 7. `docs/roadmap/guides/TOKENS_AND_JWT.md` — при путанице access / refresh / JWT (не обязателен каждый US).
 

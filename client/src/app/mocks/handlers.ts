@@ -7,6 +7,15 @@ import type { NewsItem } from '@model/news/api/apiNews/utils/transforms.types'
 
 const BASE_URL: string = import.meta.env.VITE_API_BASE_URL
 
+export const MOCK_ACCESS_TOKEN = 'mock-access'
+export const MOCK_USER = { id: 'mock-id', email: 'mock@example.com' } as const
+const MOCK_REFRESH_COOKIE = 'refreshToken'
+
+function isValidBearer(request: Request): boolean {
+  const auth = request.headers.get('Authorization')
+  return auth === `Bearer ${MOCK_ACCESS_TOKEN}`
+}
+
 // --- Zod-схема для валидации JSON-моков при инициализации ---
 
 const newsItemSchema = z.object({
@@ -159,5 +168,34 @@ export const handlers = [
       return HttpResponse.json({ error: 'Message must be at least 10 characters' }, { status: 400 })
     }
     return HttpResponse.json({ ok: true, message: 'Спасибо за отзыв!' }, { status: 201 })
+  }),
+
+  http.post(`${BASE_URL}/api/auth/refresh`, ({ cookies }) => {
+    if (!cookies[MOCK_REFRESH_COOKIE]) {
+      return HttpResponse.json({ error: 'Invalid refresh token' }, { status: 401 })
+    }
+    return HttpResponse.json({ accessToken: MOCK_ACCESS_TOKEN })
+  }),
+
+  http.get(`${BASE_URL}/api/auth/me`, ({ request }) => {
+    if (!isValidBearer(request)) {
+      return HttpResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    return HttpResponse.json(MOCK_USER)
+  }),
+
+  http.post(`${BASE_URL}/api/auth/login`, () => {
+    return HttpResponse.json(
+      { accessToken: MOCK_ACCESS_TOKEN },
+      {
+        headers: {
+          'Set-Cookie': `${MOCK_REFRESH_COOKIE}=mock-refresh; Path=/; HttpOnly; SameSite=Strict`,
+        },
+      },
+    )
+  }),
+
+  http.post(`${BASE_URL}/api/auth/logout`, () => {
+    return HttpResponse.json({ ok: true })
   }),
 ]

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { SourceName } from '@model/news/api/apiNews/utils/transforms.types'
+import { MOCK_ACCESS_TOKEN, MOCK_USER } from './handlers'
 
 // Если хэндлер перехватывает неправильный URL, setup.ts бросит ошибку:
 // "onUnhandledRequest: 'error'" — запрос не перехвачен → тест упадёт автоматически
@@ -57,6 +58,42 @@ describe('MSW handlers — регрессия URL и формат ответа',
       expect(item).toHaveProperty('title')
       expect(item).toHaveProperty('image')
       expect(item).toHaveProperty('description')
+    })
+  })
+
+  describe('POST /api/auth/refresh', () => {
+    it('возвращает 401 без refresh cookie', async () => {
+      const res = await fetch(`${BASE_URL}/api/auth/refresh`, { method: 'POST', credentials: 'include' })
+      expect(res.status).toBe(401)
+    })
+
+    it('возвращает accessToken при наличии refresh cookie', async () => {
+      const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { Cookie: 'refreshToken=mock-refresh' },
+      })
+      const data = await res.json()
+
+      expect(res.ok).toBe(true)
+      expect(data).toEqual({ accessToken: MOCK_ACCESS_TOKEN })
+    })
+  })
+
+  describe('GET /api/auth/me', () => {
+    it('возвращает 401 без Bearer', async () => {
+      const res = await fetch(`${BASE_URL}/api/auth/me`)
+      expect(res.status).toBe(401)
+    })
+
+    it('возвращает user при валидном Bearer', async () => {
+      const res = await fetch(`${BASE_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${MOCK_ACCESS_TOKEN}` },
+      })
+      const data = await res.json()
+
+      expect(res.ok).toBe(true)
+      expect(data).toEqual(MOCK_USER)
     })
   })
 })

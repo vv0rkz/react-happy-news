@@ -119,7 +119,7 @@ Tsconfig aliases: `@app`, `@pages`, `@features`, `@model`, `@shared`. Слои: 
 
 ```
 server/src/
-├── routes/auth.routes.ts      — auth module
+├── routes/auth/               — auth module
 ├── routes/news.routes.ts      — catalog module
 ├── routes/favorites.routes.ts — engagement (US 2.2.2)
 └── middleware/authenticate.ts — auth → catalog/engagement

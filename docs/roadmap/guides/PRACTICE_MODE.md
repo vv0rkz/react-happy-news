@@ -1,7 +1,7 @@
 # Practice-режим — инкременты и тесты
 
-> Формат [`CURRENT_INCREMENT.md`](../CURRENT_INCREMENT.md); полная **Практика** — [`ROADMAP.md`](../ROADMAP.md) § US 2.2.x.  
-> Справочник auth: [`AUTH_REFERENCE.md`](../auth/AUTH_REFERENCE.md).
+> Формат [`CURRENT_INCREMENT.md`](../CURRENT_INCREMENT.md); полная **Практика** релиза — [`CURRENT_RELEASE.md`](../CURRENT_RELEASE.md) § US / инкремент.  
+> Справочник auth (аналогии, архитектура): [`AUTH_REFERENCE.md`](../auth/AUTH_REFERENCE.md). Long-term: [`ROADMAP.md`](../ROADMAP.md).
 
 ## Правило закрытия US
 
@@ -41,7 +41,6 @@
 export function register(email: string, password: string) {
   // Шаг 1: bcrypt.hash(password, 12)
   // Кратко: сохранить password_hash в users, не plain text.
-
   // Шаг 2: выдать access JWT (15m) + refresh (7d)
   // Кратко: refresh в refresh_tokens; access в return value.
 }
@@ -53,7 +52,6 @@ React-компонент:
 export function LoginForm() {
   // Шаг 1: useForm + zodResolver(loginSchema)
   // Кратко: native form, autocomplete current-password.
-
   // render: form + email field + password field + submit button
 }
 ```
@@ -85,24 +83,27 @@ describe('authService.register', () => {
 
 ## Секции инкремента (обязательные)
 
-| Секция | Содержание |
-| ------ | ---------- |
-| **На схеме** | progress-mermaid (fill: WIP/later, done без fill); таблица «В этом US» (`Файл \| Действие`); «После US»; «Сцена timeline» |
-| **Зачем этот US** | 2–3 предложения |
-| **Практика** | Practice-скелеты по файлам |
+| Секция                  | Содержание                                                                                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Прогресс**            | таблица `Файл \| Статус` (✅ в ветке / ⏳ WIP)                                                                                                                                  |
+| **На схеме**            | progress-mermaid (fill: WIP/later, done без fill); таблица «В этом US» (`Файл \| Действие`); «После US»; «Сцена timeline»; ключевые решения / sequence                       |
+| **Контракты**           | верхнеуровневые типы, сигнатуры, HTTP-таблицы, подводные камни — **без тел функций и без fetch/JSX**                                                                         |
+| **Зачем этот US**       | 2–3 предложения                                                                                                                                                                |
+| **Acceptance Criteria** | чеклист закрытия US                                                                                                                                                            |
+| **Практика**            | Practice-скелеты по файлам; порядок сборки (мозаика); для ✅ в ветке — ссылка на файл, не полный код                                                                            |
 | **Схема БД (до/после)** | Если US трогает `schema.ts`: полный блок Before/After/diff/проверка в `CURRENT_INCREMENT` перед `schema.ts`; [DB_SCHEMA_DIFF.md](./DB_SCHEMA_DIFF.md) — шаблон и общие правила |
-| **Проверка и тесты** | Ручная (чеклист `- [ ]`) + Автотесты + команды vitest/curl |
-| **Запуск** | порядок терминалов, `pnpm dev:*` |
-| **Самопроверка US** | 3–5 вопросов |
+| **Проверка и тесты**    | Ручная (чеклист `- [ ]`) + Автотесты + команды vitest/curl                                                                                                                     |
+| **Запуск**              | порядок терминалов, `pnpm dev:*`                                                                                                                                               |
+| **Самопроверка US**     | 3–5 вопросов                                                                                                                                                                   |
 
 ---
 
 ## Server vs client: автотесты
 
-| Пакет | Runner | US #1 Backend | US #2+ client |
-| ----- | ------ | ------------- | ------------- |
-| `server/` | **нет** (пока) | curl обязателен; supertest — если добавишь vitest | — |
-| `client/` | Vitest + MSW + RTL | — | автотесты **обязательны** в инкременте |
+| Пакет     | Runner             | US #1 Backend                                     | US #2+ client                          |
+| --------- | ------------------ | ------------------------------------------------- | -------------------------------------- |
+| `server/` | **нет** (пока)     | curl обязателен; supertest — если добавишь vitest | —                                      |
+| `client/` | Vitest + MSW + RTL | —                                                 | автотесты **обязательны** в инкременте |
 
 Запуск одного client-теста:
 

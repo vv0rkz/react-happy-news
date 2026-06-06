@@ -1,17 +1,10 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { apiFetch } from '@shared/api/apiFetch'
 import type { components } from '@shared/api/openapi'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import type { NewsDetailsData } from '../apiNews/utils/transforms.types'
 
 type FeedbackPayload = components['schemas']['FeedbackPayload']
 type FeedbackResponse = components['schemas']['FeedbackResponse']
-
-const BASE_URL: string = import.meta.env.VITE_API_BASE_URL
-
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, options)
-  if (!res.ok) throw new Error(`API error ${res.status}: ${path}`)
-  return res.json() as Promise<T>
-}
 
 export const newsKeys = {
   list: (params: string) => ['news', 'list', params] as const,

@@ -1,18 +1,18 @@
 # ШАБЛОН: CURRENT_RELEASE.md
 
-> Скопируй этот файл в CURRENT_RELEASE.md, заполни по инструкции ниже.
+> Скопируй этот файл в CURRENT_RELEASE.md при старте нового релиза.
 > Удали все строки с `>` перед коммитом.
+> **ROADMAP** — только long-term overview; **полная спека релиза** живёт здесь.
 
 ---
 
 # React Happy News — Релиз vX.X — [Название релиза]
 
-> Название — краткая тема релиза: "Positivity Stream", "Social & Engagement", "Auth & Profiles"...
-
 **Статус:** `in progress`
 **Ветка релиза:** `vX.X.0-*`
-**Полный roadmap:** [ROADMAP.md](./ROADMAP.md)
-**Покрытие:** N вопросов (XX% нарастающим после vX.X) + новые US X.X.Y–X.X.Z
+**Long-term roadmap:** [ROADMAP.md](./ROADMAP.md) — обзор релизов
+**Рабочий инкремент:** [CURRENT_INCREMENT.md](./CURRENT_INCREMENT.md) — активный шаг + WIP
+**Покрытие:** …
 **Оценка времени:** N–M дней
 
 ---
@@ -23,93 +23,121 @@
 
 ---
 
-## User Stories
+## Структура релиза
 
-> Один блок на каждый US. Добавляй по ходе работы по мере написания CURRENT_INCREMENT.md.
+| Фаза | US | Когда | Статус |
+| ---- | -- | ----- | ------ |
+| … | … | … | … |
 
-### US X.X.1: [Название] — 🔄 ACTIVE
+**Текущий инкремент:** [CURRENT_INCREMENT.md](./CURRENT_INCREMENT.md)
 
-- [ ] ...
-- [ ] ...
+---
 
-### US X.X.2: [Название] — ⏳ PENDING
+## Фаза 1: [Название фазы]
 
-- [ ] ...
+<a id="us-x-x-x"></a>
+### US X.X.X: [Название]
 
-> Статусы: 🔄 ACTIVE (текущий инкремент), ⏳ PENDING (ещё не начат), ✅ DONE (завершён)
+**Статус:** `pending` | `active` | `done`
+**Предусловие:** …
+
+#### Acceptance Criteria
+
+- [ ] …
+
+> **Не в этом US:** …
+
+#### На схеме
+
+| Файл | Действие |
+| ---- | -------- |
+| `file.ts` | новый / изменить |
+
+#### Практика
+
+> Сигнатуры, типы, `//` шаги — см. [PRACTICE_MODE.md](./guides/PRACTICE_MODE.md)
+
+```typescript
+export type Example = { … }
+
+export function example() {
+  // Шаг 1: …
+}
+```
+
+#### Проверка и тесты
+
+| # | Input | Output |
+| - | ----- | ------ |
+| 1 | … | … |
+
+- [ ] ручная проверка
+- [ ] vitest (если применимо)
+
+#### Запуск
+
+```bash
+pnpm dev
+```
+
+---
+
+## Не в scope vX.X (superseded / optional)
+
+| US | Статус | Причина |
+| -- | ------ | ------- |
+| … | … | … |
 
 ---
 
 ## Закрываемые темы vX.X
 
-> Берутся из ROADMAP.md → раздел соответствующего релиза.
+**Backend:** …
 
-**Backend (N):** QXX, QXX, ...
-
-**Frontend (N):** FQXX, FQXX, ...
+**Frontend:** …
 
 ---
 
 ## Следующий релиз
 
-**vX.Y — [Название]** ([краткое описание]) — после закрытия всех US этого релиза
+**vX.Y — [Название]** — после закрытия всех US этого релиза
 
 ---
 
 ## Шаг ФИНАЛЬНЫЙ: Закрыть релиз
 
-> Выполняется когда все US выше помечены ✅ DONE.
-
-### 1. Записать демо-материалы
-
-Добавить в `docs/demo/`:
-
-- `vX.X.0.gif` — запись новых фич в действии (обязательно)
-- `vX.X.0.png` — опционально: если нет, `update-readme` сгенерирует PNG из первого кадра GIF через `sharp` автоматически
-
-> `npm run _ release` проверяет наличие хотя бы одного из форматов (`gif` или `png`).
-> Достаточно только GIF — PNG будет создан автоматически.
-> Рекомендуемые инструменты: ShareX / LICEcap (Windows), Kap (macOS).
+### 1. Демо
 
 ```bash
-# Убедиться, что GIF на месте:
 ls docs/demo/vX.X.0.gif
 ```
 
-### 2. Сгенерировать CHANGELOG + тег + поднять версию
+### 2. CHANGELOG + тег
 
 ```bash
 npm run _ release
 ```
 
-Что происходит:
-- `changelogen` читает коммиты с последнего тега → пишет секцию в `CHANGELOG.md`
-- `package.json` `version` поднимается по semver (feat → minor, fix/refactor → patch)
-- Создаётся локальный git-тег `vX.X.0`
-- README обновляется ссылками на демо
-
-### 3. Запушить тег + создать GitHub Release
+### 3. Push + GitHub Release
 
 ```bash
 npm run _ push-release
 ```
 
-Что происходит:
-- Пушится ветка + тег (`--follow-tags`)
-- Создаётся PR в main (`gh pr create`)
-- PR автоматически мержится (`gh pr merge --merge`)
-
-### 4. Обновить документацию
+### 4. Документация
 
 ```bash
-# CURRENT_RELEASE.md — сменить статус и добавить ссылку на GitHub Release:
-# **Статус:** `DONE` — [GitHub Release vX.X.0](https://github.com/vv0rkz/react-happy-news/releases/tag/vX.X.0)
-
-# CURRENT_INCREMENT.md — переключить на первый US следующего релиза
-# (по шаблону INCREMENT_TEMPLATE.md)
-
+# CURRENT_RELEASE.md → DONE
+# CURRENT_INCREMENT.md → первый US vX.Y
+# ROADMAP.md → обновить таблицу статусов US (без Practice)
 git add docs/
 git commit -m "docs: vX.X.0 released"
 ```
 
-> Шаг 3 (`push-release`) уже создаёт PR и мержит ветку в main — дополнительный `git merge` не нужен.
+---
+
+## Достаточность материалов (аудит)
+
+| US | AC | На схеме | Практика | Проверка | Запуск |
+| -- | -- | -------- | -------- | -------- | ------ |
+| … | … | … | … | … | … |
