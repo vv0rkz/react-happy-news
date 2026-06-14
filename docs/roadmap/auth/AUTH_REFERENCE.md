@@ -5,6 +5,7 @@
 
 **Релиз:** [CURRENT_RELEASE.md](../CURRENT_RELEASE.md) — v2.2 Персонализация
 > **Managed auth (US 2.2.13):** [MANAGED_AUTH_ADR.md](./MANAGED_AUTH_ADR.md) — инкремент #6, Decision TBD до 6a. Issue: #74
+> **UI login/register:** отдельные страницы — см. [Research § UI-оболочка](#client-ui-оболочка-loginregister).
 
 **Покрывает US:** 2.2.1, 2.2.4, 2.2.5, 2.2.6, 2.2.13 *(2.2.10 optional custom)*
 **Покрывает вопросы:** Q2, Q3, Q6–Q8, Q25–Q32, Q45, Q50, Q74, FQ3, FQ25, FQ34, FQ37–FQ39, FQ56–FQ58, FQ61–FQ63, FQ66–FQ68
@@ -133,6 +134,34 @@ sequenceDiagram
 | 1 | **RHF + Zod** | 8.2 | **✅** US 2.2.4 |
 | 2 | useState (FeedbackForm) | 6.0 | ❌ |
 
+### Client: UI-оболочка login/register
+
+**Дата решения:** 2026-06-09  
+**Статус:** accepted  
+**Связь со спекой:** US 2.2.4 (`LoginPage`, `RegisterPage`, роуты); US 2.2.5 (`redirect /login`, `state.from`).
+
+**Критерии (вес):** Fit со спекой 25%, Простота 25%, UX 20%, Deep link / refresh 15%, Безопасность 15%.
+
+| # | Подход | UX | Простота | Спека #4–#5 | Deep link | Безопасность | Σ | Вердикт |
+| - | ------ | -- | -------- | ----------- | --------- | ------------ | - | ------- |
+| 1 | **Отдельные страницы** `/login`, `/register` | 7 | **9** | **10** | **10** | **10** | **8.8** | **✅ Выбрано** |
+| 2 | Модалка, URL не меняется | **9** | **9** | 4 | 2 | **10** | 7.4 | ❌ ломает redirect #5 |
+| 3 | Query `?auth=login` на текущей странице | **9** | 8 | 7 | 6 | 9 | 7.8 | ⚠️ переписать AC |
+| 4 | Гибрид `/login` + `state.background` + Modal | **9** | 4 | 8 | 9 | **10** | 7.2 | ⚠️ overkill для US |
+| 5 | Одна страница `/auth` (табы) | 7 | 8 | 8 | 8 | **10** | 7.6 | ⚠️ |
+| 6 | Черновик в URL (`?email=…`) | 5 | 6 | — | 4 | 3 | 4.0 | ❌ пароль в URL — никогда |
+
+**Почему #1:**
+
+1. Совпадает с AC US 2.2.4 и redirect US 2.2.5 без переделки docs.
+2. Один `<Outlet />` — без второго слоя рендера и `state.background`.
+3. `/login` — deep link, предсказуемый refresh (форма заново; пароль не персистим).
+4. Ядро US не меняется: `LoginForm` / `RegisterForm` / RHF / Zod — оболочка только `*Page`.
+
+**Trade-off:** гость уходит с каталога/статьи на отдельный экран (хуже UX, чем модалка). Mantine Modal / Portal — вне scope US 2.2.4.
+
+**Отклонено явно:** пароль (и вообще секреты) в URL; email в URL — спорно, при необходимости черновика → `sessionStorage`, не query.
+
 ### Frontend architecture (без аналогий)
 
 | # | Подход | Σ | Вердикт |
@@ -142,7 +171,7 @@ sequenceDiagram
 | 3 | Flat FSD (features/* для всего) | 6.5 | ❌ boilerplate |
 | 4 | **Unified `components/` + arch:lint** | — | **✅** commit ab66f61 |
 
-**Итог Research:** **Context (UI) + tokenMemory (HTTP) + apiFetch (interceptor) + JWT/httpOnly** — #1 client auth; **Module Map lite** — #1 architecture. См. [ADR-001](../../architecture/ADR-001-frontend-module-map.md).
+**Итог Research:** **Context (UI) + tokenMemory (HTTP) + apiFetch (interceptor) + JWT/httpOnly** — #1 client auth; **Module Map lite** — #1 architecture; **UI login/register:** отдельные страницы `/login`, `/register` — #1 UI-оболочка. См. [ADR-001](../../architecture/ADR-001-frontend-module-map.md).
 
 ---
 

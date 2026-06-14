@@ -21,7 +21,11 @@
 
 - Заголовки: `export function register()`, `export function LoginForm()`, `authRouter.post(...)`.
 - Вложенность заголовков.
+- **Импорты:** строки `import …` / `import type …` **над** экспортом (до `{ }`), по одному import на строку.
+- Для React-компонентов — import map + `export function …` + только `//` внутри тела.
 - Внутри `{ }` — **только** текстовые `//` комментарии.
+
+> Import map не заменяет шаги внутри `{ }` — деструктуризацию из хуков (`register`, `handleSubmit`, `formState`) оставляй комментарием в теле.
 
 ### Нельзя
 
@@ -49,7 +53,14 @@ export function register(email: string, password: string) {
 React-компонент:
 
 ```tsx
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Button, Stack, TextInput } from '@mantine/core'
+import { useAuth } from '@pages/Auth/lib/useAuth'
+import { loginSchema, type LoginFormValues } from '@shared/api/authSchemas'
+import { useForm } from 'react-hook-form'
+
 export function LoginForm() {
+  // const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) })
   // Шаг 1: useForm + zodResolver(loginSchema)
   // Кратко: native form, autocomplete current-password.
   // render: form + email field + password field + submit button
@@ -60,9 +71,18 @@ export function LoginForm() {
 
 ## Practice: тесты
 
-Тот же режим для `*.test.ts` / `*.test.tsx` в секции **«Проверка и тесты → Автотесты»**:
+Тот же режим для `*.test.ts` / `*.test.tsx` в секции **«Проверка и тесты → Автотесты»** — import map над `describe`:
 
 ```typescript
+import { AuthProvider } from '@app/providers/AuthProvider'
+import { server } from '@app/mocks/server'
+import { MantineProvider } from '@mantine/core'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { LoginForm } from './LoginForm'
+
 describe('authService.register', () => {
   it('returns accessToken and stores refresh in db', () => {
     // Arrange: in-memory sqlite или mock db.prepare

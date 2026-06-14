@@ -4,6 +4,7 @@ import {
   postLogin,
   postLogout,
   postRefresh,
+  postRegister,
   type AuthUser,
 } from '@pages/Auth/lib/authApi'
 import { clearAccessToken } from '@shared/api/tokenMemory'
@@ -61,6 +62,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(me)
   }
 
+  async function register(email: string, password: string): Promise<void> {
+    const accessToken = await postRegister(email, password)
+    const me = await establishSession(accessToken)
+    setUser(me)
+  }
+
   async function logout(): Promise<void> {
     try {
       await postLogout()
@@ -77,6 +84,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isLoading,
         isAuthenticated: user !== null,
         login,
+        register,
         logout,
       }}
     >

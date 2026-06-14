@@ -10,6 +10,7 @@ const BASE_URL: string = import.meta.env.VITE_API_BASE_URL
 export const MOCK_ACCESS_TOKEN = 'mock-access'
 export const MOCK_USER = { id: 'mock-id', email: 'mock@example.com' } as const
 const MOCK_REFRESH_COOKIE = 'refreshToken'
+const registeredEmails = new Set<string>([MOCK_USER.email])
 
 function isValidBearer(request: Request): boolean {
   const auth = request.headers.get('Authorization')
@@ -188,6 +189,31 @@ export const handlers = [
     return HttpResponse.json(
       { accessToken: MOCK_ACCESS_TOKEN },
       {
+        headers: {
+          'Set-Cookie': `${MOCK_REFRESH_COOKIE}=mock-refresh; Path=/; HttpOnly; SameSite=Strict`,
+        },
+      },
+    )
+  }),
+
+  http.post(`${BASE_URL}/api/auth/register`, async ({ request }) => {
+    const body = (await request.json()) as { email?: string; password?: string }
+    const email = body.email?.trim().toLowerCase()
+
+    if (!email || !body.password) {
+      return HttpResponse.json({ error: 'Email and password required' }, { status: 400 })
+    }
+
+    if (registeredEmails.has(email)) {
+      return HttpResponse.json({ error: 'Email already registered' }, { status: 409 })
+    }
+
+    registeredEmails.add(email)
+
+    return HttpResponse.json(
+      { accessToken: MOCK_ACCESS_TOKEN },
+      {
+        status: 201,
         headers: {
           'Set-Cookie': `${MOCK_REFRESH_COOKIE}=mock-refresh; Path=/; HttpOnly; SameSite=Strict`,
         },

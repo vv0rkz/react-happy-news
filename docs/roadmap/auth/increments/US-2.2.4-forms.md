@@ -1,11 +1,13 @@
 # US 2.2.4 #3 — Auth Forms (RHF + Zod)
 
+> **Канон:** [CURRENT_RELEASE.md](../../CURRENT_RELEASE.md) § Инкремент #3. **WIP-правки:** [CURRENT_INCREMENT.md](../../CURRENT_INCREMENT.md). Этот файл — зеркало структуры.
+
 **Статус:** `active`  
-**Релиз:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md) — v2.2 Персонализация  
-**Релиз-трекер:** таблица #1–#6 в [CURRENT_RELEASE.md](./CURRENT_RELEASE.md)  
-**Полная спека:** [CURRENT_RELEASE.md](./CURRENT_RELEASE.md) — § Инкремент #3  
-**Справочник:** [auth/AUTH_REFERENCE.md](./auth/AUTH_REFERENCE.md) — §A Module Map  
-**Practice:** [guides/PRACTICE_MODE.md](./guides/PRACTICE_MODE.md)  
+**Релиз:** [CURRENT_RELEASE.md](../../CURRENT_RELEASE.md) — v2.2 Персонализация  
+**Релиз-трекер:** таблица #1–#6 в [CURRENT_RELEASE.md](../../CURRENT_RELEASE.md)  
+**Полная спека:** [CURRENT_RELEASE.md](../../CURRENT_RELEASE.md) — § Инкремент #3  
+**Справочник:** [AUTH_REFERENCE.md](../AUTH_REFERENCE.md) — §A Module Map  
+**Practice:** [PRACTICE_MODE.md](../../guides/PRACTICE_MODE.md)  
 **Issue:** TBD — `npm run _ create-task "US 2.2.4: Auth Forms (RHF + Zod)"`  
 **Предусловие:** US 2.2.1 Session (#2) ✅
 
@@ -44,7 +46,7 @@
 
 ## На схеме
 
-**Мастер-схема:** A — Module Map ([AUTH_REFERENCE §A](./auth/AUTH_REFERENCE.md))
+**Мастер-схема:** A — Module Map ([AUTH_REFERENCE §A](../AUTH_REFERENCE.md))
 
 **В этом US:**
 
@@ -62,7 +64,7 @@
 
 **После US:** UI login/register; submit → `POST /api/auth/*`  
 **Сцена timeline:** Check-in login — POST /login → boarding pass + Set-Cookie  
-**Полная карта:** [AUTH_REFERENCE](./auth/AUTH_REFERENCE.md)
+**Полная карта:** [AUTH_REFERENCE](../AUTH_REFERENCE.md)
 
 | Статус | Фон | Обводка | Текст |
 | ------ | --- | ------- | ----- |
@@ -191,7 +193,7 @@ export type AuthContextValue = {
 
 ## Практика
 
-> Формат: [PRACTICE_MODE.md](./guides/PRACTICE_MODE.md) — import map над экспортом (см. § Импорты); только сигнатуры и `//` комментарии внутри `{ }`.
+> Формат: [PRACTICE_MODE.md](../../guides/PRACTICE_MODE.md) — import map над экспортом (см. § Импорты); только сигнатуры и `//` комментарии внутри `{ }`.
 
 ### Порядок сборки
 
@@ -369,7 +371,7 @@ import { RegisterPage } from '@pages/Auth/components/RegisterPage'
 
 ## Проверка и тесты
 
-> US **не закрывается** без отмеченных `- [ ]` ниже. См. [PRACTICE_MODE.md](./guides/PRACTICE_MODE.md).
+> US **не закрывается** без отмеченных `- [ ]` ниже. См. [PRACTICE_MODE.md](../../guides/PRACTICE_MODE.md).
 
 ### Ручная (обязательно)
 
@@ -469,4 +471,4 @@ git commit -m "feat: #N Auth forms — RHF + Zod + login/register routes"
 
 ## Следующий US
 
-[CURRENT_RELEASE.md](./CURRENT_RELEASE.md) — § Инкремент #4 Protected Routes + Lazy Loading (US 2.2.5)
+[CURRENT_RELEASE.md](../../CURRENT_RELEASE.md) — § Инкремент #4 Protected Routes + Lazy Loading (US 2.2.5)

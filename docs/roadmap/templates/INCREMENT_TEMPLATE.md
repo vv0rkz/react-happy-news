@@ -102,7 +102,7 @@ export function example(input: string): Promise<Example>
 
 ## Практика
 
-> Формат: [PRACTICE_MODE.md](../guides/PRACTICE_MODE.md) — только сигнатуры и `//` комментарии внутри `{ }`.
+> Формат: [PRACTICE_MODE.md](../guides/PRACTICE_MODE.md) — import map над экспортом (см. § Импорты); только сигнатуры и `//` комментарии внутри `{ }`.
 
 ### Порядок сборки
 
@@ -163,6 +163,9 @@ pnpm --filter … add …
 // …
 
 // ====== НОВЫЙ/ИЗМЕНЁННЫЙ БЛОК US X.X.X ======
+import { something } from 'npm-package'
+import { helper } from '@shared/api/helper'
+
 export function example() {
   // Шаг 1: …
   // Кратко: …
@@ -170,6 +173,26 @@ export function example() {
 ```
 
 **Подводный камень:** …
+
+### React-компонент (с import map)
+
+| Слой | Пример |
+| ---- | ------ |
+| npm deps | `react-hook-form`, `@hookform/resolvers/zod` |
+| shared | `@shared/api/…` |
+| pages/features | `@pages/…` / `@features/…` |
+| app | `@app/providers/…` |
+
+```tsx
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
+import { loginSchema, type LoginFormValues } from '@shared/api/authSchemas'
+
+export function ExampleForm() {
+  // const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) })
+  // Шаг 1: …
+}
+```
 
 ---
 
@@ -191,6 +214,12 @@ export function example() {
 - [ ] `path/file.test.ts` — что assert'ит
 
 ```typescript
+import { MantineProvider } from '@mantine/core'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { ExampleForm } from './ExampleForm'
+
 describe('…', () => {
   it('…', () => {
     // Arrange / Act / Assert — комментариями

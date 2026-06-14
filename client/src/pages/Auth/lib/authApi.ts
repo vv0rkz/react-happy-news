@@ -1,12 +1,22 @@
-import { setAccessToken } from '@shared/api/tokenMemory'
 import { apiFetch } from '@shared/api/apiFetch'
 import { AUTH_API_PATHS } from '@shared/api/authPaths'
+import { setAccessToken } from '@shared/api/tokenMemory'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 export type AuthUser = { id: string; email: string }
 
 type AccessTokenResponse = { accessToken: string }
+
+export class AuthApiError extends Error {
+  status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'AuthApiError'
+    this.status = status
+  }
+}
 
 export async function postRefresh(): Promise<AccessTokenResponse | null> {
   const res = await fetch(`${BASE_URL}${AUTH_API_PATHS.refresh}`, {
@@ -41,6 +51,27 @@ export async function postLogin(email: string, password: string): Promise<string
 
   if (!body.accessToken) {
     throw new Error('Login failed')
+  }
+
+  return body.accessToken
+}
+
+export async function postRegister(email: string, password: string): Promise<string> {
+  const res = await fetch(`${BASE_URL}${AUTH_API_PATHS.register}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  })
+
+  const body = (await res.json().catch(() => ({}))) as { accessToken?: string; error?: string }
+
+  if (!res.ok) {
+    throw new AuthApiError(body.error ?? 'Register failed', res.status)
+  }
+
+  if (!body.accessToken) {
+    throw new AuthApiError('Register failed', res.status)
   }
 
   return body.accessToken

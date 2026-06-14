@@ -3,6 +3,8 @@ import { APP_ROUTES } from '@shared/config/routes'
 import { App } from './App'
 import { Main } from '@pages/Main'
 import { NewsDetail } from '@pages/NewsDetail'
+import { LoginPage } from '@pages/Auth/components/LoginPage'
+import { RegisterPage } from '@pages/Auth/components/RegisterPage'
 
 export const router = createBrowserRouter([
   {
@@ -11,6 +13,8 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Main /> },
       { path: APP_ROUTES.NewsDetail, element: <NewsDetail /> },
+      { path: APP_ROUTES.login, element: <LoginPage /> },
+      { path: APP_ROUTES.register, element: <RegisterPage /> },
     ],
   },
 ])

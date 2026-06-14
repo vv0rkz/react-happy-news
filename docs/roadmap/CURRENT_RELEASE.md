@@ -465,7 +465,7 @@ git commit -m "feat: #N auth backend — schema, authService, routes, rate-limit
 
 ### Инкремент #3: Auth Forms (US 2.2.4) — Auth Forms (RHF + Zod)
 
-**Статус:** `pending`  
+**Статус:** `active` — WIP в [CURRENT_INCREMENT.md](./CURRENT_INCREMENT.md)  
 **Issue:** TBD  
 **Предусловие:** US 2.2.1 Client Session ✅
 
